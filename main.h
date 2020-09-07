@@ -3,26 +3,30 @@
 //
 
 #define cool_dim 2
-#define qhull_dim 3
 
-#define n_points 258
-#define n_points 5
+#define n_points 239
+#define n_simplices 452
 
 #ifndef MASTER_PROJECT_C_PART_MAIN_H
 #define MASTER_PROJECT_C_PART_MAIN_H
 
 #endif //MASTER_PROJECT_C_PART_MAIN_H
 
-typedef struct tri tri_t;
-struct tri {
+typedef struct simplex simplex_t;
+struct simplex {
     // Hierarchical triangle element representing a triangle from the Delaunay building process
-    tri_t * children[3];        // Array of pointers to tris; Each triangle element has up to three children
-    int points[cool_dim+1];     // Indices of the points of the tri
-    int final;                  // Nonzero if this tri is part of the final triangulation
+    int points[cool_dim+1];             // Indices of the points of the simplex
+    simplex_t * neighbors[cool_dim+1];  // The ith neighbor is the neighbor opposite of the ith vertex
 
+    // For use in ball tree algorithm
+    double centroid[cool_dim];
+    double btree_radius_sq;
+    simplex_t * lchild;
+    simplex_t * rchild;
+    int part_of_tree;
 };
 
-typedef struct qfacet qfacet_t;
+/*typedef struct qfacet qfacet_t;
 struct qfacet {
     int points[qhull_dim];                  // points that make up the facet
     qfacet_t * neighbors[qhull_dim+1];      // Neighboring facets
@@ -32,9 +36,11 @@ struct qfacet {
                                             // TODO Should probably be a really long bit vector but i cant be bothered
     int outside_empty;                      // 1 if outside is filled with 0s, otherwise 0
     int in_visible, visited;                // Flags for algorithm
-};
+};*/
 
-int contains(tri_t*, const double*, int);   // Checks if tri contains point
+int contains(simplex_t*, const double*, int);   // Checks if simplex contains point
 void invert_matrix(double*, int);
-void calculate_normal(qfacet_t*, double*, int, int);
-double signed_dist_to_facet(qfacet_t*, double*, int);
+//void calculate_normal(qfacet_t*, double*, int, int);
+//double signed_dist_to_facet(qfacet_t*, double*, int);
+
+simplex_t * build_ball_tree(int, simplex_t**);

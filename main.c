@@ -7,35 +7,62 @@
 #include <stdlib.h>
 #include <math.h>
 #include <assert.h>
+#include <float.h>
 
 int main() {
-    // T, nH, Values
-    double points[n_points][cool_dim+1] = {
-            {0, 1, 12},
-            {1, 0, 34},
-            {0, 0, 13},
-            {0, 0.5, 34},
-            {2, 3, 34},
-    };
-    tri_t tri1;
-    tri1.points[0] = 0;
-    tri1.points[1] = 1;
-    tri1.points[2] = 2;
+    double * points     = (double*)malloc(n_points * (cool_dim+1) * sizeof(double));
+//    int * triangulation = (int*)   malloc(n_simplices * (cool_dim+1) * sizeof(int));
+    int st_s = sizeof(simplex_t);
+    // Pointer to "array" of pointers to simplices
+    simplex_t ** triangulation = (simplex_t**)malloc(n_simplices * sizeof(simplex_t *));
 
-    int dummy = 0;
-    dummy = contains(&tri1, &points[0][0], 3);
-//    FILE * f = fopen("../data.csv", "r");
-//    if (f == NULL) {
-//        perror("failed: ");
-//        return 1;
-//    }
-//    for (int i = 0; i < n_points; i++) {
-//        fscanf(f, "%lf,%lf,%lf\n", &points[i][0], &points[i][1], &points[i][2]);
-//    }
-//
-//    for (int i = 0; i < n_points; i++) {
-//        printf("%f %f %f\n", points[i][0], points[i][1], points[i][2]);
-//    }
+    // TODO: File reading as generic function (dynamic input size)
+    // TODO: Do not require file line number as input. realloc?
+    FILE * f = fopen("../data.csv", "r");
+
+    // Read points
+    if (f == NULL) {
+        perror("Error opening file data.csv: ");
+        return 1;
+    }
+    for (int i = 0; i < n_points; i++) {
+        fscanf(f, "%lf,%lf,%lf\n", points + i*(cool_dim+1), points + i*(cool_dim+1) + 1, points + i*(cool_dim+1) + 2);
+    }
+
+    for (int i = 0; i < n_points; i++) {
+        printf("%f %f %f\n", *(points + i*(cool_dim+1)), *(points + i*(cool_dim+1) + 1), *(points + i*(cool_dim+1) + 2));
+    }
+
+    int close = fclose(f);
+    if (close != 0) {
+        perror("Error closing file data.csv: ");
+        return 1;
+    }
+
+    // Read Triangulation
+    f = fopen("../dtriangulation", "r");
+    if (f == NULL) {
+        perror("Error opening file dtriangulation: ");
+        return 1;
+    }
+    for (int i = 0; i < n_points; i++) {
+        simplex_t * new_simplex = (simplex_t*)malloc(sizeof(simplex_t)); // TODO free
+        fscanf(f, "%d %d %d\n", new_simplex->points, new_simplex->points + 1, new_simplex->points + 2);
+
+        for (int j = 0; j < cool_dim; j++) {
+            new_simplex->centroid[j] = 0;
+            new_simplex->part_of_tree = 0;
+
+            for (int k = 0; k < cool_dim+1; k++) {
+                new_simplex->centroid[j] += *(points + (cool_dim+1) * new_simplex->points[k] + j);
+            }
+
+            new_simplex->centroid[j] /= (cool_dim+1);
+            *(triangulation + i*sizeof(simplex_t*)) = new_simplex;
+        }
+    }
+
+    simplex_t * root = build_ball_tree(n_simplices, triangulation);
 
     return 0;
 
@@ -55,6 +82,117 @@ int main() {
         printf("\n");
     }
     return 0;
+}
+
+simplex_t * build_ball_tree(int N, simplex_t ** triangulation) {
+    /*
+     * https://en.wikipedia.org/wiki/Ball_tree#k-d_Construction_Algorithm
+     * N                number of simplices left
+     * triangulation    Array of pointers to simplices
+     *
+     * A lot of the issues in this function are redundant and could be merged, but I don't think it will be an issue.
+     */
+
+    // Single point?
+    assert(N > 0);
+    if (N == 1) {
+        (*(triangulation))->btree_radius_sq = 0;
+        (*(triangulation))->lchild = NULL;
+        (*(triangulation))->rchild = NULL;
+        return (*(triangulation));
+    }
+
+    // N > 1
+    // Find dimension of greatest spread
+    double largest_spread = -1;
+    int spread_dim = -1;
+    double spread_dim_min = -1;
+    for (int i = 0; i < cool_dim; i++) {
+        double dim_min = 0, dim_max = 0, spread = 0;
+        for (int j = 0; j < N; j++) {
+            double val = (*(triangulation + j * sizeof(simplex_t*)))->centroid[i];
+            if (val > dim_max) {
+                dim_max = val;
+            } else if (val < dim_min) {
+                dim_min = val;
+            }
+        }
+
+        spread = dim_max - dim_min;
+        if (spread > largest_spread) {
+            largest_spread = spread;
+            spread_dim = i;
+            spread_dim_min = dim_min;
+        }
+    }
+    assert(largest_spread != -1 && spread_dim != -1 && spread_dim_min != -1);
+
+    // Find midpoint - point closest to average, i.e. dim_min + 0.5 * spread
+    double avg = spread_dim_min + 0.5 * largest_spread;
+    double min_dist = DBL_MAX;
+    int min_dist_index = -1;
+    for (int i = 0; i < N; i++) {
+        double val = (*(triangulation + i * sizeof(simplex_t*)))->centroid[spread_dim];
+        double dist = fabs(avg - val);
+
+        if (dist < min_dist) {
+            min_dist = dist;
+            min_dist_index = i;
+        }
+    }
+    assert(min_dist_index != -1 && min_dist != DBL_MAX);
+    simplex_t * pivot_addr = *(triangulation + min_dist_index * sizeof(simplex_t*));
+
+    // Find sets of simplices to the left and right of the midpoint along spread dimension
+    simplex_t ** L = (simplex_t **)malloc(N*sizeof(simplex_t*));
+    simplex_t ** R = (simplex_t **)malloc(N*sizeof(simplex_t*));
+    int lcount = 0;
+    int rcount = 0;
+
+    for (int i = 0; i < N; i++) {
+        simplex_t * addr = *(triangulation + i*sizeof(simplex_t*));
+        if (addr->centroid[spread_dim] < avg) {
+            *(L + lcount * sizeof(simplex_t*)) = addr;
+            lcount++;
+        } else if (addr->centroid[spread_dim] > avg) {
+            *(R + rcount * sizeof(simplex_t*)) = addr;
+            rcount++;
+        }
+    }
+
+    // Recursion
+    if (lcount > 0) {
+        pivot_addr->lchild = build_ball_tree(lcount, L);
+    } else {
+        pivot_addr->lchild = NULL;
+    }
+    if (rcount > 0) {
+        pivot_addr->rchild = build_ball_tree(rcount, R);
+    } else {
+        pivot_addr->rchild = NULL;
+    }
+
+    // Find (square of) radius of the ball of current element
+    // Note that unlike min_dist, which is only in the spread dimension, this is in the full space!
+    double max_dist = 0;
+    for (int i = 0; i < N; i++) {
+        double dist = 0;
+
+        for (int j = 0; j < cool_dim; j++) {
+//            dist += pow(pivot_addr->centroid[j] - (*(triangulation + i*sizeof(simplex_t*)))->centroid[i], 2);
+            dist += (pivot_addr->centroid[j] - (*(triangulation + i*sizeof(simplex_t*)))->centroid[i]) * (pivot_addr->centroid[j] - (*(triangulation + i*sizeof(simplex_t*)))->centroid[i]);
+        }
+
+        if (dist > max_dist) {
+            max_dist = dist;
+        }
+    }
+
+    assert(max_dist > 0);
+
+    pivot_addr->btree_radius_sq = max_dist;
+
+    return pivot_addr;
 }
 
 void invert_matrix(double* matrix, int N) {
@@ -207,9 +345,9 @@ void solve_linear(double* matrix, double* vector, int N) {
 }
 
 
-int contains(tri_t * tri, const double * points, int pt_idx) {
+int contains(simplex_t * tri, const double * points, int pt_idx) {
     /*
-     * Check if point in points at index pt_index is contained by tri_t tri.
+     * Check if point in points at index pt_index is contained by simplex_t simplex.
      * Return 1 if true.
      * Return -1 if false.
      *
@@ -292,221 +430,57 @@ int contains(tri_t * tri, const double * points, int pt_idx) {
 }
 
 
-void qhull(double * points, int N, int d) {
-    /*
-     * https://www.researchgate.net/publication/2641780_The_QuickHull_Algorithm_for_Convex_Hulls
-     */
-    int * unassigned_points = (int*)calloc(N, sizeof(int));
-    for (int i = 0; i < N; i++) {
-        unassigned_points[i] = 1;
-    }
-
-    int qft_s = sizeof(qfacet_t);   // qfacet_t size
-    int facet_count = d + 1;        // start out with enough facets to build one simplex
-    qfacet_t * hull = malloc(facet_count * qft_s);
-
-    int * init_points = malloc((d+1)*sizeof(int));
-
-    // 1. Create simplex of d+1 points
-    // TODO select points with lowest/largest coordinates; for now just take the first few. DEGENERATE!
-    // a) Select points
-    for (int i = 0; i < d+1; i++) {
-        init_points[i] = i;
-    }
-
-    // b) Build facets
-    // TODO Build "constructor" function
-    for (int i = 0; i < d+1; i++) {
-        qfacet_t new_facet;
-        // Each initial facet is made up of all initial points except one
-        for (int j = 0; j < d; j++) {
-            new_facet.points[j] = j < i ? init_points[j] : init_points[j+1];
-        }
-        // Initialize hash table of outside points to zeros
-        for (int j = 0; j < N; j++) {
-            new_facet.outside[j] = 0;
-        }
-        new_facet.outside_empty = 1;
-        new_facet.visited = 0;
-        new_facet.in_visible = 0;
-        *(hull + i*qft_s) = new_facet;
-    }
-
-    // c) Link facets and calculate their normals
-    // All initial facets are neighbors
-    for (int i = 0; i < d+1; i++) {
-        for (int j = 0; j < d+1; j++) {
-            *(hull + i*qft_s)->neighbors[j] = j < i ? *(hull + j * qft_s) : *(hull + (j+1) * qft_s);
-        }
-
-        calculate_normal(hull + i*qft_s, points, N, d);
-        // TODO: Verify normal points outwards
-    }
-
-    // 2. for each facet F
-    for (int i = 0; i < d+1; i++) {
-        // 2.1 for each unassigned point p
-        for (int j = 0; j < N; j++) {
-            // 2.2 if p is above F
-            // "Above" if the signed distance is positive - dot product of plane normal with point;
-            // equivalent to projection of point vector on normal vector
-            double signed_dist = signed_dist_to_facet((hull + qft_s*i), (points + j*d), d);
-            if (signed_dist > 0) {
-                // 2.3 assign p to Fs outside set
-                unassigned_points[j] = 0;
-                (hull + qft_s*i)->outside[j] = 1;
-                (hull + qft_s*i)->outside_empty = 0;
-            }
-        }
-    }
-
-    // 3. for each facet F with a non-empty outside set
-    for (;;) {
-        // Find a facet with a non empty outside set
-        qfacet_t curr_facet;
-        int curr_facet_exists = 0;
-        for (int i = 0; i < facet_count; i++) {
-            if ((hull + i*qft_s)->outside_empty == 0) {
-                curr_facet = *(hull + i*qft_s);
-                curr_facet_exists = 1;
-                break;
-            }
-        }
-        if (curr_facet_exists == 0) {
-            break;
-        }
-
-        // 3.1 select the furthest point p of Fs outside set
-        double largest_dist = 0;
-        int largest_dist_index = -1;
-        for (int i = 0; i < N; i++) {
-            if (curr_facet.outside[i] == 1) {
-                double signed_dist = signed_dist_to_facet(&curr_facet, (points + i*d), d);
-                assert(signed_dist > 0);
-                if (signed_dist > largest_dist) {
-                    largest_dist = signed_dist;
-                    largest_dist_index = i;
-                }
-            }
-        }
-        assert(largest_dist_index != -1);
-
-        // 3.2 initialize the visible set V to F (array of pointers to structs)
-        // The maximum number of visible simplices is all simplices minus 1
-        qfacet_t ** visible = (qfacet_t **)malloc(facet_count * sizeof(qfacet_t *));
-        int visible_count = 1;      // The actual number of visible simplices
-
-        // The current facet is always visible
-        visible[0] = &curr_facet;
-
-        // 3.3 for all unvisited neighbors N of facets in V
-        for (;;) {
-            int new_visible_this_iteration = 0;
-            // For all unvisited visible facets
-            for (int i = 0; i < visible_count; i++) {
-                if (visible[i]->visited == 1) {
-                    continue;
-                }
-                visible[i]->visited = 1;
-
-                // Determine for all neighbors not yet in "visible" if they are visible,
-                // and if yes, add them to visible. They are unvisited
-                for (int j = 0; j < qhull_dim+1; j++) {
-                    if (visible[i]->neighbors[j]->in_visible == 1) {
-                        continue;
-                    }
-                    // TODO: Can further improve this by keeping track of not-visible facets, but i *really* dont care rn
-                    double signed_dist = signed_dist_to_facet(
-                        visible[i]->neighbors[j],
-                        (points + d*largest_dist_index),
-                        d
-                    );
-
-                    // 3.3.1 if p is above N
-                    if (signed_dist > 0) {
-                        // 3.3.2 add N to V
-                        visible[visible_count + new_visible_this_iteration + 1] = visible[i]->neighbors[j];
-                        visible[i]->neighbors[j]->in_visible = 1;
-                        new_visible_this_iteration++;
-                    }
-                }
-            }
-
-            if (new_visible_this_iteration == 0) {
-                break;
-            }
-            visible_count += new_visible_this_iteration;
-        }
-
-        // 3.4 the boundary of V is the set of horizon ridges H
-        // horizon ridge = ridge across which the neighbor is not visible
-        qfacet_t * new_facets = (qfacet_t*)malloc(1000*qft_s);  // TODO how much memory do i need?
-        for (int i = 0; i < visible_count; i++) {
-            for (int j = 0; j < qhull_dim+1; j++) {
-                if
-            }
-        }
-    }
-
-        // for each ridge R in H
-            // create a new facet from R and p
-            // link the new facet to its neighbors
-        // for each new facet F'
-            // for each unassigned point q in an outside set of a facet in V
-                // if q is above F'
-        // delete the facets in V
-}
-
-
-double signed_dist_to_facet(qfacet_t * qf, double * p, int d) {
-    /*
-     * calculate signed distance from facet struct to point found at pointer p. in space of dimension d
-     */
-    // Note that plane offset needs to be taken into account. (Draw a diagram)
-    // Since its a plane, ANY point will work as offset, so i just use the first of the facet
-    // TODO: Verify
-    double * subtr;
-    for (int k = 0; k < d; k++) {
-        subtr[k] = p[k] - qf->points[0];
-    }
-
-    double signed_dist = 0;
-    for (int k = 0; k < d; k++) {
-        signed_dist += subtr[k] * qf->normal[k];
-    }
-
-    return signed_dist;
-}
-
-
-// TODO N and d mean different things here than in the other function, unify
-void calculate_normal(qfacet_t * qf, double * points, int N, int d) {
-    /*
-     * Calculate normal of a qfacet
-     * https://math.stackexchange.com/a/3398303
-     *
-     */
-    // Build matrix
-    double * matrix = (double*)calloc(N*N, sizeof(double));
-
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
-            *(matrix + N*i + j) = *(points + d*qf->points[i] + j);
-        }
-
-        qf->normal[i] = 1;
-    }
-
-    solve_linear(&matrix[0], &qf->normal[0], N);
-
-    double length = 0;
-    for (int i = 0; i < N; i++) {
-        length += qf->normal[i] * qf->normal[i];
-    }
-    length = sqrt(length);
-    for (int i = 0; i < N; i++) {
-        qf->normal[i] /= length;
-    }
-}
+//
+//// Note: I'm keeping these outdated functions around in case they become useful at some point
+//double signed_dist_to_facet(qfacet_t * qf, double * p, int d) {
+//    /*
+//     * calculate signed distance from facet struct to point found at pointer p. in space of dimension d
+//     */
+//    // Note that plane offset needs to be taken into account. (Draw a diagram)
+//    // Since its a plane, ANY point will work as offset, so i just use the first of the facet
+//    // TODO: Verify
+//    double * subtr;
+//    for (int k = 0; k < d; k++) {
+//        subtr[k] = p[k] - qf->points[0];
+//    }
+//
+//    double signed_dist = 0;
+//    for (int k = 0; k < d; k++) {
+//        signed_dist += subtr[k] * qf->normal[k];
+//    }
+//
+//    return signed_dist;
+//}
+//
+//
+//// TODO N and d mean different things here than in the other function, unify
+//void calculate_normal(qfacet_t * qf, double * points, int N, int d) {
+//    /*
+//     * Calculate normal of a qfacet
+//     * https://math.stackexchange.com/a/3398303
+//     *
+//     */
+//    // Build matrix
+//    double * matrix = (double*)calloc(N*N, sizeof(double));
+//
+//    for (int i = 0; i < N; i++) {
+//        for (int j = 0; j < N; j++) {
+//            *(matrix + N*i + j) = *(points + d*qf->points[i] + j);
+//        }
+//
+//        qf->normal[i] = 1;
+//    }
+//
+//    solve_linear(&matrix[0], &qf->normal[0], N);
+//
+//    double length = 0;
+//    for (int i = 0; i < N; i++) {
+//        length += qf->normal[i] * qf->normal[i];
+//    }
+//    length = sqrt(length);
+//    for (int i = 0; i < N; i++) {
+//        qf->normal[i] /= length;
+//    }
+//}
 
 
