@@ -8,10 +8,11 @@
 #include <math.h>
 #include <assert.h>
 #include <float.h>
+#include <string.h>
+
 
 int main() {
     double * points     = (double*)malloc(n_points * (cool_dim+1) * sizeof(double));
-//    int * triangulation = (int*)   malloc(n_simplices * (cool_dim+1) * sizeof(int));
     int st_s = sizeof(simplex_t);
     // Pointer to "array" of pointers to simplices
     simplex_t ** triangulation = (simplex_t**)malloc(n_simplices * sizeof(simplex_t *));
@@ -29,10 +30,6 @@ int main() {
         fscanf(f, "%lf,%lf,%lf\n", points + i*(cool_dim+1), points + i*(cool_dim+1) + 1, points + i*(cool_dim+1) + 2);
     }
 
-    for (int i = 0; i < n_points; i++) {
-        printf("%f %f %f\n", *(points + i*(cool_dim+1)), *(points + i*(cool_dim+1) + 1), *(points + i*(cool_dim+1) + 2));
-    }
-
     int close = fclose(f);
     if (close != 0) {
         perror("Error closing file data.csv: ");
@@ -45,13 +42,12 @@ int main() {
         perror("Error opening file dtriangulation: ");
         return 1;
     }
-    for (int i = 0; i < n_points; i++) {
-        simplex_t * new_simplex = (simplex_t*)malloc(sizeof(simplex_t)); // TODO free
+    for (int i = 0; i < n_simplices; i++) {
+        simplex_t * new_simplex = (simplex_t*)malloc(sizeof(simplex_t));
         fscanf(f, "%d %d %d\n", new_simplex->points, new_simplex->points + 1, new_simplex->points + 2);
 
         for (int j = 0; j < cool_dim; j++) {
             new_simplex->centroid[j] = 0;
-            new_simplex->part_of_tree = 0;
 
             for (int k = 0; k < cool_dim+1; k++) {
                 new_simplex->centroid[j] += *(points + (cool_dim+1) * new_simplex->points[k] + j);
@@ -60,31 +56,150 @@ int main() {
             new_simplex->centroid[j] /= (cool_dim+1);
             *(triangulation + i*sizeof(simplex_t*)) = new_simplex;
         }
+
     }
 
-    simplex_t * root = build_ball_tree(n_simplices, triangulation);
+    simplex_t ** tricopy = malloc(n_simplices*sizeof(simplex_t*));
+    memcpy(tricopy, triangulation, n_simplices*sizeof(simplex_t*));
+    for (int i = 0; i < n_simplices; i++) {
+        printf("%i\n", i);
+        assert(*(tricopy + i*sizeof(simplex_t*)) == *(triangulation + i*sizeof(simplex_t*)));
+    }
+    return 0;
+
+    simplex_t * root = build_ball_tree_debug(n_simplices, triangulation, 0);
 
     return 0;
 
-    int N = 2;
-    int count = 1;
-    double matrix[2][2] = {
-            {-1.25, 1.25},
-            {-2., -1.5}
-    };
 
-    invert_matrix(&matrix[0][0], N);
+    // Old, ignore:
+//    int N = 2;
+//    int count = 1;
+//    double matrix[2][2] = {
+//            {-1.25, 1.25},
+//            {-2., -1.5}
+//    };
+//
+//    invert_matrix(&matrix[0][0], N);
+//
+//    for (int i = 0; i < N; i++) {
+//        for (int j = 0; j < N; j++) {
+//            printf("%f ", matrix[i][j]);
+//        }
+//        printf("\n");
+//    }
+//    return 0;
+}
+
+simplex_t * build_ball_tree_debug(int N, simplex_t ** triangulation, int depth) {
+    depth++;
+
+    // Single point?
+    assert(N > 0);
+    if (N == 1) {
+        (*(triangulation))->btree_radius_sq = 0;
+        (*(triangulation))->lchild = NULL;
+        (*(triangulation))->rchild = NULL;
+        return (*(triangulation));
+    }
+
+    // N > 1
+    // Find dimension of greatest spread
+    double largest_spread = -1;
+    int spread_dim = 1;
+    double avg = 0.1;
+    double min_dist = DBL_MAX;
+    int pivot_index = -1;
+    for (int i = 0; i < N; i++) {
+        double val = (*(triangulation + i * sizeof(simplex_t*)))->centroid[spread_dim];
+        double dist = fabs(avg - val);
+
+        if (dist < min_dist) {
+            min_dist = dist;
+            pivot_index = i;
+//            printf("New midpoint: %i\n", pivot_index);
+        }
+    }
+    assert(pivot_index != -1 && min_dist != DBL_MAX);
+    simplex_t * pivot_addr = *(triangulation + pivot_index * sizeof(simplex_t*));
+
+    // Find sets of simplices to the left and right of the midpoint along spread dimension
+    simplex_t ** tcopy = (simplex_t**)malloc(N*sizeof(simplex_t*));
+    memcpy(tcopy, triangulation, N*sizeof(simplex_t*));
+    simplex_t ** L = (simplex_t **)malloc(N*sizeof(simplex_t*));
+    simplex_t ** R = (simplex_t **)malloc(N*sizeof(simplex_t*));
+    int lcount = 0;
+    int rcount = 0;
 
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
-            printf("%f ", matrix[i][j]);
+            if (i != j) {
+//                printf("depth %i i %i j %i\n", depth, i, j);
+                assert(*(triangulation + i*sizeof(simplex_t*)) != *(triangulation + j*sizeof(simplex_t*)));
+            }
         }
-        printf("\n");
     }
-    return 0;
+    for (int i = 0; i < N; i++) {
+        printf("%i %i\n", depth, i);
+        assert(*(triangulation + i*sizeof(simplex_t*)) == *(tcopy + i*sizeof(simplex_t*)));
+    }
+
+    for (int i = 0; i < N; i++) {
+        simplex_t * addr = *(triangulation + i*sizeof(simplex_t*));
+
+//        for (int j = 0; j <N; j++) {
+//            printf("%i %p ", j, (void*)*(triangulation + j*sizeof(simplex_t*)));
+//        }
+//        printf("\n");
+//        printf("%i %i %i %i %p\n", depth, i, lcount, rcount, (void*)*(triangulation + 106*sizeof(simplex_t*)));
+        for (int j = 0; j < N; j++) {
+            if (i != j) {
+//                printf("%i %i %i %p %p\n", depth, i, j, (void*)addr, (void*)*(triangulation + j*sizeof(simplex_t*)));
+//                printf("%i %i %i \n", depth, i, j );
+                if (addr == *(triangulation + j*sizeof(simplex_t*))) {
+                    printf("222 %i %i\n", i, j);
+                }
+                assert(addr != *(triangulation + j*sizeof(simplex_t*)));
+            } else {
+                assert(addr == *(triangulation + i*sizeof(simplex_t*)));
+            }
+        }
+
+        if (i == pivot_index)
+            continue;
+
+        if (addr->centroid[spread_dim] <= avg) {    // If in doubt left side - TODO: Problem?
+            *(L + lcount * sizeof(simplex_t*)) = addr;
+            lcount++;
+        } else if (addr->centroid[spread_dim] > avg) {
+            *(R + rcount * sizeof(simplex_t*)) = addr;
+            rcount++;
+        }
+    }
+
+    printf("lc %i rc %i N %i\n", lcount, rcount, N);
+    assert(lcount + rcount + 1 == N);
+//    printf("lcount: %i , rcount: %i\n", lcount, rcount);
+
+    // Recursion
+    if (lcount > 0) {
+        printf("Recursing at %i into L (%i)\n", depth, lcount);
+        pivot_addr->lchild = build_ball_tree_debug(lcount, L, depth);
+    } else {
+        pivot_addr->lchild = NULL;
+    }
+    if (rcount > 0) {
+        printf("Recursing at %i into R (%i)\n", depth, rcount);
+        pivot_addr->rchild = build_ball_tree_debug(rcount, R, depth);
+    } else {
+        pivot_addr->rchild = NULL;
+    }
+    printf("Finished at %i\n", depth);
+
+    return pivot_addr;
 }
 
-simplex_t * build_ball_tree(int N, simplex_t ** triangulation) {
+simplex_t * build_ball_tree(int N, simplex_t ** triangulation, int depth) {
     /*
      * https://en.wikipedia.org/wiki/Ball_tree#k-d_Construction_Algorithm
      * N                number of simplices left
@@ -92,6 +207,11 @@ simplex_t * build_ball_tree(int N, simplex_t ** triangulation) {
      *
      * A lot of the issues in this function are redundant and could be merged, but I don't think it will be an issue.
      */
+    depth++;
+
+//    for (int i = 0; i < N; i++) {
+//        printf("%p\n", *(triangulation + i*sizeof(simplex_t*)));
+//    }
 
     // Single point?
     assert(N > 0);
@@ -106,14 +226,17 @@ simplex_t * build_ball_tree(int N, simplex_t ** triangulation) {
     // Find dimension of greatest spread
     double largest_spread = -1;
     int spread_dim = -1;
-    double spread_dim_min = -1;
+    double spread_dim_min = DBL_MAX;
+    double spread_dim_max = -1*DBL_MAX;
     for (int i = 0; i < cool_dim; i++) {
-        double dim_min = 0, dim_max = 0, spread = 0;
+        double dim_min = DBL_MAX, dim_max = -1*DBL_MAX, spread = 0;
         for (int j = 0; j < N; j++) {
             double val = (*(triangulation + j * sizeof(simplex_t*)))->centroid[i];
+//            printf("val %i : %lf\n", j, val);
             if (val > dim_max) {
                 dim_max = val;
-            } else if (val < dim_min) {
+            }
+            if (val < dim_min) {
                 dim_min = val;
             }
         }
@@ -123,25 +246,34 @@ simplex_t * build_ball_tree(int N, simplex_t ** triangulation) {
             largest_spread = spread;
             spread_dim = i;
             spread_dim_min = dim_min;
+            spread_dim_max = dim_max;
         }
     }
     assert(largest_spread != -1 && spread_dim != -1 && spread_dim_min != -1);
 
+//    printf("Largest spread: %lf, dimension: %i\n", largest_spread, spread_dim);
+//    printf("Largest spread: %lf\n", largest_spread);
+//    printf("Spread dim: %i\n", spread_dim);
+//    printf("Spread dim min: %lf\n", spread_dim_min);
+//    printf("Spread dim max: %lf\n", spread_dim_max);
+
     // Find midpoint - point closest to average, i.e. dim_min + 0.5 * spread
     double avg = spread_dim_min + 0.5 * largest_spread;
+//    printf("avg %lf \n", avg);
     double min_dist = DBL_MAX;
-    int min_dist_index = -1;
+    int pivot_index = -1;
     for (int i = 0; i < N; i++) {
         double val = (*(triangulation + i * sizeof(simplex_t*)))->centroid[spread_dim];
         double dist = fabs(avg - val);
 
         if (dist < min_dist) {
             min_dist = dist;
-            min_dist_index = i;
+            pivot_index = i;
+//            printf("New midpoint: %i\n", pivot_index);
         }
     }
-    assert(min_dist_index != -1 && min_dist != DBL_MAX);
-    simplex_t * pivot_addr = *(triangulation + min_dist_index * sizeof(simplex_t*));
+    assert(pivot_index != -1 && min_dist != DBL_MAX);
+    simplex_t * pivot_addr = *(triangulation + pivot_index * sizeof(simplex_t*));
 
     // Find sets of simplices to the left and right of the midpoint along spread dimension
     simplex_t ** L = (simplex_t **)malloc(N*sizeof(simplex_t*));
@@ -150,8 +282,38 @@ simplex_t * build_ball_tree(int N, simplex_t ** triangulation) {
     int rcount = 0;
 
     for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            if (i != j) {
+//                printf("depth %i i %i j %i\n", depth, i, j);
+                assert(*(triangulation + i*sizeof(simplex_t*)) != *(triangulation + j*sizeof(simplex_t*)));
+            }
+        }
+    }
+
+    for (int i = 0; i < N; i++) {
         simplex_t * addr = *(triangulation + i*sizeof(simplex_t*));
-        if (addr->centroid[spread_dim] < avg) {
+
+//        for (int j = 0; j <N; j++) {
+//            printf("%i %p ", j, (void*)*(triangulation + j*sizeof(simplex_t*)));
+//        }
+//        printf("\n");
+        printf("%i %i %i %i %p\n", depth, i, lcount, rcount, (void*)*(triangulation + 106*sizeof(simplex_t*)));
+        for (int j = 0; j < N; j++) {
+            if (i != j) {
+//                printf("%i %i %i %p %p\n", depth, i, j, (void*)addr, (void*)*(triangulation + j*sizeof(simplex_t*)));
+//                printf("%i %i %i \n", depth, i, j );
+                if (addr == *(triangulation + j*sizeof(simplex_t*))) {
+                    printf("%i %i\n", i, j);
+                }
+                assert(addr != *(triangulation + j*sizeof(simplex_t*)));
+            } else {
+                assert(addr == *(triangulation + i*sizeof(simplex_t*)));
+            }
+        }
+        if (i == pivot_index)
+            continue;
+
+        if (addr->centroid[spread_dim] <= avg) {    // If in doubt left side - TODO: Problem?
             *(L + lcount * sizeof(simplex_t*)) = addr;
             lcount++;
         } else if (addr->centroid[spread_dim] > avg) {
@@ -160,28 +322,57 @@ simplex_t * build_ball_tree(int N, simplex_t ** triangulation) {
         }
     }
 
+    for (int i = 0; i < lcount; i++) {
+        for (int j = 0; j < lcount; j++) {
+            if (i != j) {
+//                printf("depth %i i %i j %i\n", depth, i, j);
+                assert(*(L + i*sizeof(simplex_t*)) != *(L + j*sizeof(simplex_t*)));
+            }
+        }
+    }
+    for (int i = 0; i < rcount; i++) {
+        for (int j = 0; j < rcount; j++) {
+            if (i != j) {
+//                printf("depth %i i %i j %i\n", depth, i, j);
+                assert(*(R + i*sizeof(simplex_t*)) != *(R + j*sizeof(simplex_t*)));
+            }
+        }
+    }
+    printf("lc %i rc %i N %i\n", lcount, rcount, N);
+    assert(lcount + rcount + 1 == N);
+//    printf("lcount: %i , rcount: %i\n", lcount, rcount);
+
     // Recursion
     if (lcount > 0) {
-        pivot_addr->lchild = build_ball_tree(lcount, L);
+        printf("Recursing at %i into L (%i)\n", depth, lcount);
+        pivot_addr->lchild = build_ball_tree(lcount, L, depth);
     } else {
         pivot_addr->lchild = NULL;
     }
     if (rcount > 0) {
-        pivot_addr->rchild = build_ball_tree(rcount, R);
+        printf("Recursing at %i into R (%i)\n", depth, rcount);
+        pivot_addr->rchild = build_ball_tree(rcount, R, depth);
     } else {
         pivot_addr->rchild = NULL;
     }
+    printf("Finished at %i\n", depth);
 
     // Find (square of) radius of the ball of current element
     // Note that unlike min_dist, which is only in the spread dimension, this is in the full space!
     double max_dist = 0;
     for (int i = 0; i < N; i++) {
+        if (i == pivot_index)
+            continue;
+
         double dist = 0;
 
         for (int j = 0; j < cool_dim; j++) {
+            printf("pivot: %lf %p\n", pivot_addr->centroid[j], pivot_addr);
+            printf("other: %lf %p\n", (*(triangulation + i*sizeof(simplex_t*)))->centroid[j], (*(triangulation + i*sizeof(simplex_t*))));
 //            dist += pow(pivot_addr->centroid[j] - (*(triangulation + i*sizeof(simplex_t*)))->centroid[i], 2);
-            dist += (pivot_addr->centroid[j] - (*(triangulation + i*sizeof(simplex_t*)))->centroid[i]) * (pivot_addr->centroid[j] - (*(triangulation + i*sizeof(simplex_t*)))->centroid[i]);
+            dist += (pivot_addr->centroid[j] - (*(triangulation + i*sizeof(simplex_t*)))->centroid[j]) * (pivot_addr->centroid[j] - (*(triangulation + i*sizeof(simplex_t*)))->centroid[j]);
         }
+        printf("%lf\n", dist);
 
         if (dist > max_dist) {
             max_dist = dist;

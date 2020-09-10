@@ -23,7 +23,6 @@ struct simplex {
     double btree_radius_sq;
     simplex_t * lchild;
     simplex_t * rchild;
-    int part_of_tree;
 };
 
 /*typedef struct qfacet qfacet_t;
@@ -43,4 +42,5 @@ void invert_matrix(double*, int);
 //void calculate_normal(qfacet_t*, double*, int, int);
 //double signed_dist_to_facet(qfacet_t*, double*, int);
 
-simplex_t * build_ball_tree(int, simplex_t**);
+simplex_t * build_ball_tree(int, simplex_t**, int);
+simplex_t * build_ball_tree_debug(int, simplex_t**, int);
