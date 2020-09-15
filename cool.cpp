@@ -6,6 +6,9 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <cfloat>
+#include <cmath>
+#include <cassert>
 
 template<int D>
 class Simplex {
@@ -59,8 +62,99 @@ public:
     Cool() {};
 
     int read_files(std::string, std::string, std::string);
+    Simplex<D> * construct_btree(Simplex<D> **, int);
 };
 
+template< int N, int D, int S>
+Simplex<D> * Cool<N, D, S>::construct_btree(Simplex<D> ** simps, int n) {
+    /**
+     * Simplex<D> simps     Pointer to array of pointers to simplices to organize in tree
+     * int n                Number of elements in array
+     */
+
+    // Input validation + what if theres only one element left?
+    if (n < 0) {
+        std::cerr << "Illegal argument in construct_btree: n = " << n << std::endl;
+    } else if (n == 1) {
+        (*simps)->lchild = NULL;
+        (*simps)->rchild = NULL;
+        (*simps)->btree_radius_sq = 0;
+        return *simps;
+    }
+
+    // More than one element
+    // 1. Find dimension of greatest spread
+    // Working with the centroids of the triangles
+    double largest_spread = -1;
+    int lspread_dim = -1;
+    double avg = 0;             // Traditionally Ball trees work with the median, but that requires sorting
+
+    for (int i = 0; i < D; i++) {   // every dimension
+        double dim_min =    DBL_MAX;
+        double dim_max = -1*DBL_MAX;
+        double dim_spread = 0;
+        for (int j = 0; j < n; j++) {   // every simplex
+            double val = (*(simps[j]))->centroid[i];
+            if (val < dim_min) {
+                dim_min = val;
+            } else if (val > dim_max) {
+                dim_max = val;
+            }
+        }
+
+        dim_spread = fabs(dim_max - dim_min);   // TODO: Should probably be some kind of assert instead of fabs...
+        if (dim_spread > largest_spread) {
+            largest_spread = dim_spread;
+            lspread_dim    = i;
+            avg            = (dim_max + dim_min) / 2;
+        }
+    }
+
+    assert(largest_spread != -1 && lspread_dim != -1);
+
+    // 2. Find pivot - simplex with centroid closest to avg
+    int min_dist = DBL_MAX;
+    int pivot_index;
+    Simplex<D> * pivot_addr = NULL;
+    for (int i = 0; i < N; i++) {
+        double val = (*(simps[i]))->centroid[lspread_dim];
+        double dist = fabs(avg - val);
+
+        if (dist < min_dist) {
+            min_dist = dist;
+            pivot_index = i;
+            pivot_addr = simps[i];
+        }
+    }
+
+    assert(pivot_addr != NULL);
+
+
+
+/*    // N > 1
+    // Find dimension of greatest spread
+    double largest_spread = -1;
+    int spread_dim = 1;
+    double avg = 0.1;
+    double min_dist = DBL_MAX;
+    int pivot_index = -1;
+    for (int i = 0; i < N; i++) {
+        double val = (*(triangulation + i * sizeof(simplex_t*)))->centroid[spread_dim];
+        double dist = fabs(avg - val);
+
+        if (dist < min_dist) {
+            min_dist = dist;
+            pivot_index = i;
+//            printf("New midpoint: %i\n", pivot_index);
+        }
+    }
+    assert(pivot_index != -1 && min_dist != DBL_MAX);
+    simplex_t * pivot_addr = *(triangulation + pivot_index * sizeof(simplex_t*));*/
+
+
+    // TODO remove
+    return *simps;
+}
 
 template<int N, int D, int S>
 int Cool<N, D, S>::read_files(std::string cool_file, std::string tri_file, std::string neighbour_file) {
