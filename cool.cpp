@@ -57,28 +57,54 @@ class Cool {
 private:
     double points[N][D+1];      // N points, D dimensions, 1 Value
     Simplex<D> simplices[S];
+    Simplex<D> * btree;         // Points to root of the ball tree
+
+    Simplex<D> * construct_btree_recursive(Simplex<D> **, int, int);
 
 public:
     Cool() {};
 
     int read_files(std::string, std::string, std::string);
-    Simplex<D> * construct_btree(Simplex<D> **, int);
+    int construct_btree();
 };
 
+template<int N, int D, int S>
+int Cool<N, D, S>::construct_btree() {
+    /**
+     * This function serves as a public "adapter" to the actual ball tree construction function,
+     * construct_btree_recursive().
+     *
+     * Returns 0 on success.
+     */
+     // Construct array of pointers
+     Simplex<D> * simps[S];
+     for (int i = 0; i < S; i++) {
+         simps[i] = &(simplices[i]);
+     }
+
+     printf("%i\n", S);
+     btree = construct_btree_recursive(simps, S, 1);
+
+     return 0;
+}
+
 template< int N, int D, int S>
-Simplex<D> * Cool<N, D, S>::construct_btree(Simplex<D> ** simps, int n) {
+Simplex<D> * Cool<N, D, S>::construct_btree_recursive(Simplex<D> ** simps, int n, int depth) {
     /**
      * Simplex<D> simps     Pointer to array of pointers to simplices to organize in tree
      * int n                Number of elements in array
      */
+     printf("Recursion level: %i, n = %i\n", depth, n);
 
     // Input validation + what if theres only one element left?
     if (n < 0) {
         std::cerr << "Illegal argument in construct_btree: n = " << n << std::endl;
     } else if (n == 1) {
-        (*simps)->lchild = NULL;
-        (*simps)->rchild = NULL;
-        (*simps)->btree_radius_sq = 0;
+        simps[0]->lchild = NULL;
+        simps[0]->rchild = NULL;
+        simps[0]->btree_radius_sq = 0;
+
+        printf("Recursing back from %i\n", depth);
         return *simps;
     }
 
@@ -94,7 +120,7 @@ Simplex<D> * Cool<N, D, S>::construct_btree(Simplex<D> ** simps, int n) {
         double dim_max = -1*DBL_MAX;
         double dim_spread = 0;
         for (int j = 0; j < n; j++) {   // every simplex
-            double val = (*(simps[j]))->centroid[i];
+            double val = simps[j]->centroid[i];
             if (val < dim_min) {
                 dim_min = val;
             } else if (val > dim_max) {
@@ -113,47 +139,87 @@ Simplex<D> * Cool<N, D, S>::construct_btree(Simplex<D> ** simps, int n) {
     assert(largest_spread != -1 && lspread_dim != -1);
 
     // 2. Find pivot - simplex with centroid closest to avg
+    // 3. Group points into sets to the left and right of average (L, R)
     int min_dist = DBL_MAX;
     int pivot_index;
     Simplex<D> * pivot_addr = NULL;
-    for (int i = 0; i < N; i++) {
-        double val = (*(simps[i]))->centroid[lspread_dim];
+
+    Simplex<D> ** L = new Simplex<D> * [n];
+    Simplex<D> ** R = new Simplex<D> * [n];
+    int lcount = 0;
+    int rcount = 0;
+
+    for (int i = 0; i < n; i++) {
+        double val = simps[i]->centroid[lspread_dim];
+        Simplex<D> * addr = simps[i];
         double dist = fabs(avg - val);
 
         if (dist < min_dist) {
+            // Add old pivot to L or R
+            if (pivot_addr) {
+                if (pivot_addr->centroid[lspread_dim] <= avg) {
+                    L[lcount] = pivot_addr;
+                    lcount++;
+                } else {
+                    R[rcount] = pivot_addr;
+                    rcount++;
+                }
+            }
+
+            // Save new pivot
             min_dist = dist;
             pivot_index = i;
             pivot_addr = simps[i];
+
+        } else {
+            if (val <= avg) {
+                L[lcount] = addr;
+                lcount++;
+            } else {
+                R[rcount] = addr;
+                rcount++;
+            }
         }
     }
 
     assert(pivot_addr != NULL);
+    assert(rcount != 0 || lcount != 0);
+    assert(min_dist < DBL_MAX);
 
+    // 4. Recurse on L and R
+    if (lcount > 0) {
+        pivot_addr->lchild = construct_btree_recursive(L, lcount, depth+1);
+    } else {
+        pivot_addr->lchild = NULL;
+    }
+    if (rcount > 0) {
+        pivot_addr->rchild = construct_btree_recursive(R, rcount, depth+1);
+    } else {
+        pivot_addr->rchild = NULL;
+    }
 
+    // This should only happen if there is only one element left, and in that case this line shouldnt be reached
+    assert(pivot_addr->lchild != NULL || pivot_addr->rchild != NULL);
 
-/*    // N > 1
-    // Find dimension of greatest spread
-    double largest_spread = -1;
-    int spread_dim = 1;
-    double avg = 0.1;
-    double min_dist = DBL_MAX;
-    int pivot_index = -1;
-    for (int i = 0; i < N; i++) {
-        double val = (*(triangulation + i * sizeof(simplex_t*)))->centroid[spread_dim];
-        double dist = fabs(avg - val);
+    // 5. Determine ball radius
+    pivot_addr->btree_radius_sq = 0;
+    for (int i = 0; i < n; i++) {
+        double dist = 0;
+        for (int j = 0; j < D; j++) {
+            dist += pow(simps[i]->centroid[j], 2);
+        }
 
-        if (dist < min_dist) {
-            min_dist = dist;
-            pivot_index = i;
-//            printf("New midpoint: %i\n", pivot_index);
+        if (dist > pivot_addr->btree_radius_sq) {
+            pivot_addr->btree_radius_sq = dist;
         }
     }
-    assert(pivot_index != -1 && min_dist != DBL_MAX);
-    simplex_t * pivot_addr = *(triangulation + pivot_index * sizeof(simplex_t*));*/
 
+    delete[] L;
+    delete[] R;
 
-    // TODO remove
-    return *simps;
+    printf("Recursing back from %i\n", depth);
+
+    return pivot_addr;
 }
 
 template<int N, int D, int S>
@@ -223,7 +289,10 @@ int Cool<N, D, S>::read_files(std::string cool_file, std::string tri_file, std::
         for (int j = 0; j < D+1; j++) {     // D+1 points per simplex
             std::getline(linestream, value, ',');
             simplices[i].neighbour_indices[j] = std::stoi(value);
-            simplices[i].neighbour_pointers[j] = &(simplices[std::stoi(value)]);
+
+            if (std::stoi(value) != -1) {
+                simplices[i].neighbour_pointers[j] = &(simplices[std::stoi(value)]);
+            }
         }
     }
 

@@ -9,6 +9,7 @@ int main() {
     Cool<239, 2, 452> cool;
 
     cool.read_files("../data.csv", "../dtriangulation", "../dneighbours");
+    cool.construct_btree();
 
     return 0;
 }
