@@ -22,7 +22,7 @@ private:
     // TODO I would like to make these const, but I don't think I can, since the value is determined at runtime
     int points[D+1][D+1];               // D+1 points; D coordinates + 1 value
     int T_inv[D][D];                    // T: https://en.wikipedia.org/wiki/Barycentric_coordinate_system#Barycentric_coordinates_on_tetrahedra
-    int neighbour_indices[D+1];         // One neighbour oppposite every point
+    int neighbour_indices[D+1];         // One neighbour opposite every point
     Simplex * neighbour_pointers[D+1];
     double centroid[D];
     double btree_radius_sq;
@@ -65,7 +65,7 @@ private:
     Simplex<D> * btree;         // Points to root of the ball tree
 
     Simplex<D> * construct_btree_recursive(Simplex<D> **, int);
-    Simplex<D> * find_nearest_neighbour(Simplex<D> *, const double (&)[D], Simplex<D> *, double);
+    Simplex<D> * find_nearest_neighbour(Simplex<D> *, const double *, Simplex<D> *, double);
 
 public:
     Cool() {};
@@ -89,7 +89,6 @@ int Cool<N, D, S>::construct_btree() {
          simps[i] = &(simplices[i]);
      }
 
-     printf("%i\n", S);
      btree = construct_btree_recursive(simps, S);
 
      return 0;
@@ -225,7 +224,7 @@ Simplex<D> * Cool<N, D, S>::construct_btree_recursive(Simplex<D> ** simps, int n
 
 
 template<int N, int D, int S>
-Simplex<D> * Cool<N, D, S>::find_nearest_neighbour(Simplex<D> * root, const double (&target)[D], Simplex<D> * best, double min_dist2) {
+Simplex<D> * Cool<N, D, S>::find_nearest_neighbour(Simplex<D> * root, const double * target, Simplex<D> * best, double min_dist2) {
     /**
      * Recursive function to find the nearest neighbor of point target in tree root.
      * Adapted from https://en.wikipedia.org/wiki/Ball_tree#Pseudocode_2
@@ -300,7 +299,8 @@ double Cool<N, D, S>::interpolate(double * coords) {
      * First, find the closest simplex using the ball tree. Then, find the simplex containing the given point using
      * repeated "flips". Finally, interpolate using a weighted average (Delaunay).
      */
-    Simplex<D> * nn = find_nearest_neighbour(btree, coords, NULL, DBL_MAX);
+    Simplex<D> * best = NULL;
+    Simplex<D> * nn = find_nearest_neighbour(btree, coords, best, DBL_MAX);
 
     double * bary = nn->convert_to_bary(coords);
     // TODO does bary need to be freed?
@@ -457,19 +457,25 @@ void Simplex<D>::invert_T() {
     }
 
     // yes, you can work in place instead, but i cant be bothered right now
-    double * unit = (double*)calloc(D * D, sizeof(double));
+    double unit[D][D];  // unit matrix
     for (int i = 0; i < D; i++) {
-        *(unit + D * i + i) = 1;
+        for (int j = 0; j < D; j++) {
+            if (i == j) {
+                unit[i][j] = 1;
+            } else {
+                unit[i][j] = 0;
+            }
+        }
     }
 
 
     for (int i = 0; i < D; i++) {
         // find pivot
         int pivot_row_idx = i;
-        double pivot = T_inv[D*row_idx[i] + i];
+        double pivot = T_inv[row_idx[i]][i];
         for (int j = i; j < D; j++) {
-            if (fabs(T_inv[D*row_idx[j]+i]) > fabs(pivot)) {
-                pivot = T_inv[D*row_idx[j]+i];
+            if (fabs(T_inv[row_idx[j]][i]) > fabs(pivot)) {
+                pivot = T_inv[row_idx[j]][i];
                 pivot_row_idx = j;
             }
         }
@@ -480,43 +486,28 @@ void Simplex<D>::invert_T() {
         row_idx[pivot_row_idx] = temp;
 
         // Normalization of current row
-        double norm_factor = T_inv[D*row_idx[i] + i];
+        double norm_factor = T_inv[row_idx[i]][i];
         for (int j = 0; j < D; j++) {
-            T_inv[D*row_idx[i] + j] /= norm_factor;
-            unit[D*row_idx[i] + j]   /= norm_factor;
+            T_inv[row_idx[i]][j] /= norm_factor;
+            unit[row_idx[i]][j] /= norm_factor;
         }
 
         // Subtracting the current row from all other rows
         for (int j = 0; j < D; j++) {
             if (j != i) {
-                double factor = T_inv[D * row_idx[j] + i];
+                double factor = T_inv[row_idx[j]][i];
                 for (int k = 0; k < D; k++) {
-                    T_inv[D * row_idx[j] + k] -= factor * T_inv[D * row_idx[i] + k];
-                    unit[D * row_idx[j] + k] -= factor * unit[D * row_idx[i] + k];
+                    T_inv[row_idx[j]][k] -= factor * T_inv[row_idx[i]][k];
+                    unit[row_idx[j]][k] -= factor * unit[row_idx[i]][k];
                 }
             }
         }
-
-//        for (int j = 0; j < N; j++) {
-//            for (int k = 0; k < N; k++) {
-//                printf("%f ", matrix[N*row_idx[j] + k]);
-//            }
-//            printf("\n");
-//        }
-//        printf("\n");
-//        for (int j = 0; j < N; j++) {
-//            for (int k = 0; k < N; k++) {
-//                printf("%f ", unit[N*row_idx[j] + k]);
-//            }
-//            printf("\n");
-//        }
-//        printf("\n\n\n");
     }
 
     for (int i = 0; i < D; i++) {
         for (int j = 0; j < D; j++) {
 //            matrix[N*row_idx[i]+j] = unit[N*row_idx[i]+j];
-            T_inv[D*row_idx[i]+j] = unit[D*i+j]; // TODO verify
+            T_inv[row_idx[i]][j] = unit[i][j]; // TODO verify
 //            matrix[N*i+j] = unit[N*i+j];
         }
     }
@@ -539,7 +530,7 @@ double * Simplex<D>::convert_to_bary(const double * coords) {
     }
 
     // 2. Multiply T_inv * (p - v_n+1) to get lambda
-    double bary[D+1] = new double[D+1];
+    double * bary = new double[D+1];
     for (int i = 0; i < D; i++) {
         bary[i] = 0;
         for (int j = 0; j < D; j++) {

@@ -11,5 +11,8 @@ int main() {
     cool.read_files("../points", "../dtriangulation", "../dneighbors");
     cool.construct_btree();
 
+    double coord[2] = {2, 5};
+    cool.interpolate(coord);
+
     return 0;
 }
