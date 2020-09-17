@@ -19,38 +19,50 @@ int main() {
 
     // TODO: File reading as generic function (dynamic input size)
     // TODO: Do not require file line number as input. realloc?
-    FILE * f = fopen("../data.csv", "r");
+    FILE * f = fopen("../points", "r");
 
     // Read points
     if (f == NULL) {
-        perror("Error opening file data.csv: ");
+        perror("Error opening file points: ");
         return 1;
     }
     for (int i = 0; i < n_points; i++) {
-        fscanf(f, "%lf,%lf,%lf\n", points + i*(cool_dim+1), points + i*(cool_dim+1) + 1, points + i*(cool_dim+1) + 2);
+//        fscanf(f, "%lf %lf %lf", points + (i*(cool_dim+1))*sizeof(double), points + (i*(cool_dim+1) + 1)*sizeof(double), points + (i*(cool_dim+1) + 2)*sizeof(double));
+        double temp1, temp2, temp3;
+        fscanf(f, "%lf %lf %lf", &temp1, &temp2, &temp3);
+        printf("Read: %i %f %f %f\n", i, temp1, temp2, temp3);
+        *(points + (i*(cool_dim+1))*sizeof(double)) = temp1;
+        *(points + (i*(cool_dim+1) + 1)*sizeof(double)) = temp2;
+        *(points + (i*(cool_dim+1) + 2)*sizeof(double)) = temp3;
+    }
+
+    for (int i = 0; i < n_points; i++) {
+        printf("%i %lf %lf %lf \n", i, *(points + ((cool_dim+1)*i)*sizeof(double)), *(points + ((cool_dim+1)*i+1)*sizeof(double)), *(points + ((cool_dim+1)*i+2)*sizeof(double)));
     }
 
     int close = fclose(f);
     if (close != 0) {
-        perror("Error closing file data.csv: ");
+        perror("Error closing file points: ");
         return 1;
     }
 
+
+    printf("2\n");
     // Read Triangulation
     f = fopen("../dtriangulation", "r");
     if (f == NULL) {
         perror("Error opening file dtriangulation: ");
         return 1;
     }
+
     for (int i = 0; i < n_simplices; i++) {
         simplex_t * new_simplex = (simplex_t*)malloc(sizeof(simplex_t));
         fscanf(f, "%d %d %d\n", new_simplex->points, new_simplex->points + 1, new_simplex->points + 2);
 
         for (int j = 0; j < cool_dim; j++) {
             new_simplex->centroid[j] = 0;
-
             for (int k = 0; k < cool_dim+1; k++) {
-                new_simplex->centroid[j] += *(points + (cool_dim+1) * new_simplex->points[k] + j);
+                new_simplex->centroid[j] += *(points + ((cool_dim+1) * new_simplex->points[k] + j)*sizeof(double));
             }
 
             new_simplex->centroid[j] /= (cool_dim+1);
@@ -58,6 +70,7 @@ int main() {
         }
 
     }
+
 
     simplex_t ** tricopy = malloc(n_simplices*sizeof(simplex_t*));
     memcpy(tricopy, triangulation, n_simplices*sizeof(simplex_t*));
