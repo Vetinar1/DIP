@@ -2,7 +2,7 @@
 // Created by vetinari on 26.08.20.
 //
 
-#include "main.h"
+#include "main_old.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
