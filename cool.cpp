@@ -66,10 +66,15 @@ private:
 
     Simplex<D> * construct_btree_recursive(Simplex<D> **, int);
     Simplex<D> * find_nearest_neighbour(Simplex<D> *, const double *, Simplex<D> *, double);
-
+    int flips, interpolate_calls;
 public:
-    Cool() {};
+    Cool() {
+        flips = 0;
+        interpolate_calls = 0;
+        avg_flips = 0;
+    };
 
+    double avg_flips;
     int read_files(std::string, std::string, std::string);
     void save_tree(std::string);
     int construct_btree();
@@ -378,30 +383,12 @@ double Cool<N, D, S>::interpolate(double * coords) {
     Simplex<D> * nn = find_nearest_neighbour(btree, coords, best, DBL_MAX);
 
     double * bary = nn->convert_to_bary(coords);
-    // TODO does bary need to be freed?
 
-//    for (int i = 0; i < D+1; i++) {
-//        std::cout << "bary " << i << " " << bary[i] << std::endl;
-//    }
     int inside = nn->check_bary(bary);
 
-//    std::cout << std::endl;
-
-//    for (int i = 0; i < S; i++) {
-//        if (nn == &(simplices[i])) {
-//            std::cout << "Simplex: " << i << std::endl;
-//        }
-//    }
-
-//    for (int i = 0; i < D+1; i++) {
-//        std::cout << nn->points[i][0] << " " << nn->points[i][1] << std::endl;
-//    }
-
-//    std::cout << "Centroid: " << nn->centroid[0] << " " << nn->centroid[1] << std::endl;
 
     int dbg_count = 0;
     while (!inside) {
-//        std::cout << dbg_count << std::endl;
         // If the point is not contained in the simplex, the "most negative" barycentric coordinate denotes the one
         // "most opposite" of our coordinates. Take the simplex' neighbor on the opposite of that opposite,
         // and try again
@@ -424,14 +411,8 @@ double Cool<N, D, S>::interpolate(double * coords) {
             }
         }
 
-//        for (int i = 0; i < D+1; i++) {
-//            std::cout << nn->points[i][0] << " " << nn->points[i][1] << std::endl;
-//        }
         bary = nn->convert_to_bary(coords);
 
-//        for (int i = 0; i < D+1; i++) {
-//            std::cout << "bary " << i << " " << bary[i] << std::endl;
-//        }
         inside = nn->check_bary(bary);
 
         dbg_count++;
@@ -444,13 +425,14 @@ double Cool<N, D, S>::interpolate(double * coords) {
     // The actual interpolation step
     double val = 0;
     for (int i = 0; i < D+1; i++) {
-        // TODO How do I know *for sure* these points.csv and weights match up?
-//        std::cout << bary[i] << " " << nn->points[i][D] << std::endl;
         val += bary[i] * nn->points[i][D];  // The Dth "coordinate" is the function value
-//        std::cout << i << " val " << val << std::endl;
     }
 
     delete[] bary;
+
+    interpolate_calls++;
+    flips += dbg_count;
+    avg_flips = flips / (float) interpolate_calls;
 
     return val;
 }
@@ -526,31 +508,16 @@ int Cool<N, D, S>::read_files(std::string cool_file, std::string tri_file, std::
     // https://en.wikipedia.org/wiki/Barycentric_coordinate_system#Barycentric_coordinates_on_tetrahedra
     for (int s = 0; s < S; s++) {   // for each simplex
 
-//        std::cout << s << std::endl;
-//        std::cout << "Points: " << std::endl;
-//        for (int i = 0; i < D+1; i++) {
-//            std::cout << simplices[s].points[i][0] << " " <<simplices[s].points[i][1] << std::endl;
-//        }
         for (int i = 0; i < D; i++) {   // for each point (except the last)
             for (int j = 0; j < D; j++) {   // for each coordinate
                 // matrix[j][i], not matrix[i][j] - coordinates go down, points go right
                 simplices[s].T_inv[j][i] = simplices[s].points[i][j] - simplices[s].points[D][j];
             }
         }
-//        std::cout << "T:" << std::endl;
-//        for (int i = 0; i < D; i++) {
-//            std::cout << simplices[s].T_inv[i][0] << " " << simplices[s].T_inv[i][1] << std::endl;
-//        }
 
         // Right now its just T - now invert
         simplices[s].invert_T();
 
-
-//        std::cout << "T_inv:" << std::endl;
-//        for (int i = 0; i < D; i++) {
-//            std::cout << simplices[s].T_inv[i][0] << " " << simplices[s].T_inv[i][1] << std::endl;
-//        }
-//        std::cout << std::endl;
     }
 
     /* Read neighbourhood relations */
@@ -646,9 +613,7 @@ void Simplex<D>::invert_T() {
 
     for (int i = 0; i < D; i++) {
         for (int j = 0; j < D; j++) {
-//            matrix[N*row_idx[i]+j] = unit[N*row_idx[i]+j];
             T_inv[row_idx[i]][j] = unit[i][j]; // TODO verify
-//            matrix[N*i+j] = unit[N*i+j];
         }
     }
 }
@@ -668,14 +633,6 @@ double * Simplex<D>::convert_to_bary(const double * coords) {
     for (int i = 0; i < D; i++) {
         vec[i] = coords[i] - points[D][i];
     }
-
-//    std::cout << "T_inv: " << std::endl;
-//    for (int i = 0; i < D; i++) {
-//        for (int j = 0; j < D; j++) {
-//            std::cout << T_inv[i][j] << " ";
-//        }
-//        std::cout << std::endl;
-//    }
 
     // 2. Multiply T_inv * (p - v_n+1) to get lambda
     double * bary = new double[D+1];

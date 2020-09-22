@@ -29,5 +29,6 @@ int main() {
     }
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     std::cout << "Time to complete = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
+    std::cout << "Avg flips: " << cool.avg_flips << std::endl;
     return 0;
 }
