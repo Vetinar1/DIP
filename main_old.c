@@ -19,15 +19,15 @@ int main() {
 
     // TODO: File reading as generic function (dynamic input size)
     // TODO: Do not require file line number as input. realloc?
-    FILE * f = fopen("../points", "r");
+    FILE * f = fopen("../points.csv", "r");
 
-    // Read points
+    // Read points.csv
     if (f == NULL) {
-        perror("Error opening file points: ");
+        perror("Error opening file points.csv: ");
         return 1;
     }
     for (int i = 0; i < n_points; i++) {
-//        fscanf(f, "%lf %lf %lf", points + (i*(cool_dim+1))*sizeof(double), points + (i*(cool_dim+1) + 1)*sizeof(double), points + (i*(cool_dim+1) + 2)*sizeof(double));
+//        fscanf(f, "%lf %lf %lf", points.csv + (i*(cool_dim+1))*sizeof(double), points.csv + (i*(cool_dim+1) + 1)*sizeof(double), points.csv + (i*(cool_dim+1) + 2)*sizeof(double));
         double temp1, temp2, temp3;
         fscanf(f, "%lf %lf %lf", &temp1, &temp2, &temp3);
         printf("Read: %i %f %f %f\n", i, temp1, temp2, temp3);
@@ -42,16 +42,16 @@ int main() {
 
     int close = fclose(f);
     if (close != 0) {
-        perror("Error closing file points: ");
+        perror("Error closing file points.csv: ");
         return 1;
     }
 
 
     printf("2\n");
     // Read Triangulation
-    f = fopen("../dtriangulation", "r");
+    f = fopen("../dtriangulation.csv", "r");
     if (f == NULL) {
-        perror("Error opening file dtriangulation: ");
+        perror("Error opening file dtriangulation.csv: ");
         return 1;
     }
 
@@ -551,7 +551,7 @@ void solve_linear(double* matrix, double* vector, int N) {
 
 int contains(simplex_t * tri, const double * points, int pt_idx) {
     /*
-     * Check if point in points at index pt_index is contained by simplex_t simplex.
+     * Check if point in points.csv at index pt_index is contained by simplex_t simplex.
      * Return 1 if true.
      * Return -1 if false.
      *
@@ -617,7 +617,7 @@ int contains(simplex_t * tri, const double * points, int pt_idx) {
     double bsum = 0;
     for (int i = 0; i < cool_dim+1; i++) {
         if (bary[i] <= 0) {
-            // Consider points on edges to not be contained, in order to avoid degeneracies!
+            // Consider points.csv on edges to not be contained, in order to avoid degeneracies!
             printf("Not contained; Coordinate below zero\n");
             return -1;
         }
@@ -645,7 +645,7 @@ int contains(simplex_t * tri, const double * points, int pt_idx) {
 //    // TODO: Verify
 //    double * subtr;
 //    for (int k = 0; k < d; k++) {
-//        subtr[k] = p[k] - qf->points[0];
+//        subtr[k] = p[k] - qf->points.csv[0];
 //    }
 //
 //    double signed_dist = 0;
@@ -658,7 +658,7 @@ int contains(simplex_t * tri, const double * points, int pt_idx) {
 //
 //
 //// TODO N and d mean different things here than in the other function, unify
-//void calculate_normal(qfacet_t * qf, double * points, int N, int d) {
+//void calculate_normal(qfacet_t * qf, double * points.csv, int N, int d) {
 //    /*
 //     * Calculate normal of a qfacet
 //     * https://math.stackexchange.com/a/3398303
@@ -669,7 +669,7 @@ int contains(simplex_t * tri, const double * points, int pt_idx) {
 //
 //    for (int i = 0; i < N; i++) {
 //        for (int j = 0; j < N; j++) {
-//            *(matrix + N*i + j) = *(points + d*qf->points[i] + j);
+//            *(matrix + N*i + j) = *(points.csv + d*qf->points.csv[i] + j);
 //        }
 //
 //        qf->normal[i] = 1;

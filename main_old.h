@@ -15,7 +15,7 @@
 typedef struct simplex simplex_t;
 struct simplex {
     // Hierarchical triangle element representing a triangle from the Delaunay building process
-    int points[cool_dim+1];             // Indices of the points of the simplex
+    int points[cool_dim+1];             // Indices of the points.csv of the simplex
     simplex_t * neighbors[cool_dim+1];  // The ith neighbor is the neighbor opposite of the ith vertex
 
     // For use in ball tree algorithm
@@ -27,11 +27,11 @@ struct simplex {
 
 /*typedef struct qfacet qfacet_t;
 struct qfacet {
-    int points[qhull_dim];                  // points that make up the facet
+    int points.csv[qhull_dim];                  // points.csv that make up the facet
     qfacet_t * neighbors[qhull_dim+1];      // Neighboring facets
     double normal[qhull_dim];               // Normal on the hyperplane
     int outside[n_points];                  // Need to keep this constant sized somehow so its a hash table
-                                            // Contains all points "outside"/"above" this facet
+                                            // Contains all points.csv "outside"/"above" this facet
                                             // TODO Should probably be a really long bit vector but i cant be bothered
     int outside_empty;                      // 1 if outside is filled with 0s, otherwise 0
     int in_visible, visited;                // Flags for algorithm

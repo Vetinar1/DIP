@@ -20,8 +20,8 @@ class Simplex {
     template<int, int, int> friend class Cool;
 private:
     // TODO I would like to make these const, but I don't think I can, since the value is determined at runtime
-    int points[D+1][D+1];               // D+1 points; D coordinates + 1 value
-    int T_inv[D][D];                    // T: https://en.wikipedia.org/wiki/Barycentric_coordinate_system#Barycentric_coordinates_on_tetrahedra
+    double points[D+1][D+1];            // D+1 points.csv; D coordinates + 1 value
+    double T_inv[D][D];                 // T: https://en.wikipedia.org/wiki/Barycentric_coordinate_system#Barycentric_coordinates_on_tetrahedra
     int neighbour_indices[D+1];         // One neighbour opposite every point
     Simplex * neighbour_pointers[D+1];
     double centroid[D];
@@ -40,11 +40,11 @@ public:
 
     void calculate_centroid() {
         /**
-         * Calculate centroid (=avg) from points.
+         * Calculate centroid (=avg) from points.csv.
          */
         for (int i = 0; i < D; i++) {   // coordinates
             centroid[i] = 0;
-            for (int j = 0; j < D+1; j++) {     // points
+            for (int j = 0; j < D+1; j++) {     // points.csv
                 centroid[i] += points[j][i];
             }
             centroid[i] /= (D+1);
@@ -55,12 +55,12 @@ public:
 template<int N, int D, int S>
 class Cool {
     /**
-     * int N        Number of points
-     * int D        Dimensionality of points
+     * int N        Number of points.csv
+     * int D        Dimensionality of points.csv
      * int S        Number of Simplices
      */
 private:
-    double points[N][D+1];      // N points, D dimensions, 1 Value
+    double points[N][D+1];      // N points.csv, D dimensions, 1 Value
     Simplex<D> simplices[S];
     Simplex<D> * btree;         // Points to root of the ball tree
 
@@ -71,9 +71,11 @@ public:
     Cool() {};
 
     int read_files(std::string, std::string, std::string);
+    void save_tree(std::string);
     int construct_btree();
     double interpolate(double *);
 };
+
 
 template<int N, int D, int S>
 int Cool<N, D, S>::construct_btree() {
@@ -83,16 +85,17 @@ int Cool<N, D, S>::construct_btree() {
      *
      * Returns 0 on success.
      */
-     // Construct array of pointers
-     Simplex<D> * simps[S];
-     for (int i = 0; i < S; i++) {
-         simps[i] = &(simplices[i]);
-     }
+    // Construct array of pointers
+    Simplex<D> * simps[S];
+    for (int i = 0; i < S; i++) {
+        simps[i] = &(simplices[i]);
+    }
 
-     btree = construct_btree_recursive(simps, S);
+    btree = construct_btree_recursive(simps, S);
 
-     return 0;
+    return 0;
 }
+
 
 template< int N, int D, int S>
 Simplex<D> * Cool<N, D, S>::construct_btree_recursive(Simplex<D> ** simps, int n) {
@@ -127,18 +130,22 @@ Simplex<D> * Cool<N, D, S>::construct_btree_recursive(Simplex<D> ** simps, int n
             double val = simps[j]->centroid[i];
             if (val < dim_min) {
                 dim_min = val;
-            } else if (val > dim_max) {
+            }
+            if (val > dim_max) {
                 dim_max = val;
             }
         }
+//        std::cout << "Dim: " << i << " min: " << dim_min << " max: " << dim_max << std::endl;
 
-        dim_spread = fabs(dim_max - dim_min);   // TODO: Should probably be some kind of assert instead of fabs...
+        assert(dim_min < dim_max);
+        dim_spread = fabs(dim_max - dim_min);
         if (dim_spread > largest_spread) {
             largest_spread = dim_spread;
             lspread_dim    = i;
             avg            = (dim_max + dim_min) / 2;
         }
     }
+//    std::cout << "spread dim: " << lspread_dim << " avg: " << avg << std::endl;
 
     assert(largest_spread != -1 && lspread_dim != -1);
 
@@ -183,14 +190,20 @@ Simplex<D> * Cool<N, D, S>::construct_btree_recursive(Simplex<D> ** simps, int n
             }
         }
     }
-
     assert(pivot_addr != NULL);
     assert(rcount != 0 || lcount != 0);
     assert(min_dist < DBL_MAX);
+    for (int i = 0; i < lcount; i++) {
+        assert(L[i] != pivot_addr);
+    }
+    for (int i = 0; i < rcount; i++) {
+        assert(R[i] != pivot_addr);
+    }
 
     // 4. Recurse on L and R
     if (lcount > 0) {
         pivot_addr->lchild = construct_btree_recursive(L, lcount);
+        assert(pivot_addr->lchild != pivot_addr);
     } else {
         pivot_addr->lchild = NULL;
     }
@@ -208,7 +221,7 @@ Simplex<D> * Cool<N, D, S>::construct_btree_recursive(Simplex<D> ** simps, int n
     for (int i = 0; i < n; i++) {
         double dist = 0;
         for (int j = 0; j < D; j++) {
-            dist += pow(simps[i]->centroid[j], 2);
+            dist += pow(simps[i]->centroid[j] - pivot_addr->centroid[j], 2);
         }
 
         if (dist > pivot_addr->btree_radius_sq) {
@@ -220,6 +233,33 @@ Simplex<D> * Cool<N, D, S>::construct_btree_recursive(Simplex<D> ** simps, int n
     delete[] R;
 
     return pivot_addr;
+}
+
+
+template<int N, int D, int S>
+void Cool<N, D, S>::save_tree(std::string filename) {
+    /**
+     * Saves the Ball tree. Format: [Index of simplex] [Index of left child] [Index of right child] [btree_radius_sq]
+     *
+     * Grows with O(N^2) ... TODO
+     */
+    std::ofstream file;
+    file.open(filename);
+    for (int i = 0; i < S; i++) {
+        file << i << " ";
+        int lchild = -1, rchild = -1;
+        for (int j = 0; j < S; j++) {
+            if (simplices[i].lchild == &simplices[j]) {
+                lchild = j;
+            }
+            if (simplices[i].rchild == &simplices[j]) {
+                rchild = j;
+            }
+        }
+        file << lchild << " " << rchild << " " << simplices[i].btree_radius_sq << std::endl;
+    }
+    file.close();
+
 }
 
 
@@ -242,9 +282,10 @@ Simplex<D> * Cool<N, D, S>::find_nearest_neighbour(Simplex<D> * root, const doub
         dist2 += pow(target[i] - root->centroid[i], 2);
     }
 
-    // Recursion exist condition - root is further than current closest neighbour
+    // Recursion exit condition - root is further than current closest neighbour
     if (dist2 - root->btree_radius_sq >= min_dist2) {
-        return root;
+//        std::cout << "Worse." << std::endl;
+        return best;
     }
 
     // assert(root->lchild != NULL || root->rchild != NULL);
@@ -253,6 +294,15 @@ Simplex<D> * Cool<N, D, S>::find_nearest_neighbour(Simplex<D> * root, const doub
     if (dist2 < min_dist2) {
         min_dist2 = dist2;
         best = root;
+
+        int index = -1;
+        for (int i = 0; i < S; i++) {
+            if (best == &simplices[i]) {
+                index = i;
+                break;
+            }
+        }
+//        std::cout << "New best: " << index << " dist: " << min_dist2 << std::endl;
     }
 
     // Find closest child
@@ -272,21 +322,46 @@ Simplex<D> * Cool<N, D, S>::find_nearest_neighbour(Simplex<D> * root, const doub
 
     // Recurse into closest child first
     // I wonder if this would be prettier with gotos...
+    Simplex<D> * old_best = best;
     if (ldist2 <= rdist2) {
         if (root->lchild != NULL) {
+//            std::cout << "Recursing left" << std::endl;
             best = find_nearest_neighbour(root->lchild, target, best, min_dist2);
         }
+        if (best != old_best) {
+            // Recalculate min_dist2
+            // TODO: Inefficient.
+            min_dist2 = 0;
+            for (int i = 0; i < D; i++) {
+                min_dist2 += pow(target[i] - best->centroid[i], 2);
+            }
+//            std::cout << "New min_dist2: " << min_dist2 << std::endl;
+        }
         if (root->rchild != NULL) {
+//            std::cout << "Recursing right" << std::endl;
             best = find_nearest_neighbour(root->rchild, target, best, min_dist2);
         }
     } else {
         if (root->rchild != NULL) {
+//            std::cout << "Recursing left" << std::endl;
             best = find_nearest_neighbour(root->rchild, target, best, min_dist2);
         }
+        if (best != old_best) {
+            // Recalculate min_dist2
+            // TODO: Inefficient.
+            min_dist2 = 0;
+            for (int i = 0; i < D; i++) {
+                min_dist2 += pow(target[i] - best->centroid[i], 2);
+            }
+//            std::cout << "New min_dist2: " << min_dist2 << std::endl;
+        }
         if (root->lchild != NULL) {
+//            std::cout << "Recursing right" << std::endl;
             best = find_nearest_neighbour(root->lchild, target, best, min_dist2);
         }
     }
+//    std::cout << "Going up " << std::endl;
+//    std::cout << std::endl;
 
     return best;
 }
@@ -305,10 +380,28 @@ double Cool<N, D, S>::interpolate(double * coords) {
     double * bary = nn->convert_to_bary(coords);
     // TODO does bary need to be freed?
 
+//    for (int i = 0; i < D+1; i++) {
+//        std::cout << "bary " << i << " " << bary[i] << std::endl;
+//    }
     int inside = nn->check_bary(bary);
+
+//    std::cout << std::endl;
+
+//    for (int i = 0; i < S; i++) {
+//        if (nn == &(simplices[i])) {
+//            std::cout << "Simplex: " << i << std::endl;
+//        }
+//    }
+
+//    for (int i = 0; i < D+1; i++) {
+//        std::cout << nn->points[i][0] << " " << nn->points[i][1] << std::endl;
+//    }
+
+//    std::cout << "Centroid: " << nn->centroid[0] << " " << nn->centroid[1] << std::endl;
 
     int dbg_count = 0;
     while (!inside) {
+//        std::cout << dbg_count << std::endl;
         // If the point is not contained in the simplex, the "most negative" barycentric coordinate denotes the one
         // "most opposite" of our coordinates. Take the simplex' neighbor on the opposite of that opposite,
         // and try again
@@ -322,22 +415,42 @@ double Cool<N, D, S>::interpolate(double * coords) {
         }
         assert(min_bary < 1 && min_bary_index != -1);
 
+        std::cout << "Flip " << dbg_count << std::endl;
         nn = nn->neighbour_pointers[min_bary_index];
+
+        for (int i = 0; i < S; i++) {
+            if (nn == &(simplices[i])) {
+                std::cout << "Simplex: " << i << std::endl;
+            }
+        }
+
+//        for (int i = 0; i < D+1; i++) {
+//            std::cout << nn->points[i][0] << " " << nn->points[i][1] << std::endl;
+//        }
         bary = nn->convert_to_bary(coords);
+
+//        for (int i = 0; i < D+1; i++) {
+//            std::cout << "bary " << i << " " << bary[i] << std::endl;
+//        }
         inside = nn->check_bary(bary);
 
         dbg_count++;
         if (dbg_count > 100) {
             std::cerr << "Error: More than 100 flips." << std::endl;
+            break;
         }
     }
 
     // The actual interpolation step
     double val = 0;
     for (int i = 0; i < D+1; i++) {
-        // TODO How do I know *for sure* these points and weights match up?
+        // TODO How do I know *for sure* these points.csv and weights match up?
+//        std::cout << bary[i] << " " << nn->points[i][D] << std::endl;
         val += bary[i] * nn->points[i][D];  // The Dth "coordinate" is the function value
+//        std::cout << i << " val " << val << std::endl;
     }
+
+    delete[] bary;
 
     return val;
 }
@@ -347,7 +460,7 @@ int Cool<N, D, S>::read_files(std::string cool_file, std::string tri_file, std::
     /**
      * Reads files generated by the python program.
      *
-     * cool_file        Path to file containing points of the grid
+     * cool_file        Path to file containing points.csv of the grid
      * tri_file         Path to file containing triangulation
      * neighbour_file    Path to file containing triangulation neighbourhood relations
      */
@@ -355,7 +468,7 @@ int Cool<N, D, S>::read_files(std::string cool_file, std::string tri_file, std::
     std::string line;
     std::string value;
 
-    /* Read points */
+    /* Read points.csv */
     file.open(cool_file);
     if (!file.is_open()) {
         std::cerr << "Error reading " << cool_file << std::endl;
@@ -386,11 +499,22 @@ int Cool<N, D, S>::read_files(std::string cool_file, std::string tri_file, std::
     for (int i = 0; i < S; i++) {
         std::getline(file, line);
         std::stringstream linestream(line);
-        for (int j = 0; j < D+1; j++) {     // D+1 points per simplex
+
+        int buffer[D+1];
+        for (int j = 0; j < D+1; j++) {     // D+1 points.csv per simplex
             std::getline(linestream, value, ',');
+            buffer[j] = std::stoi(value);
 
             for (int k = 0; k < D+1; k++) { // D coordinates + 1 value
                 simplices[i].points[j][k] = points[std::stoi(value)][k];
+            }
+        }
+
+        for (int j = 0; j < D+1; j++) {
+            for (int k = 0; k < D+1; k++) {
+                if (j != k && buffer[j] == buffer[k]) {
+                    std::cerr << "Warning: Degenerate triangle (index " << i << ", points " << buffer[j] << " and " << buffer[k] << ")" << std::endl;
+                }
             }
         }
         simplices[i].calculate_centroid();
@@ -402,15 +526,31 @@ int Cool<N, D, S>::read_files(std::string cool_file, std::string tri_file, std::
     // https://en.wikipedia.org/wiki/Barycentric_coordinate_system#Barycentric_coordinates_on_tetrahedra
     for (int s = 0; s < S; s++) {   // for each simplex
 
+//        std::cout << s << std::endl;
+//        std::cout << "Points: " << std::endl;
+//        for (int i = 0; i < D+1; i++) {
+//            std::cout << simplices[s].points[i][0] << " " <<simplices[s].points[i][1] << std::endl;
+//        }
         for (int i = 0; i < D; i++) {   // for each point (except the last)
             for (int j = 0; j < D; j++) {   // for each coordinate
                 // matrix[j][i], not matrix[i][j] - coordinates go down, points go right
-                simplices[s].T_inv[j][i] = simplices[s].points[i][j] - simplices[s].points[D+1][j];
+                simplices[s].T_inv[j][i] = simplices[s].points[i][j] - simplices[s].points[D][j];
             }
         }
+//        std::cout << "T:" << std::endl;
+//        for (int i = 0; i < D; i++) {
+//            std::cout << simplices[s].T_inv[i][0] << " " << simplices[s].T_inv[i][1] << std::endl;
+//        }
 
         // Right now its just T - now invert
         simplices[s].invert_T();
+
+
+//        std::cout << "T_inv:" << std::endl;
+//        for (int i = 0; i < D; i++) {
+//            std::cout << simplices[s].T_inv[i][0] << " " << simplices[s].T_inv[i][1] << std::endl;
+//        }
+//        std::cout << std::endl;
     }
 
     /* Read neighbourhood relations */
@@ -424,7 +564,7 @@ int Cool<N, D, S>::read_files(std::string cool_file, std::string tri_file, std::
     for (int i = 0; i < S; i++) {
         std::getline(file, line);
         std::stringstream linestream(line);
-        for (int j = 0; j < D+1; j++) {     // D+1 points per simplex
+        for (int j = 0; j < D+1; j++) {     // D+1 points.csv per simplex
             std::getline(linestream, value, ',');
             simplices[i].neighbour_indices[j] = std::stoi(value);
 
@@ -526,8 +666,16 @@ double * Simplex<D>::convert_to_bary(const double * coords) {
     // 1. Obtain p - v_n+1
     double vec[D];
     for (int i = 0; i < D; i++) {
-        vec[i] = coords[i] - points[D+1][i];
+        vec[i] = coords[i] - points[D][i];
     }
+
+//    std::cout << "T_inv: " << std::endl;
+//    for (int i = 0; i < D; i++) {
+//        for (int j = 0; j < D; j++) {
+//            std::cout << T_inv[i][j] << " ";
+//        }
+//        std::cout << std::endl;
+//    }
 
     // 2. Multiply T_inv * (p - v_n+1) to get lambda
     double * bary = new double[D+1];
@@ -553,12 +701,16 @@ inline int Simplex<D>::check_bary(const double* bary) {
     /**
      * Check if the given barycentric coordinates belong to a point inside or outside of the simplex
      * Returns 1 if inside, 0 otherwise.
-     * Edge cases are considered to be outside. TODO avoids edge cases but means points are never associated with anything?
+     * Edge cases are considered to be outside. TODO avoids edge cases but means points.csv are never associated with anything?
      */
     double bsum = 0;
     for (int i = 0; i < D+1; i++) {
         if (bary[i] <= 0) {
-            // Consider points on edges to not be contained, in order to avoid degeneracies!
+            // Consider points.csv on edges to not be contained, in order to avoid degeneracies!
+            return 0;
+        }
+        if (isnanf(bary[i])) {
+            std::cerr << "Error: Barycentric coordinate " << i << " is nan" << std::endl;
             return 0;
         }
         bsum += bary[i];
