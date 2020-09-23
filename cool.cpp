@@ -60,8 +60,10 @@ class Cool {
      * int S        Number of Simplices
      */
 private:
-    double points[N][D+1];      // N points.csv, D dimensions, 1 Value
-    Simplex<D> simplices[S];
+    inline static double points[N][D+1];      // N points.csv, D dimensions, 1 Value
+    inline static Simplex<D> simplices[S];
+//    double * points;
+//    Simplex<D> * simplices;
     Simplex<D> * btree;         // Points to root of the ball tree
 
     Simplex<D> * construct_btree_recursive(Simplex<D> **, int);
@@ -69,6 +71,8 @@ private:
     int flips, interpolate_calls;
 public:
     Cool() {
+//        points = new double[N][D+1];
+//        simplices = new Simplex<D>[S];
         flips = 0;
         interpolate_calls = 0;
         avg_flips = 0;
@@ -386,6 +390,13 @@ double Cool<N, D, S>::interpolate(double * coords) {
 
     int inside = nn->check_bary(bary);
 
+    double dist = 0;
+    for (int i = 0; i < D; i++) {
+        dist += pow(coords[i] - nn->centroid[i], 2);
+    }
+    dist = sqrt(dist);
+    std::cout << "Dist: " << dist << std::endl;
+
 
     int dbg_count = 0;
     while (!inside) {
@@ -410,6 +421,13 @@ double Cool<N, D, S>::interpolate(double * coords) {
                 std::cout << "Simplex: " << i << std::endl;
             }
         }
+
+        double dist = 0;
+        for (int i = 0; i < D; i++) {
+            dist += pow(coords[i] - nn->centroid[i], 2);
+        }
+        dist = sqrt(dist);
+        std::cout << "Dist: " << dist << std::endl;
 
         bary = nn->convert_to_bary(coords);
 

@@ -7,16 +7,25 @@
 #include "cool.cpp"
 
 int main() {
-    Cool<221, 2, 436> cool;
+//    std::cout << sizeof(double[35090][4]) / 1e6 << std::endl;
+//    std::cout << sizeof(Simplex<4>[1002570]) / 1e6 << std::endl;
+    std::cout << "Initializing cool object... ";
+    Cool<35090, 4, 1002570> cool; // 450MB...
 
+    std::cout << "Done" << std::endl << "Reading files... ";
     cool.read_files("../data.csv", "../dtri.csv", "../dneighbours.csv");
+    std::cout << "Done" << std::endl << "Constructing ball tree... ";
     cool.construct_btree();
-    cool.save_tree("tree");
+//    std::cout << "Done" << std::endl << "Saving ball tree... ";
+//    cool.save_tree("tree");
+    std::cout << "Done" << std::endl << "Beginning interpolation... " << std::endl;
 
     std::ofstream outfile;
     outfile.open("interp");
 
-    double coord[2];
+    double coord[4];
+    coord[2] = 20;
+    coord[3] = 20;
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     for (int i = 0; i < 100; i++) {
         for (int j = 0; j < 100; j++) {
@@ -27,6 +36,7 @@ int main() {
             outfile << coord[0] << " " << coord[1] << " " << interp << std::endl;
         }
     }
+    std::cout << "Done" << std::endl;
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     std::cout << "Time to complete = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
     std::cout << "Avg flips: " << cool.avg_flips << std::endl;
