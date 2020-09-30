@@ -10,6 +10,7 @@
 #include <cmath>
 #include <cassert>
 #include <vector>
+#include <map>
 
 template<int D> class Point;
 template<int D> class Simplex;
@@ -20,13 +21,15 @@ class Point {
     /**
      * Class representing a single data point. Mostly used to find simplices it is part of.
      */
+    template<int, int, int> friend class Cool;
+    template<int> friend class Simplex;
 private:
     double coords[D];
     double value;
     double btree_radius_sq;
 
 public:
-    std::vector<Simplex<D>> simplices;  // All simplices that contain this point
+    std::vector<Simplex<D>*> simplices;  // All simplices that contain this point
     Point<D> * lchild;
     Point<D> * rchild;
 
@@ -48,8 +51,8 @@ private:
     // TODO I would like to make these const, but I don't think I can, since the value is determined at runtime
     Point<D> * points[D+1];             // D+1 points; Array of pointers to Point<D>
     double T_inv[D][D];                 // T: https://en.wikipedia.org/wiki/Barycentric_coordinate_system#Barycentric_coordinates_on_tetrahedra
-//    int neighbour_indices[D+1];         // One neighbour opposite every point
-//    Simplex * neighbour_pointers[D+1];
+    int neighbour_indices[D+1];         // One neighbour opposite every point
+    Simplex * neighbour_pointers[D+1];
     double centroid[D];
     double btree_radius_sq;
 
@@ -98,16 +101,19 @@ private:
     Simplex<D> * construct_simplex_btree_recursive(Simplex<D> **, int);
     Simplex<D> * find_nearest_neighbour_sbtree(Simplex<D> *, const double *, Simplex<D> *, double);
 
-    int flips, interpolate_calls;
+    int sbtree_flips, sbtree_interpolate_calls;
+    int pbtree_tries, pbtree_interpolate_calls;
 public:
     Cool() {
 //        points = new double[N][D+1];
 //        simplices = new Simplex<D>[S];
-        flips = 0;
-        interpolate_calls = 0;
-        avg_flips = 0;
+        sbtree_flips = 0;
+        sbtree_interpolate_calls = 0;
+        avg_sbtree_flips = 0;
+        pbtree_tries = 0;
+        pbtree_interpolate_calls = 0;
     };
-    double avg_flips;
+    double avg_sbtree_flips, avg_pbtree_tries;
 
     int read_files(std::string, std::string, std::string);
     void save_pbtree(std::string);
@@ -130,7 +136,7 @@ int Cool<N, D, S>::construct_point_btree() {
     // Construct array of pointers
     Point<D> * pts[N];
     for (int i = 0; i < N; i++) {
-        pts[i] = &(simplices[i]);
+        pts[i] = &(points[i]);
     }
 
     pbtree = construct_point_btree_recursive(pts, N);
@@ -153,7 +159,7 @@ int Cool<N, D, S>::construct_simplex_btree() {
         simps[i] = &(simplices[i]);
     }
 
-    sbtree = construct_point_btree_recursive(simps, S);
+    sbtree = construct_simplex_btree_recursive(simps, S);
 
     return 0;
 }
@@ -445,7 +451,7 @@ void Cool<N, D, S>::save_pbtree(std::string filename) {
      */
     std::ofstream file;
     file.open(filename);
-    for (int i = 0; i < S; i++) {
+    for (int i = 0; i < N; i++) {
         file << i << " ";
         int lchild = -1, rchild = -1;
         for (int j = 0; j < S; j++) {
@@ -703,19 +709,25 @@ double Cool<N, D, S>::interpolate_sbtree(double * coords) {
      * First, find the closest simplex using the ball tree. Then, find the simplex containing the given point using
      * repeated "flips". Finally, interpolate using a weighted average (Delaunay).
      */
+    std::map<Simplex<D> *, int> visited;
     Simplex<D> * best = NULL;
     Simplex<D> * nn = find_nearest_neighbour_sbtree(sbtree, coords, best, DBL_MAX);
 
     double * bary = nn->convert_to_bary(coords);
-
     int inside = nn->check_bary(bary);
 
     double dist = 0;
     for (int i = 0; i < D; i++) {
         dist += pow(coords[i] - nn->centroid[i], 2);
     }
-    dist = sqrt(dist);
-    std::cout << "Dist: " << dist << std::endl;
+//    dist = sqrt(dist);
+//    std::cout << "Coordinates: " << coords[0] << " " << coords[1] << std::endl;
+//    for (int i = 0; i < S; i++) {
+//        if (nn == &(simplices[i])) {
+//            std::cout << "Simplex: " << i << " " << simplices[i].centroid[0] << " " << simplices[i].centroid[1] << std::endl;
+//        }
+//    }
+//    std::cout << "Dist: " << dist << std::endl;
 
 
     int dbg_count = 0;
@@ -723,31 +735,55 @@ double Cool<N, D, S>::interpolate_sbtree(double * coords) {
         // If the point is not contained in the simplex, the "most negative" barycentric coordinate denotes the one
         // "most opposite" of our coordinates. Take the simplex' neighbor on the opposite of that opposite,
         // and try again
-        double min_bary = 1;
-        int    min_bary_index = -1;
-        for (int i = 0; i < D+1; i++) {
-            if (bary[i] < min_bary) {
-                min_bary = bary[i];
-                min_bary_index = i;
-            }
+        // If we have visited once before, check the second furthest coordinate instead etc.
+        // Note: This could technically lead to a case where we have walk from an N-1 times visited simplex to
+        // an N times visited simplex and would have to instead "go back". I think this case is negligible
+        int n_visits = 0;
+        if (visited.find(nn) != visited.end()) {
+            n_visits = visited[nn];
+        } else {
+            visited[nn] = 0;
         }
-        assert(min_bary < 1 && min_bary_index != -1);
+        if (n_visits >= D+1) {
+            std::cerr << "Error: Simplex has been visited maximum number of times before" << std::endl;
+        }
 
-        std::cout << "Flip " << dbg_count << std::endl;
+//        std::cout << "n_visits: " << n_visits << std::endl;
+        // TODO: Better variable names
+        double min_bary = -1 * DBL_MAX;
+        int    min_bary_index = -1;
+        for (int i = 0; i < n_visits+1; i++) {
+//            std::cout << i << std::endl;
+            double nth_min_bary = 1;
+            double nth_min_bary_index = -1;
+            for (int j = 0; j < D+1; j++) {
+                if (bary[j] < nth_min_bary && bary[j] > min_bary) {
+                    nth_min_bary = bary[j];
+                    nth_min_bary_index = j;
+                }
+            }
+            min_bary = nth_min_bary;
+            min_bary_index = nth_min_bary_index;
+        }
+        assert(min_bary > (-1*DBL_MAX) && min_bary_index != -1);
+
+//        std::cout << "Flip " << dbg_count << std::endl;
+
+        visited[nn] += 1;
         nn = nn->neighbour_pointers[min_bary_index];
 
-        for (int i = 0; i < S; i++) {
-            if (nn == &(simplices[i])) {
-                std::cout << "Simplex: " << i << std::endl;
-            }
-        }
+//        for (int i = 0; i < S; i++) {
+//            if (nn == &(simplices[i])) {
+//                std::cout << "Simplex: " << i << " " << simplices[i].centroid[0] << " " << simplices[i].centroid[1] << std::endl;
+//            }
+//        }
 
-        double dist = 0;
-        for (int i = 0; i < D; i++) {
-            dist += pow(coords[i] - nn->centroid[i], 2);
-        }
-        dist = sqrt(dist);
-        std::cout << "Dist: " << dist << std::endl;
+//        double dist = 0;
+//        for (int i = 0; i < D; i++) {
+//            dist += pow(coords[i] - nn->centroid[i], 2);
+//        }
+//        dist = sqrt(dist);
+//        std::cout << "Dist: " << dist << std::endl;
 
         bary = nn->convert_to_bary(coords);
 
@@ -763,14 +799,14 @@ double Cool<N, D, S>::interpolate_sbtree(double * coords) {
     // The actual interpolation step
     double val = 0;
     for (int i = 0; i < D+1; i++) {
-        val += bary[i] * nn->points[i][D];  // The Dth "coordinate" is the function value
+        val += bary[i] * nn->points[i]->coords[D];  // The Dth "coordinate" is the function value
     }
 
     delete[] bary;
 
-    interpolate_calls++;
-    flips += dbg_count;
-    avg_flips = flips / (float) interpolate_calls;
+    sbtree_interpolate_calls++;
+    sbtree_flips += dbg_count;
+    avg_sbtree_flips = sbtree_flips / (float) sbtree_interpolate_calls;
 
     return val;
 }
@@ -783,12 +819,30 @@ double Cool<N, D, S>::interpolate_pbtree(double * coords) {
      * Find closest point, then check all simplices touching that point
      */
     Point<D> * best = NULL;
-    Point<D> * nn = find_nearest_neighbour(pbtree, coords, best, DBL_MAX);
+    Point<D> * nn = find_nearest_neighbour_pbtree(pbtree, coords, best, DBL_MAX);
 
     double * bary;
     int simp_index;
 
+    std::cout << "Interpolation coords: " << coords[0] << " " << coords[1] << std::endl;
+    int nni;
+    for (int i = 0; i < N; i++) {
+        if (&points[i] == nn) {
+            nni = i;
+            break;
+        }
+    }
+    std::cout << "NN: " << nni << " " << nn->coords[0] << " " << nn->coords[1] << std::endl;
+
+    int dbg_count = 0;
     for (int i = 0; i < nn->simplices.size()+1; i++) {
+        for (int j = 0; j < S; j++) {
+            if (nn->simplices[i] == &simplices[j]) {
+                std::cout << "Simplex " << i << ": " << j << " " << simplices[j].centroid[0] << " " << simplices[j].centroid[1] << std::endl;
+                break;
+            }
+        }
+
         if (i >= nn->simplices.size()) {
             std::cerr << "Error: Target not found in vicinity of nearest neighbor" << std::endl;
             abort();
@@ -798,8 +852,10 @@ double Cool<N, D, S>::interpolate_pbtree(double * coords) {
         bary = nn->simplices[i]->convert_to_bary(coords);
         inside = nn->simplices[i]->check_bary(bary);
 
+        dbg_count++;
         if (inside) {
             simp_index = i;
+            std::cout << "Interpolation success" << std::endl << std::endl;
             break;
         }
     }
@@ -807,14 +863,14 @@ double Cool<N, D, S>::interpolate_pbtree(double * coords) {
     // The actual interpolation step
     double val = 0;
     for (int i = 0; i < D+1; i++) {
-        val += bary[i] * nn->simplices[simp_index]->points[i]->val;  // The Dth "coordinate" is the function value
+        val += bary[i] * nn->simplices[simp_index]->points[i]->value;  // The Dth "coordinate" is the function value
     }
 
     delete[] bary;
 
-    interpolate_calls++;
-    flips += dbg_count;
-    avg_flips = flips / (float) interpolate_calls;
+    pbtree_interpolate_calls++;
+    pbtree_tries += dbg_count;
+    avg_pbtree_tries = pbtree_tries / (float) pbtree_interpolate_calls;
 
     return val;
 }
@@ -926,7 +982,7 @@ int Cool<N, D, S>::read_files(std::string cool_file, std::string tri_file, std::
 
     // Shrink point vectors
     for (int i = 0; i < N; i++) {
-        points.simplices.shrink_to_fit();
+        points[i].simplices.shrink_to_fit();
     }
     return 0;
 }
