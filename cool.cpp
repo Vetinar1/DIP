@@ -732,6 +732,14 @@ double Cool<N, D, S>::interpolate_sbtree(double * coords) {
 
     int dbg_count = 0;
     while (!inside) {
+        std::cout << "Coords: " << coords[0] << " " << coords[1] << " " << coords[2] << " " << coords[3] << std::endl;
+        std::cout << "Centroid: " << nn->centroid[0] << " " << nn->centroid[1] << " " << nn->centroid[2] << " " << nn->centroid[3] << std::endl;
+        double dist = 0;
+        for (int i = 0; i < D; i++) {
+            dist += pow(nn->centroid[i] - coords[i], 2);
+        }
+        dist = sqrt(dist);
+        std::cout << "Dist: " << dist << std::endl;
         // If the point is not contained in the simplex, the "most negative" barycentric coordinate denotes the one
         // "most opposite" of our coordinates. Take the simplex' neighbor on the opposite of that opposite,
         // and try again
