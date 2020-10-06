@@ -5,15 +5,18 @@
 #include <iostream>
 #include <chrono>
 #include "cool.cpp"
+#include <climits>
 
 int main() {
 //    std::cout << sizeof(double[35090][4]) / 1e6 << std::endl;
 //    std::cout << sizeof(Simplex<4>[1002570]) / 1e6 << std::endl;
     std::cout << "Initializing cool object... ";
     Cool<35731, 4, 1002570> cool;
+//    Cool<221, 2, 436> cool;
 
     std::cout << "Done" << std::endl << "Reading files... ";
     cool.read_files("../data4d/data.csv", "../data4d/dtri.csv", "../data4d/dneighbours.csv");
+//    cool.read_files("../data2d/data.csv", "../data2d/dtri.csv", "../data2d/dneighbours.csv");
     std::cout << "Done" << std::endl << "Constructing ball tree... ";
     cool.construct_simplex_btree();
 //    std::cout << "Done" << std::endl << "Saving ball tree... ";

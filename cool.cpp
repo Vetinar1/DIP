@@ -11,6 +11,14 @@
 #include <cassert>
 #include <vector>
 #include <map>
+#include <unordered_set>
+#include <algorithm>
+
+// https://stackoverflow.com/a/4609795
+template <typename T> int sgn(T val) {
+    return (T(0) < val) - (val < T(0));
+}
+
 
 template<int D> class Point;
 template<int D> class Simplex;
@@ -26,7 +34,7 @@ class Point {
 private:
     double coords[D];
     double value;
-    double btree_radius_sq;
+    double pbtree_radius_sq;
 
 public:
     std::vector<Simplex<D>*> simplices;  // All simplices that contain this point
@@ -34,7 +42,7 @@ public:
     Point<D> * rchild;
 
     Point() {
-        btree_radius_sq = 0;
+        pbtree_radius_sq = 0;
     }
 };
 
@@ -54,7 +62,8 @@ private:
     int neighbour_indices[D+1];         // One neighbour opposite every point
     Simplex * neighbour_pointers[D+1];
     double centroid[D];
-    double btree_radius_sq;
+    double sbtree_radius_sq;
+    std::unordered_set<int> block_ids;         // Intersecting blocks
 
     void invert_T();
     double * convert_to_bary(const double *);
@@ -64,7 +73,7 @@ public:
     Simplex * rchild;
 
     Simplex() {
-        btree_radius_sq = 0;
+        sbtree_radius_sq = 0;
     };
 
     void calculate_centroid() {
@@ -96,13 +105,26 @@ private:
     Simplex<D> * sbtree;         // Points to the root of the simplex ball tree
     Point<D> * pbtree;           // Points to the root of the point ball tree
 
+    // D-dimensional array to pointers of vectors to pointers to vectors of pointers to int
+    // Each dimension (D) has an arbitrary number (-> vector of pointers to vector) of pages (vector of int)
+    // TODO: Somehow pass vector lengths as input
+    std::vector<std::vector<int>*> * slices[D];
+    int n_slices[D];
+    int n_blocks[D];            // Number of block subdivisions in each direction. TODO: Make argument
+    float block_size[D];        // Length of a block sized subdivision in dimension D. Used a lot -> Keep around
+
+    double dims[D][2];          // Edges of dimensions; [min, max]
+
     Point<D> * construct_point_btree_recursive(Point<D> **, int);
     Point<D> * find_nearest_neighbour_pbtree(Point<D> *, const double *, Point<D> *, double);
     Simplex<D> * construct_simplex_btree_recursive(Simplex<D> **, int);
     Simplex<D> * find_nearest_neighbour_sbtree(Simplex<D> *, const double *, Simplex<D> *, double);
+    int get_block_id(const double * );
+    double * get_block_corners(int);
+    void find_block_intersections(Simplex<D> *);
 
     int sbtree_flips, sbtree_interpolate_calls;
-    int pbtree_tries, pbtree_interpolate_calls;
+    int pbtree_flips, pbtree_interpolate_calls;
 public:
     Cool() {
 //        points = new double[N][D+1];
@@ -110,10 +132,21 @@ public:
         sbtree_flips = 0;
         sbtree_interpolate_calls = 0;
         avg_sbtree_flips = 0;
-        pbtree_tries = 0;
+        pbtree_flips = 0;
         pbtree_interpolate_calls = 0;
+        for (int i = 0; i < D; i++) {
+            n_blocks[i] = 100;
+            n_slices[i] = 10;
+
+            for (int j = 0; j < n_slices[i]; j++) {
+                (*slices[i]).push_back(new std::vector<int>);
+            }
+
+            dims[i][0] = DBL_MAX;
+            dims[i][1] = -1*DBL_MAX;
+        }
     };
-    double avg_sbtree_flips, avg_pbtree_tries;
+    double avg_sbtree_flips, avg_pbtree_flips;
 
     int read_files(std::string, std::string, std::string);
     void save_pbtree(std::string);
@@ -123,6 +156,140 @@ public:
     double interpolate_sbtree(double *);
     double interpolate_pbtree(double *);
 };
+
+
+template<int N, int D, int S>
+int Cool<N, D, S>::get_block_id(const double * coords) {
+    // Assigns an id like
+    // id = x + width * (y + depth * (z + height * (...)))
+    int id = 0;
+    for (int i = D-1; i >= 0; i--) {
+        int ith_ind = (int) ((coords[i] - dims[i][0]) / block_size[i]);
+        id = ith_ind + n_blocks[i] * id;
+    }
+}
+
+template<int N, int D, int S>
+double * Cool<N, D, S>::get_block_corners(int id) {
+    // Retrieve corners of a block from id - inverse of get_block_id
+    // Reconstruct from id = x + width * (y + depth * (z + height * (...)))
+    // The corners are returned in no specific order
+    double * corners = new double[D*pow(2, D)];     // 2^D points with D dimensions
+
+    // Find first corner the one determined by the id
+    for (int i = 0; i < D; i++) {
+        corners[i] = id % n_blocks[i];
+        id = (id - corners[i]) / n_blocks[i];
+        corners[i] = dims[i][0] + corners[i] * block_size[i];
+    }
+
+    // Now find the other corners through repeated mirroring
+    // TODO Verify this actually works
+    int point_counter = 1;
+    for (int i = 0; i < D; i++) {   // Mirror each dimension once
+        for (int j = 0; i < point_counter; j++) {   // Mirror each point we have so far
+            for (int k = 0; k < D; k++) {   // Each coordinate of those points
+                if (k == i) {
+                    corners[D*point_counter + D*j + k] = corners[D*j + k] + block_size[i];
+                } else {
+                    corners[D*point_counter + D*j + k] = corners[D*j + k];
+                }
+            }
+        }
+    }
+
+    return corners;
+}
+
+template<int N, int D, int S>
+void Cool<N, D, S>::find_block_intersections(Simplex<D> * s) {
+    std::vector<int> discarded;
+    std::vector<int> in_queue;
+
+    s->block_ids.insert(get_block_id(s->points[0]->coords));
+    in_queue.push_back(get_block_id(s->points[0]->coords));
+
+    while (!in_queue.empty()) {
+        int curr = in_queue.back();
+        in_queue.pop_back();
+
+        double * curr_corners = get_block_corners(curr);
+
+        // For all faces of the simplex, check if any of the two corners are on opposite side of the plane
+        // The check checks if two corners of the cube have different signs in the same barycentric coordinate
+        // If yes, consider this simplex to be intersecting that hypercube
+        // TODO CHECK IF THAT ACTUALLY WORKS
+        // If that is the case, check the neighbors of that hypercube, else discard it
+        double * corner_bary = new double[(D+1)];
+        double * corner_bary_new = new double[(D+1)];
+        for (int i = 0; i < pow(2, D); i++) {
+            corner_bary_new = s->convert_to_bary(&(curr_corners[i*D]));
+
+            if (i == 0) {
+                for (int j = 0; j < D; j++) {
+                    corner_bary[j] = corner_bary_new[j];
+                }
+                continue;
+            }
+
+            for (int j = 0; j < D; j++) {
+                if (sgn(corner_bary[j]) != sgn(corner_bary_new[j])) {
+                    s->block_ids.insert(curr);
+
+                    // queue up more blocks
+                    // TODO FLoating point inaccuracy might make this loop problematic
+                    for (int k = 0; k < D; k++) {
+                        int new1, new2;
+                        double * new1_coords = new double[D];
+                        double * new2_coords = new double[D];
+
+                        for (int l = 0; l < D; l++) {
+                            if (l != k) {
+                                new1_coords[l] = curr_corners[l] + 0.5 * block_size[l];
+                                new2_coords[l] = curr_corners[l] + 0.5 * block_size[l];
+                            } else {
+                                new1_coords[l] = curr_corners[l] + 1.5 * block_size[l];
+                                new2_coords[l] = curr_corners[l] - 0.5 * block_size[l];
+                            }
+                        }
+
+                        new1 = get_block_id(new1_coords);
+                        new2 = get_block_id(new2_coords);
+
+                        // I am so, so sorry
+                        // https://stackoverflow.com/questions/3450860/check-if-a-stdvector-contains-a-certain-object
+                        if (std::find(discarded.begin(), discarded.end(), new1) != discarded.end()) {
+                        } else if (std::find(in_queue.begin(), in_queue.end(), new1) != in_queue.end()){
+                        } else if (s->block_ids.count(new1) == 0) {
+                            in_queue.push_back(new1);
+                        }
+                        if (std::find(discarded.begin(), discarded.end(), new2) != discarded.end()) {
+                        } else if (std::find(in_queue.begin(), in_queue.end(), new2) != in_queue.end()){
+                        } else if (s->block_ids.count(new2) == 0) {
+                            in_queue.push_back(new2);
+                        }
+
+
+                        delete[] new1_coords;
+                        delete[] new2_coords;
+                    }
+                    goto ENDOFWHILE;
+                } else {
+                    corner_bary[j] = corner_bary_new[j];
+                }
+            }
+        }
+
+        // This point is only reached if there is no intersection
+        discarded.push_back(curr);
+
+        ENDOFWHILE:
+        delete[] corner_bary;
+        delete[] curr_corners;
+    }
+
+    discarded.clear();
+}
 
 
 template<int N, int D, int S>
@@ -178,7 +345,7 @@ Point<D> * Cool<N, D, S>::construct_point_btree_recursive(Point<D> ** pts, int n
     } else if (n == 1) {
         pts[0]->lchild = NULL;
         pts[0]->rchild = NULL;
-        pts[0]->btree_radius_sq = 0;
+        pts[0]->pbtree_radius_sq = 0;
 
         return *pts;
     }
@@ -204,7 +371,7 @@ Point<D> * Cool<N, D, S>::construct_point_btree_recursive(Point<D> ** pts, int n
         }
 //        std::cout << "Dim: " << i << " min: " << dim_min << " max: " << dim_max << std::endl;
 
-        assert(dim_min < dim_max);
+        assert(dim_min <= dim_max);
         dim_spread = fabs(dim_max - dim_min);
         if (dim_spread > largest_spread) {
             largest_spread = dim_spread;
@@ -284,15 +451,15 @@ Point<D> * Cool<N, D, S>::construct_point_btree_recursive(Point<D> ** pts, int n
     assert(pivot_addr->lchild != NULL || pivot_addr->rchild != NULL);
 
     // 5. Determine ball radius
-    pivot_addr->btree_radius_sq = 0;
+    pivot_addr->pbtree_radius_sq = 0;
     for (int i = 0; i < n; i++) {
         double dist = 0;
         for (int j = 0; j < D; j++) {
             dist += pow(pts[i]->coords[j] - pivot_addr->coords[j], 2);
         }
 
-        if (dist > pivot_addr->btree_radius_sq) {
-            pivot_addr->btree_radius_sq = dist;
+        if (dist > pivot_addr->pbtree_radius_sq) {
+            pivot_addr->pbtree_radius_sq = dist;
         }
     }
 
@@ -316,7 +483,7 @@ Simplex<D> * Cool<N, D, S>::construct_simplex_btree_recursive(Simplex<D> ** simp
     } else if (n == 1) {
         simps[0]->lchild = NULL;
         simps[0]->rchild = NULL;
-        simps[0]->btree_radius_sq = 0;
+        simps[0]->sbtree_radius_sq = 0;
 
         return *simps;
     }
@@ -423,15 +590,15 @@ Simplex<D> * Cool<N, D, S>::construct_simplex_btree_recursive(Simplex<D> ** simp
     assert(pivot_addr->lchild != NULL || pivot_addr->rchild != NULL);
 
     // 5. Determine ball radius
-    pivot_addr->btree_radius_sq = 0;
+    pivot_addr->sbtree_radius_sq = 0;
     for (int i = 0; i < n; i++) {
         double dist = 0;
         for (int j = 0; j < D; j++) {
             dist += pow(simps[i]->centroid[j] - pivot_addr->centroid[j], 2);
         }
 
-        if (dist > pivot_addr->btree_radius_sq) {
-            pivot_addr->btree_radius_sq = dist;
+        if (dist > pivot_addr->sbtree_radius_sq) {
+            pivot_addr->sbtree_radius_sq = dist;
         }
     }
 
@@ -445,7 +612,7 @@ Simplex<D> * Cool<N, D, S>::construct_simplex_btree_recursive(Simplex<D> ** simp
 template<int N, int D, int S>
 void Cool<N, D, S>::save_pbtree(std::string filename) {
     /**
-     * Saves the Ball tree. Format: [Index of simplex] [Index of left child] [Index of right child] [btree_radius_sq]
+     * Saves the Ball tree. Format: [Index of simplex] [Index of left child] [Index of right child] [pbtree_radius_sq]
      *
      * Grows with O(N^2) ... TODO
      */
@@ -462,7 +629,7 @@ void Cool<N, D, S>::save_pbtree(std::string filename) {
                 rchild = j;
             }
         }
-        file << lchild << " " << rchild << " " << points[i].btree_radius_sq << std::endl;
+        file << lchild << " " << rchild << " " << points[i].pbtree_radius_sq << std::endl;
     }
     file.close();
 }
@@ -471,7 +638,7 @@ void Cool<N, D, S>::save_pbtree(std::string filename) {
 template<int N, int D, int S>
 void Cool<N, D, S>::save_sbtree(std::string filename) {
     /**
-     * Saves the Ball tree. Format: [Index of simplex] [Index of left child] [Index of right child] [btree_radius_sq]
+     * Saves the Ball tree. Format: [Index of simplex] [Index of left child] [Index of right child] [pbtree_radius_sq]
      *
      * Grows with O(N^2) ... TODO
      */
@@ -488,7 +655,7 @@ void Cool<N, D, S>::save_sbtree(std::string filename) {
                 rchild = j;
             }
         }
-        file << lchild << " " << rchild << " " << simplices[i].btree_radius_sq << std::endl;
+        file << lchild << " " << rchild << " " << simplices[i].sbtree_radius_sq << std::endl;
     }
     file.close();
 }
@@ -514,7 +681,7 @@ Point<D> * Cool<N, D, S>::find_nearest_neighbour_pbtree(Point<D> * root, const d
     }
 
     // Recursion exit condition - root is further than current closest neighbour
-    if (dist2 - root->btree_radius_sq >= min_dist2) {
+    if (dist2 - root->pbtree_radius_sq >= min_dist2) {
 //        std::cout << "Worse." << std::endl;
         return best;
     }
@@ -618,7 +785,7 @@ Simplex<D> * Cool<N, D, S>::find_nearest_neighbour_sbtree(Simplex<D> * root, con
     }
 
     // Recursion exit condition - root is further than current closest neighbour
-    if (dist2 - root->btree_radius_sq >= min_dist2) {
+    if (dist2 - root->sbtree_radius_sq >= min_dist2) {
 //        std::cout << "Worse." << std::endl;
         return best;
     }
@@ -732,6 +899,7 @@ double Cool<N, D, S>::interpolate_sbtree(double * coords) {
 
     int dbg_count = 0;
     while (!inside) {
+        std::cout << dbg_count << std::endl;
         std::cout << "Coords: " << coords[0] << " " << coords[1] << " " << coords[2] << " " << coords[3] << std::endl;
         std::cout << "Centroid: " << nn->centroid[0] << " " << nn->centroid[1] << " " << nn->centroid[2] << " " << nn->centroid[3] << std::endl;
         double dist = 0;
@@ -746,21 +914,22 @@ double Cool<N, D, S>::interpolate_sbtree(double * coords) {
         // If we have visited once before, check the second furthest coordinate instead etc.
         // Note: This could technically lead to a case where we have walk from an N-1 times visited simplex to
         // an N times visited simplex and would have to instead "go back". I think this case is negligible
-        int n_visits = 0;
-        if (visited.find(nn) != visited.end()) {
-            n_visits = visited[nn];
-        } else {
-            visited[nn] = 0;
-        }
-        if (n_visits >= D+1) {
-            std::cerr << "Error: Simplex has been visited maximum number of times before" << std::endl;
-        }
+//        int n_visits = 0;
+//        if (visited.find(nn) != visited.end()) {
+//            n_visits = visited[nn];
+//        } else {
+//            visited[nn] = 0;
+//        }
+//        if (n_visits >= D+1) {
+//            std::cerr << "Error: Simplex has been visited maximum number of times before" << std::endl;
+//        }
 
 //        std::cout << "n_visits: " << n_visits << std::endl;
         // TODO: Better variable names
         double min_bary = -1 * DBL_MAX;
         int    min_bary_index = -1;
-        for (int i = 0; i < n_visits+1; i++) {
+//        for (int i = 0; i < n_visits+1; i++) {
+        for (int i = 0; i < 1; i++) {
 //            std::cout << i << std::endl;
             double nth_min_bary = 1;
             double nth_min_bary_index = -1;
@@ -800,6 +969,7 @@ double Cool<N, D, S>::interpolate_sbtree(double * coords) {
         dbg_count++;
         if (dbg_count > 100) {
             std::cerr << "Error: More than 100 flips." << std::endl;
+            exit(1);
             break;
         }
     }
@@ -827,20 +997,151 @@ double Cool<N, D, S>::interpolate_pbtree(double * coords) {
      * Find closest point, then check all simplices touching that point
      */
     Point<D> * best = NULL;
-    Point<D> * nn = find_nearest_neighbour_pbtree(pbtree, coords, best, DBL_MAX);
+    Point<D> * nnp = find_nearest_neighbour_pbtree(pbtree, coords, best, DBL_MAX);
+    std::cout << "Simplices: " << nnp->simplices[0] << std::endl;
 
-    double * bary;
-    int simp_index;
+    Simplex<D> * nns = NULL;
+    double min_dist2 = DBL_MAX;
+    for (int i = 0; i < nnp->simplices.size(); i++) {
+        std::cout << i << std::endl;
+        double dist2 = 0;
+        for (int j = 0; j < D; j++) {
+            dist2 += pow(nnp->simplices[i]->centroid[j] - coords[j], 2);
+        }
+        if (dist2 < min_dist2) {
+            min_dist2 = dist2;
+            nns = nnp->simplices[i];
+        }
+    }
+    assert(min_dist2 != DBL_MAX);
 
-    std::cout << "Interpolation coords: " << coords[0] << " " << coords[1] << std::endl;
-    int nni;
-    for (int i = 0; i < N; i++) {
-        if (&points[i] == nn) {
-            nni = i;
+    std::map<Simplex<D> *, int> visited;
+
+
+    double * bary = nns->convert_to_bary(coords);
+    int inside = nns->check_bary(bary);
+
+    double dist = 0;
+    for (int i = 0; i < D; i++) {
+        dist += pow(coords[i] - nns->centroid[i], 2);
+    }
+//    dist = sqrt(dist);
+//    std::cout << "Coordinates: " << coords[0] << " " << coords[1] << std::endl;
+//    for (int i = 0; i < S; i++) {
+//        if (nn == &(simplices[i])) {
+//            std::cout << "Simplex: " << i << " " << simplices[i].centroid[0] << " " << simplices[i].centroid[1] << std::endl;
+//        }
+//    }
+//    std::cout << "Dist: " << dist << std::endl;
+
+
+    int dbg_count = 0;
+    while (!inside) {
+//        std::cout << "Coords: " << coords[0] << " " << coords[1] << " " << coords[2] << " " << coords[3] << std::endl;
+//        std::cout << "Centroid: " << nns->centroid[0] << " " << nns->centroid[1] << " " << nns->centroid[2] << " " << nns->centroid[3] << std::endl;
+//        double dist = 0;
+//        for (int i = 0; i < D; i++) {
+//            dist += pow(nns->centroid[i] - coords[i], 2);
+//        }
+//        dist = sqrt(dist);
+//        std::cout << "Dist: " << dist << std::endl;
+        // If the point is not contained in the simplex, the "most negative" barycentric coordinate denotes the one
+        // "most opposite" of our coordinates. Take the simplex' neighbor on the opposite of that opposite,
+        // and try again
+        // If we have visited once before, check the second furthest coordinate instead etc.
+        // Note: This could technically lead to a case where we have walk from an N-1 times visited simplex to
+        // an N times visited simplex and would have to instead "go back". I think this case is negligible
+        int n_visits = 0;
+        if (visited.find(nns) != visited.end()) {
+            n_visits = visited[nns];
+        } else {
+            visited[nns] = 0;
+        }
+        if (n_visits >= D+1) {
+            std::cerr << "Error: Simplex has been visited maximum number of times before" << std::endl;
+            break;
+        }
+
+//        std::cout << "n_visits: " << n_visits << std::endl;
+        // TODO: Better variable names
+        double min_bary = -1 * DBL_MAX;
+        int    min_bary_index = -1;
+        std::cout << "dbg_count: " << dbg_count << std::endl;
+        std::cout << "n_visits: " << n_visits << std::endl;
+        for (int i = 0; i < n_visits+1; i++) {
+//            std::cout << i << std::endl;
+            double nth_min_bary = DBL_MAX;
+            int nth_min_bary_index = -1;
+            for (int j = 0; j < D+1; j++) {
+                std::cout << bary[j] << std::endl;
+                if (bary[j] < nth_min_bary && bary[j] > min_bary) {
+                    nth_min_bary = bary[j];
+                    nth_min_bary_index = j;
+                }
+            }
+            min_bary = nth_min_bary;
+            min_bary_index = nth_min_bary_index;
+            std::cout << nth_min_bary << " " << min_bary << std::endl;
+        }
+        std::cout << std::endl;
+        assert(min_bary > (-1*DBL_MAX) && min_bary_index != -1);
+//        std::cout << std::endl;
+
+//        std::cout << "Flip " << dbg_count << std::endl;
+
+        visited[nns] += 1;
+        nns = nns->neighbour_pointers[min_bary_index];
+
+//        for (int i = 0; i < S; i++) {
+//            if (nn == &(simplices[i])) {
+//                std::cout << "Simplex: " << i << " " << simplices[i].centroid[0] << " " << simplices[i].centroid[1] << std::endl;
+//            }
+//        }
+
+//        double dist = 0;
+//        for (int i = 0; i < D; i++) {
+//            dist += pow(coords[i] - nn->centroid[i], 2);
+//        }
+//        dist = sqrt(dist);
+//        std::cout << "Dist: " << dist << std::endl;
+
+        bary = nns->convert_to_bary(coords);
+
+        inside = nns->check_bary(bary);
+
+        dbg_count++;
+        if (dbg_count > 100) {
+            std::cerr << "Error: More than 100 flips." << std::endl;
             break;
         }
     }
-    std::cout << "NN: " << nni << " " << nn->coords[0] << " " << nn->coords[1] << std::endl;
+
+    // The actual interpolation step
+    double val = 0;
+    for (int i = 0; i < D+1; i++) {
+        val += bary[i] * nns->points[i]->coords[D];  // The Dth "coordinate" is the function value
+    }
+
+    delete[] bary;
+
+    pbtree_interpolate_calls++;
+    pbtree_flips += dbg_count;
+    avg_pbtree_flips = pbtree_flips / (float) pbtree_interpolate_calls;
+
+    return val;
+
+/*    double * bary;
+    int simp_index;
+
+//    std::cout << "Interpolation coords: " << coords[0] << " " << coords[1] << std::endl;
+//    int nni;
+//    for (int i = 0; i < N; i++) {
+//        if (&points[i] == nn) {
+//            nni = i;
+//            break;
+//        }
+//    }
+//    std::cout << "NN: " << nni << " " << nn->coords[0] << " " << nn->coords[1] << std::endl;
 
     int dbg_count = 0;
     for (int i = 0; i < nn->simplices.size()+1; i++) {
@@ -880,7 +1181,7 @@ double Cool<N, D, S>::interpolate_pbtree(double * coords) {
     pbtree_tries += dbg_count;
     avg_pbtree_tries = pbtree_tries / (float) pbtree_interpolate_calls;
 
-    return val;
+    return val;*/
 }
 
 template<int N, int D, int S>
@@ -896,7 +1197,7 @@ int Cool<N, D, S>::read_files(std::string cool_file, std::string tri_file, std::
     std::string line;
     std::string value;
 
-    /* Read points.csv */
+    /* Read points */
     file.open(cool_file);
     if (!file.is_open()) {
         std::cerr << "Error reading " << cool_file << std::endl;
@@ -909,8 +1210,19 @@ int Cool<N, D, S>::read_files(std::string cool_file, std::string tri_file, std::
         for (int j = 0; j < D+1; j++) {     // D coordinates, 1 value
             std::getline(linestream, value, ',');
             points[i].coords[j] = std::stod(value);
-        }
 
+            if (points[i].coords[j] < dims[j][0]) {
+                dims[j][0] = points[i].coords[j];
+            }
+            if (points[i].coords[j] > dims[j][1]) {
+                dims[j][1] = points[i].coords[j];
+            }
+        }
+    }
+
+    for (int i = 0; i < D; i++) {
+        assert(dims[i][1] > dims[i][0]);
+        block_size[i] = (dims[i][1] - dims[i][0]) / n_blocks[i];
     }
 
     file.close();
@@ -945,6 +1257,52 @@ int Cool<N, D, S>::read_files(std::string cool_file, std::string tri_file, std::
             }
         }
         simplices[i].calculate_centroid();
+
+        // Assign simplex to slices
+        for (int j = 0; j < D; j++) {           // for each dimension
+            // find min and max of vertex coordinates in that dimension
+            double d_min = DBL_MAX;
+            double d_max = 0;
+            for (int k = 0; k < D+1; k++) {     // for each vertex
+                if (simplices[i].points[k].coords[j] < d_min) {
+                    d_min = simplices[i].points[k].coords[j];
+                }
+                if (simplices[i].points[k].coords[j] > d_max) {
+                    d_max = simplices[i].points[k].coords[j];
+                }
+            }
+
+            assert(d_max > d_min);
+
+            // Assign to respective slices
+            for (int k = 0; k < n_slices[j]; k++) {
+                // slice_val = dimension min + k * slice_width
+                // slice_width = (dimension max - dimension min) / n_slices[j]
+                double slice_val = dims[j][0] + k * (d_max - d_min) / n_slices[j];
+
+                if (d_min < slice_val) {
+                    continue;
+                } else if (d_max > slice_val) {
+                    continue;
+                } else {
+                    // Insert index of simplex - slices are automatically sorted!
+                    (*slices[i])[k]->push_back(i);
+                }
+            }
+        }
+
+        // Assign blocks to simplex
+        // Strategy: Take a block that is known to intersect with the simplex. Check all its neighboring blocks.
+        // For the ones that also intersect, recurse until no more intersecting blocks are left.
+        find_block_intersections(simplices[i]);
+    }
+
+    // Slices will not be modified from here on
+    for (int i = 0; i < D; i++) {
+        slices[i]->shrink_to_fit();
+        for (int j = 0; j < slices[i]->size(); j++) {
+            slices[i]->at(j)->shrink_to_fit();
+        }
     }
 
     file.close();
