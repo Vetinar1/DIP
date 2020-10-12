@@ -8,15 +8,17 @@
 #include <climits>
 
 int main() {
-//    std::cout << sizeof(double[35090][4]) / 1e6 << std::endl;
-//    std::cout << sizeof(Simplex<4>[1002570]) / 1e6 << std::endl;
+    std::cout << sizeof(Cool<221, 2, 436>) << std::endl;
     std::cout << "Initializing cool object... ";
-    Cool<35731, 4, 1002570> cool;
+//    Cool<35731, 4, 1002570> cool;
+    Cool<25758, 3, 162445> cool;
 //    Cool<221, 2, 436> cool;
 
     std::cout << "Done" << std::endl << "Reading files... ";
-    cool.read_files("../data4d/data.csv", "../data4d/dtri.csv", "../data4d/dneighbours.csv");
+//    cool.read_files("../data4d/data.csv", "../data4d/dtri.csv", "../data4d/dneighbours.csv");
+    cool.read_files("../data3d/data.csv", "../data3d/dtri.csv", "../data3d/dneighbours.csv");
 //    cool.read_files("../data2d/data.csv", "../data2d/dtri.csv", "../data2d/dneighbours.csv");
+
     std::cout << "Done" << std::endl << "Constructing ball tree... ";
     cool.construct_simplex_btree();
 //    std::cout << "Done" << std::endl << "Saving ball tree... ";
@@ -26,9 +28,9 @@ int main() {
     std::ofstream outfile;
     outfile.open("interp");
 
-    double coord[4];
-    coord[2] = 20;
-    coord[3] = 20;
+    double coord[3];
+    coord[2] = 0;
+//    coord[3] = 20;
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     for (int i = 0; i < 100; i++) {
         for (int j = 0; j < 100; j++) {
