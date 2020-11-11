@@ -14,6 +14,9 @@
 #include <unordered_set>
 #include <algorithm>
 
+// TODO ?
+#define EPSILON 0.001
+
 // https://stackoverflow.com/a/4609795
 template <typename T> int sgn(T val) {
     return (T(0) < val) - (val < T(0));
@@ -33,17 +36,9 @@ class Point {
     template<int> friend class Simplex;
 private:
     double value;
-    double pbtree_radius_sq;
 
 public:
     double coords[D];
-//    std::vector<Simplex<D>*> simplices;  // All simplices that contain this point
-    Point<D> * lchild;
-    Point<D> * rchild;
-
-    Point() {
-        pbtree_radius_sq = 0;
-    }
 };
 
 
@@ -63,16 +58,20 @@ private:
     Simplex * neighbour_pointers[D+1];
     double centroid[D];
     double sbtree_radius_sq;
-    std::unordered_set<int> block_ids;         // Intersecting blocks
+    double midpoints[D+1][D];           // Midpoints of the faces; D+1 faces, D coordinates
     double normals[D+1][D];             // Outward pointing normals of the faces; D+1 faces, D coordinates
 
     void invert_T();
     double * convert_to_bary(const double *);
     int check_bary(const double *);
     void calculate_normals();
+    void calculate_midpoints();
+
+    template<size_t M, size_t N1, size_t N2> void gauss_elimination(double (&)[M][N1], double (&)[M][N2], int);
 public:
     double * find_normal(Point<D> ** );
-    double * find_normal2(Point<D> ** );
+    void validate_simplex();
+    void validate_normals();
     Simplex * lchild;
     Simplex * rchild;
 
@@ -92,6 +91,7 @@ public:
             centroid[i] /= (D+1);
         }
     }
+    template<size_t n> double laplace_expansion(double (&)[n][n]);
 };
 
 template<int N, int D, int S>
@@ -104,196 +104,33 @@ class Cool {
 private:
     inline static Point<D> points[N];
     inline static Simplex<D> simplices[S];
-//    double * points;
-//    Simplex<D> * simplices;
     Simplex<D> * sbtree;         // Points to the root of the simplex ball tree
-    Point<D> * pbtree;           // Points to the root of the point ball tree
 
-//    // D-dimensional array to pointers of vectors to pointers to vectors of pointers to int
-//    // Each dimension (D) has an arbitrary number (-> vector of pointers to vector) of pages (vector of int)
-//    // TODO: Somehow pass vector lengths as input
-//    std::vector<std::vector<int>*> * slices[D];
-//    int n_slices[D];
-//    int n_blocks[D];            // Number of block subdivisions in each direction. TODO: Make argument
-//    float block_size[D];        // Length of a block sized subdivision in dimension D. Used a lot -> Keep around
-//
-//    double dims[D][2];          // Edges of dimensions; [min, max]
-
-    Point<D> * construct_point_btree_recursive(Point<D> **, int);
-    Point<D> * find_nearest_neighbour_pbtree(Point<D> *, const double *, Point<D> *, double);
     Simplex<D> * construct_simplex_btree_recursive(Simplex<D> **, int);
     Simplex<D> * find_nearest_neighbour_sbtree(Simplex<D> *, const double *, Simplex<D> *, double);
-//    int get_block_id(const double * );
-//    double * get_block_corners(int);
-//    void find_block_intersections(Simplex<D> *);
 
     int sbtree_flips, sbtree_interpolate_calls;
-    int pbtree_flips, pbtree_interpolate_calls;
 public:
     Cool() {
-//        points = new double[N][D+1];
-//        simplices = new Simplex<D>[S];
         sbtree_flips = 0;
         sbtree_interpolate_calls = 0;
         avg_sbtree_flips = 0;
-        pbtree_flips = 0;
-        pbtree_interpolate_calls = 0;
-//        for (int i = 0; i < D; i++) {
-//            n_blocks[i] = 100;
-//            n_slices[i] = 10;
-//
-//            for (int j = 0; j < n_slices[i]; j++) {
-//                (*slices[i]).push_back(new std::vector<int>);
-//            }
-//
-//            dims[i][0] = DBL_MAX;
-//            dims[i][1] = -1*DBL_MAX;
-//        }
+        for (int i = 0; i < D; i++) {
+            mins[i] =      DBL_MAX;
+            maxs[i] = -1 * DBL_MAX;
+        }
     };
-    double avg_sbtree_flips, avg_pbtree_flips;
+    double avg_sbtree_flips;
+
+    // Minimum and maximum values in each dimension
+    double mins[D];
+    double maxs[D];
 
     int read_files(std::string, std::string, std::string);
-    void save_pbtree(std::string);
     void save_sbtree(std::string);
-    int construct_point_btree();
     int construct_simplex_btree();
     double interpolate_sbtree(double *);
-    double interpolate_pbtree(double *);
 };
-
-
-//template<int N, int D, int S>
-//int Cool<N, D, S>::get_block_id(const double * coords) {
-//    // Assigns an id like
-//    // id = x + width * (y + depth * (z + height * (...)))
-//    int id = 0;
-//    for (int i = D-1; i >= 0; i--) {
-//        int ith_ind = (int) ((coords[i] - dims[i][0]) / block_size[i]);
-//        id = ith_ind + n_blocks[i] * id;
-//    }
-//}
-
-//template<int N, int D, int S>
-//double * Cool<N, D, S>::get_block_corners(int id) {
-//    // Retrieve corners of a block from id - inverse of get_block_id
-//    // Reconstruct from id = x + width * (y + depth * (z + height * (...)))
-//    // The corners are returned in no specific order
-//    double * corners = new double[D*pow(2, D)];     // 2^D points with D dimensions
-//
-//    // Find first corner the one determined by the id
-//    for (int i = 0; i < D; i++) {
-//        corners[i] = id % n_blocks[i];
-//        id = (id - corners[i]) / n_blocks[i];
-//        corners[i] = dims[i][0] + corners[i] * block_size[i];
-//    }
-//
-//    // Now find the other corners through repeated mirroring
-//    // TODO Verify this actually works
-//    int point_counter = 1;
-//    for (int i = 0; i < D; i++) {   // Mirror each dimension once
-//        for (int j = 0; i < point_counter; j++) {   // Mirror each point we have so far
-//            for (int k = 0; k < D; k++) {   // Each coordinate of those points
-//                if (k == i) {
-//                    corners[D*point_counter + D*j + k] = corners[D*j + k] + block_size[i];
-//                } else {
-//                    corners[D*point_counter + D*j + k] = corners[D*j + k];
-//                }
-//            }
-//        }
-//    }
-//
-//    return corners;
-//}
-
-//template<int N, int D, int S>
-//void Cool<N, D, S>::find_block_intersections(Simplex<D> * s) {
-//    std::vector<int> discarded;
-//    std::vector<int> in_queue;
-//
-//    s->block_ids.insert(get_block_id(s->points[0]->coords));
-//    in_queue.push_back(get_block_id(s->points[0]->coords));
-//
-//    while (!in_queue.empty()) {
-//        int curr = in_queue.back();
-//        in_queue.pop_back();
-//
-//        double * curr_corners = get_block_corners(curr);
-//
-//        // For all faces of the simplex, check if any of the two corners are on opposite side of the plane
-//        // The check checks if two corners of the cube have different signs in the same barycentric coordinate
-//        // If yes, consider this simplex to be intersecting that hypercube
-//        // TODO CHECK IF THAT ACTUALLY WORKS
-//        // If that is the case, check the neighbors of that hypercube, else discard it
-//        double * corner_bary = new double[(D+1)];
-//        double * corner_bary_new = new double[(D+1)];
-//        for (int i = 0; i < pow(2, D); i++) {
-//            corner_bary_new = s->convert_to_bary(&(curr_corners[i*D]));
-//
-//            if (i == 0) {
-//                for (int j = 0; j < D; j++) {
-//                    corner_bary[j] = corner_bary_new[j];
-//                }
-//                continue;
-//            }
-//
-//            for (int j = 0; j < D; j++) {
-//                if (sgn(corner_bary[j]) != sgn(corner_bary_new[j])) {
-//                    s->block_ids.insert(curr);
-//
-//                    // queue up more blocks
-//                    // TODO FLoating point inaccuracy might make this loop problematic
-//                    for (int k = 0; k < D; k++) {
-//                        int new1, new2;
-//                        double * new1_coords = new double[D];
-//                        double * new2_coords = new double[D];
-//
-//                        for (int l = 0; l < D; l++) {
-//                            if (l != k) {
-//                                new1_coords[l] = curr_corners[l] + 0.5 * block_size[l];
-//                                new2_coords[l] = curr_corners[l] + 0.5 * block_size[l];
-//                            } else {
-//                                new1_coords[l] = curr_corners[l] + 1.5 * block_size[l];
-//                                new2_coords[l] = curr_corners[l] - 0.5 * block_size[l];
-//                            }
-//                        }
-//
-//                        new1 = get_block_id(new1_coords);
-//                        new2 = get_block_id(new2_coords);
-//
-//                        // I am so, so sorry
-//                        // https://stackoverflow.com/questions/3450860/check-if-a-stdvector-contains-a-certain-object
-//                        if (std::find(discarded.begin(), discarded.end(), new1) != discarded.end()) {
-//                        } else if (std::find(in_queue.begin(), in_queue.end(), new1) != in_queue.end()){
-//                        } else if (s->block_ids.count(new1) == 0) {
-//                            in_queue.push_back(new1);
-//                        }
-//                        if (std::find(discarded.begin(), discarded.end(), new2) != discarded.end()) {
-//                        } else if (std::find(in_queue.begin(), in_queue.end(), new2) != in_queue.end()){
-//                        } else if (s->block_ids.count(new2) == 0) {
-//                            in_queue.push_back(new2);
-//                        }
-//
-//
-//                        delete[] new1_coords;
-//                        delete[] new2_coords;
-//                    }
-//                    goto ENDOFWHILE;
-//                } else {
-//                    corner_bary[j] = corner_bary_new[j];
-//                }
-//            }
-//        }
-//
-//        // This point is only reached if there is no intersection
-//        discarded.push_back(curr);
-//
-//        ENDOFWHILE:
-//        delete[] corner_bary;
-//        delete[] curr_corners;
-//    }
-//
-//    discarded.clear();
-//}
 
 
 template<int D>
@@ -303,19 +140,20 @@ void Simplex<D>::calculate_normals() {
      * away from the centroid.
      */
 
-    std::cout << "Calculating normals for:" << std::endl;
-    for (int i = 0; i < D+1; i++) {
-        for (int j = 0; j < D; j++) {
-            std::cout << points[i]->coords[j] << " ";
-        }
-        std::cout << std::endl;
-    }
-    std::cout << "Centroid:" << std::endl;
-    for (int i = 0; i < D; i++) {
-        std::cout << centroid[i] << " ";
-    }
-    std::cout << std::endl;
+//    std::cout << "Calculating normals for:" << std::endl;
+//    for (int i = 0; i < D+1; i++) {
+//        for (int j = 0; j < D; j++) {
+//            std::cout << points[i]->coords[j] << " ";
+//        }
+//        std::cout << std::endl;
+//    }
+//    std::cout << "Centroid:" << std::endl;
+//    for (int i = 0; i < D; i++) {
+//        std::cout << centroid[i] << " ";
+//    }
+//    std::cout << std::endl;
     for (int i = 0; i < D+1; i++) { // Each face/point opposite
+        std::cout << "\nNormal " << i << std::endl;
         Point<D> * face[D];
 
         // All points except the one opposite
@@ -326,13 +164,13 @@ void Simplex<D>::calculate_normals() {
                 face[j] = points[j+1];
             }
         }
-        std::cout << std::endl << "Face " << i << std::endl;
-        for (int j = 0; j < D; j++) {
-            for (int k = 0; k <D; k++) {
-                std::cout << face[j]->coords[k] << " ";
-            }
-            std::cout << std::endl;
-        }
+//        std::cout << std::endl << "Face " << i << std::endl;
+//        for (int j = 0; j < D; j++) {
+//            for (int k = 0; k <D; k++) {
+//                std::cout << face[j]->coords[k] << " ";
+//            }
+//            std::cout << std::endl;
+//        }
 
         double * norm = find_normal(&face[0]);
 
@@ -344,7 +182,7 @@ void Simplex<D>::calculate_normals() {
 
         // Make sure norm points away from centroid
         // Go +1/-1 in direction of the normal from the centroid.
-        // If +1 is closer to one of the face points, normal points in the right direction. Else, flip
+        // If +1 is closer to the midpoint, normal points in the right direction. Else, flip
         double step_pos[D];
         double step_neg[D];
         double dist2_pos = 0;
@@ -357,11 +195,11 @@ void Simplex<D>::calculate_normals() {
 
         std::cout << step_pos[0] << " " << step_pos[1] << std::endl;
         std::cout << step_neg[0] << " " << step_neg[1] << std::endl;
-        std::cout << face[0]->coords[0] << " " << face[0]->coords[1] << std::endl;
+        std::cout << midpoints[i][0] << " " << midpoints[i][1] << std::endl;
 
         for (int j = 0; j < D; j++) {
-            dist2_pos += pow(step_pos[j] - face[0]->coords[j], 2);
-            dist2_neg += pow(step_neg[j] - face[0]->coords[j], 2);
+            dist2_pos += pow(step_pos[j] - midpoints[i][j], 2);
+            dist2_neg += pow(step_neg[j] - midpoints[i][j], 2);
         }
 
         std::cout << "pos dist: " << sqrt(dist2_pos) << std::endl;
@@ -382,41 +220,456 @@ void Simplex<D>::calculate_normals() {
         delete[] norm;
     }
 
-    // There has to be a 90° angle between at least two of the normals
-    double smallest_dot = 1;
-    for (int i = 0; i < D+1; i++) {
-        double dot = 0;
-        for (int j = 0; j < D+1; j++) {
-            for (int k = 0; k < D; k++) {
-                dot += normals[i][k] * normals[j][k];
-            }
-        }
-        if (dot < smallest_dot) {
-            smallest_dot = dot;
-        }
-    }
-    assert(smallest_dot < 0);
     std::cout << std::endl;
 }
 
 
-template<int N, int D, int S>
-int Cool<N, D, S>::construct_point_btree() {
+template<int D>
+double * Simplex<D>::find_normal(Point<D> ** vertices) {
     /**
-     * This function serves as a public "adapter" to the actual ball tree construction function,
-     * construct_point_btree_recursive().
+     * Finds the normal on a hyperplane defined by a set of points. Will crash if they are linearly dependent.
      *
-     * Returns 0 on success.
+     * The normal is given by the nullspace of the matrix of the in-plane vectors:
+     * https://en.wikipedia.org/wiki/Normal_(geometry)#Hypersurfaces_in_n-dimensional_space
+     *
+     * The nullspace/kernel can be calculated using Gaussian elimination:
+     * https://en.wikipedia.org/wiki/Kernel_(linear_algebra)#Computation_by_Gaussian_elimination
+     *
      */
-    // Construct array of pointers
-    Point<D> * pts[N];
-    for (int i = 0; i < N; i++) {
-        pts[i] = &(points[i]);
+
+    double * norm = new double[D];
+
+    // Construct matrix
+    double matrix[D][D-1];      // D-1 points, D coordinates; transposed
+    for (int i = 0; i < D-1; i++) {
+        for (int j = 0; j < D; j++) {
+            matrix[j][i] = vertices[i]->coords[j] - vertices[D-1]->coords[j];
+        }
     }
 
-    pbtree = construct_point_btree_recursive(pts, N);
 
-    return 0;
+    // unit matrix
+    double unit[D][D];  // unit matrix
+    for (int i = 0; i < D; i++) {
+        for (int j = 0; j < D; j++) {
+            if (i == j) {
+                unit[i][j] = 1;
+            } else {
+                unit[i][j] = 0;
+            }
+        }
+    }
+
+    gauss_elimination<D, D-1, D>(matrix, unit, 0);
+
+
+    int found;
+    for (int i = 0; i < D; i++) {
+        // If current row is full of zeros -> found norm
+        int allzero = 1;
+        for (int j = 0; j < D-1; j++) {
+            if (matrix[i][j] != 0) {
+                allzero = 0;
+                break;
+            }
+        }
+
+        if (allzero == 1) {
+//            std::cout << "Zero row: " << i << std::endl;
+            found = 1;
+            for (int j = 0; j < D; j++) {
+                norm[j] = unit[i][j];
+//                std::cout << norm[j] << " ";
+            }
+//            std::cout << std::endl;
+            break;
+        }
+    }
+    if (found != 1) {
+        std::cerr << "Error while trying to find normal vector: Did not find zero row" << std::endl;
+        std::cerr << "https://en.wikipedia.org/wiki/Kernel_(linear_algebra)#Computation_by_Gaussian_elimination" << std::endl;
+        std::cerr << "Input points:" << std::endl;
+        for (int i = 0; i < D; i++) {
+            for (int j = 0; j < D; j++) {
+                std::cerr << vertices[i]->coords[j] << " ";
+            }
+            std::cerr << std::endl;
+        }
+        std::cerr << "Initial Matrix:" << std::endl;
+        for (int i = 0; i < D; i++) {
+            for (int j = 0; j < D-1; j++) {
+                std::cerr << vertices[j]->coords[i] - vertices[D-1]->coords[i] << "\t";
+            }
+            std::cerr << "|\t";
+            for (int j = 0; j < D; j++) {
+                if (i == j) {
+                    std::cerr << 1 << "\t";
+                } else {
+                    std::cerr << 0 << "\t";
+                }
+            }
+            std::cerr << std::endl;
+        }
+        std::cerr << "Final Matrix:" << std::endl;
+        for (int i = 0; i < D; i++) {
+            for (int j = 0; j < D-1; j++) {
+                std::cerr << matrix[i][j] << "\t";
+            }
+            std::cerr << "|\t";
+            for (int j = 0; j < D; j++) {
+                std::cerr << unit[i][j] << "\t";
+            }
+            std::cerr << std::endl;
+        }
+        abort();
+    }
+
+    // Normalize norm
+    double len = 0;
+    for (int i = 0; i < D; i++) {
+        len += pow(norm[i], 2);
+    }
+    len = sqrt(len);
+//    std::cout << "Len: " << len << std::endl;
+    for (int i = 0; i < D; i++) {
+        norm[i] /= len;
+    }
+
+    return norm;
+}
+
+
+template<int n>
+double laplace_expansion(double (&matrix)[n][n]) {
+    /**
+     * Recursive function implementing Laplace expansion to calculate determinant of a matrix.
+     * Slow, inefficient, simple.
+     *
+     * https://en.wikipedia.org/wiki/Laplace_expansion
+     *
+     * double * matrix      Pointer to matrix[i][j], n x n
+     * int n                size of matrix
+     * returns              Determinant
+     */
+
+    double det = 0;
+    for (int i = 0; i < n; i++) {   // All elements of first row
+        // Build submatrix without first row and ith column
+        double submatrix[n-1][n-1];
+        for (int j = 1; j < n; j++) {   // All rows except first
+            for (int k = 0; k < n-1; k++) { // All columns except ith
+                int l;
+                if (k < i) {
+                    l = k;
+                } else {
+                    l = k+1;
+                }
+                submatrix[j-1][k] = matrix[j][l];
+            }
+        }
+        // The exponent is i+j. But in math indices start at one, so i becomes i+1. and j is the first row - becomes 1.
+        det += pow(-1, i+1 + 1) * matrix[0][i] * laplace_expansion<n-1>(submatrix);
+    }
+    return det;
+}
+
+template<>
+double laplace_expansion<1>(double (&matrix)[1][1]) {
+    return matrix[0][0];
+}
+
+
+template<int D>
+void Simplex<D>::validate_simplex() {
+    /**
+     * Check that simplex is not degenerate - i.e. actualy n-d object
+     * TODO doesnt work right
+     */
+
+    // Get matrix of difference vectors
+    double matrix[D][D];
+    for (int i = 0; i < D; i++) {
+        for (int j = 0; j < D; j++) {
+            matrix[j][i] = points[i]->coords[j] - points[D]->coords[j];
+        }
+    }
+
+    double det = ::laplace_expansion<D>(matrix); // hacks
+
+    if (fabs(det) < EPSILON) {
+        std::cerr << "Warning in Simplex validation: Points might not be linearly independent" << std::endl;
+        std::cerr << "Points:" << std::endl;
+        for (int j = 0; j < D+1; j++) {
+            std::cerr << "[";
+            for (int k = 0; k < D; k++) {
+                std::cerr << points[j]->coords[k] << ",\t";
+            }
+            std::cerr << "], " << std::endl;
+        }
+        std::cerr << "Matrix of difference vectors: " << std::endl;
+        for (int j = 0; j < D; j++) {
+            for (int k = 0; k < D; k++) {
+                std::cerr << matrix[j][k] << "\t";
+            }
+            std::cerr << std::endl;
+        }
+        std::cerr << "Determinant: " << det << std::endl;
+    }
+}
+
+
+template<int D>
+void Simplex<D>::validate_normals() {
+    /**
+     * Check that all normals are
+     * a) Normalized
+     * b) Normal
+     * c) Pointing away from the centroid
+     * d) Pointing away from each other
+     */
+
+    // a) Validate normalisation
+    double normfailed[D+1] = { 0 }; // Array of zeros
+    int nf_flag = 0;
+    for (int i = 0; i < D+1; i++) {
+        double len2 = 0;
+        for (int j = 0; j < D; j++) {
+            len2 += pow(normals[i][j], 2);
+        }
+
+        if (fabs(len2 - 1) > EPSILON) {
+            nf_flag = 1;
+            normfailed[i] = sqrt(len2);
+        }
+    }
+    if (nf_flag) {
+        std::cerr << "Error in normal validation: Normalisation of normals " << std::endl;
+
+        std::cerr << "Simplex points:" << std::endl;
+        for (int j = 0; j < D+1; j++) {
+            std::cerr << j << ":   ";
+            for (int k = 0; k < D; k++) {
+                std::cerr << points[j]->coords[k] << " ";
+            }
+            std::cerr << std::endl;
+        }
+        std::cerr << "Centroid: " << std::endl;
+        for (int j = 0; j < D; j++) {
+            std::cerr << centroid[j] << " ";
+        }
+        std::cerr << std::endl;
+        std::cerr << "Normal vectors:" << std::endl;
+        for (int j = 0; j < D+1; j++) {
+            if (normfailed[j] != 0) {
+                std::cerr << ">" << j << ":  ";
+            } else {
+                std::cerr << j << ":   ";
+            }
+            for (int k = 0; k < D; k++) {
+                std::cerr << normals[j][k] << " ";
+            }
+            if (normfailed[j] != 0) {
+                std::cerr << "\t--> " << normfailed[j];
+            }
+            std::cerr << std::endl;
+        }
+        abort();
+    }
+
+    // b) Normal on hyperplanes
+    for (int i = 0; i < D+1; i++) { // all faces/normals
+        Point<D> * facepoints[D];
+        for (int j = 0; j < D; j++) {   // All points in face/All points in simplex except point i
+            int k;
+            if (j < i) {
+                k = j;
+            } else {
+                k = j + 1;
+            }
+
+            facepoints[j] = points[k];
+        }
+
+        for (int j = 1; j < D; j++) {
+            double diff[D]; // In the hyperplane
+            double len = 0;
+
+            for (int k = 0; k < D; k++) {
+                diff[k] = facepoints[0]->coords[k] - facepoints[j]->coords[k];
+                len += pow(diff[k], 2);
+            }
+            len = sqrt(len);
+            double dot = 0;
+            for (int k = 0; k < D; k++) {
+                dot += (diff[k] / len) * normals[i][k];
+            }
+
+            if (fabs(dot) > EPSILON) {
+                std::cerr << "Normal vector not normal: " << i << std::endl;
+                std::cerr << "Normal vector: " << std::endl;
+                for (int k = 0; k < D; k++) {
+                    std::cerr << normals[i][k] << " ";
+                }
+                std::cerr << std::endl;
+                std::cerr << "In plane vector: " << std::endl;
+                for (int k = 0; k < D; k++) {
+                    std::cerr << diff[k] / len << " ";
+                }
+                std::cerr << std::endl;
+                std::cerr << "Dot product: " << dot << std::endl;
+                std::cerr << "Points used for in plane vector: " << 0 << " " << j << std::endl;
+                std::cerr << "Plane points:" << std::endl;
+
+                for (int k = 0; k < D; k++) {
+                    std::cerr << k << ":\t";
+                    for (int l = 0; l < D; l++) {
+                        std::cerr << facepoints[k]->coords[l] << " ";
+                    }
+                    std::cerr << std::endl;
+                }
+                abort();
+            }
+
+        }
+    }
+
+    // c)
+    // Pointing away from centroid - use scalar product between normal and difference vector pointing from midpoint
+    // to centroid
+    for (int i = 0; i < D+1; i++) {
+        double diff[D];
+        double len = 0;
+        for (int j = 0; j < D; j++) {
+            diff[j] = centroid[j] - midpoints[i][j];
+            len += pow(diff[j], 2);
+        }
+        len = sqrt(len);
+
+        double dot = 0;
+        for (int j = 0; j < D; j++) {
+            dot += normals[i][j] * (diff[j] / len);
+        }
+        if (dot > 0) {
+            std::cerr << "Normal vector not pointing away from centroid: " << i << std::endl;
+            std::cerr << "Normal vector:" << std::endl;
+            for (int j = 0; j < D; j++) {
+                std::cerr << normals[i][j] << " ";
+            }
+            std::cerr << std::endl;
+            std::cerr << "Centroid: " << std::endl;
+            for (int j = 0; j < D; j++) {
+                std::cerr << centroid[j] << " ";
+            }
+            std::cerr << "Midpoint vector:" << std::endl;
+            for (int j = 0; j < D; j++) {
+                std::cerr << midpoints[i][j] << " ";
+            }
+            std::cerr << "Difference vector: " << std::endl;
+            for (int j = 0; j < D; j++) {
+                std::cerr << diff[j] << " ";
+            }
+            std::cerr << "Dot product: " << dot << std::endl;
+        }
+    }
+
+    // d)
+    // The largest angle is the smallest dot product
+    // This dot product cannot be larger than 0 - the two normals with the largest angle cannot point in "roughly the
+    // same direction"
+    // In fact, the "smallest possible largest angle" is given for a regular simplex (equilateral triangle, tetrahedron, ...)
+    // This angle is given by arccos(-1/D)
+    // Use this criterium for a sanity check.
+    double smallest_dot = 1;
+    int smallest_dot_idx1, smallest_dot_idx2;
+    for (int i = 0; i < D+1; i++) {
+        for (int j = 0; j < D+1; j++) {
+            double dot = 0;
+            for (int k = 0; k < D; k++) {
+                dot += normals[i][k] * normals[j][k];
+            }
+//            std::cout << "i: " << i << " j: " << j << " dot: " << dot << std::endl;
+            if (dot < smallest_dot) {
+                smallest_dot = dot;
+                smallest_dot_idx1 = i;
+                smallest_dot_idx2 = j;
+            }
+        }
+    }
+
+    if (smallest_dot > -1./D) {
+        std::cerr << "Error in normal validation: Scalar product of Normals "
+                  << smallest_dot_idx1 << " and " << smallest_dot_idx2 << ": "
+                  << smallest_dot << " < 1/" << D << " = " << 1./D << std::endl;
+
+        std::cerr << "Simplex points:" << std::endl;
+        for (int j = 0; j < D+1; j++) {
+            std::cerr << j << ":   ";
+            for (int k = 0; k < D; k++) {
+                std::cerr << points[j]->coords[k] << " ";
+            }
+            std::cerr << std::endl;
+        }
+        std::cerr << "Centroid: " << std::endl;
+        for (int j = 0; j < D; j++) {
+            std::cerr << centroid[j] << " ";
+        }
+        std::cerr << std::endl;
+        std::cerr << "Midpoints:" << std::endl;
+        for (int j = 0; j < D+1; j++) {
+            std::cerr << j << ":   ";
+            for (int k = 0; k < D; k++) {
+                std::cerr << midpoints[j][k] << " ";
+            }
+            std::cerr << std::endl;
+        }
+        std::cerr << "Normal vectors:" << std::endl;
+        for (int j = 0; j < D+1; j++) {
+            if (j == smallest_dot_idx1 || j == smallest_dot_idx2) {
+                std::cerr << ">" << j << ":  ";
+            } else {
+                std::cerr << j << ":   ";
+            }
+            for (int k = 0; k < D; k++) {
+                std::cerr << normals[j][k] << " ";
+            }
+            std::cerr << std::endl;
+        }
+
+        abort();
+    }
+}
+
+
+template<int D>
+void Simplex<D>::calculate_midpoints() {
+    /**
+     * Calculates the coordinates of the midpoints of each face. The ith midpoint belongs to the ith face, opposite
+     * of the ith vertex. It is the average of the set of vertices excluding the ith.
+     */
+
+    for (int i = 0; i < D+1; i++) { // D+1 midpoints/faces/vertices
+        // Initialize current midpoint to 0
+        for (int j = 0; j < D; j++) {
+            midpoints[i][j] = 0;
+        }
+
+        for (int j = 0; j < D; j++) { // D *other* midpoints/faces/vertices
+            int k;
+            if (j < i) {
+                k = j;
+            } else {
+                k = j+1;
+            }
+
+            for (int l = 0; l < D; l++) {   // D coordinates
+                midpoints[i][l] += points[k]->coords[l];
+            }
+        }
+
+        for (int j = 0; j < D; j++) {
+            midpoints[i][j] /= D;
+        }
+    }
 }
 
 
@@ -437,144 +690,6 @@ int Cool<N, D, S>::construct_simplex_btree() {
     sbtree = construct_simplex_btree_recursive(simps, S);
 
     return 0;
-}
-
-
-template< int N, int D, int S>
-Point<D> * Cool<N, D, S>::construct_point_btree_recursive(Point<D> ** pts, int n) {
-    /**
-     * Simplex<D> pts       Pointer to array of pointers to Points to organize in tree
-     * int n                Number of elements in array
-     */
-
-    // Input validation + what if theres only one element left?
-    if (n < 0) {
-        std::cerr << "Illegal argument in construct_point_btree: n = " << n << std::endl;
-    } else if (n == 1) {
-        pts[0]->lchild = NULL;
-        pts[0]->rchild = NULL;
-        pts[0]->pbtree_radius_sq = 0;
-
-        return *pts;
-    }
-
-    // More than one element
-    // 1. Find dimension of greatest spread
-    double largest_spread = -1;
-    int lspread_dim = -1;
-    double avg = 0;             // Traditionally Ball trees work with the median, but that requires sorting TODO
-
-    for (int i = 0; i < D; i++) {   // every dimension
-        double dim_min =    DBL_MAX;
-        double dim_max = -1*DBL_MAX;
-        double dim_spread = 0;
-        for (int j = 0; j < n; j++) {   // every point
-            double val = pts[j]->coords[i];
-            if (val < dim_min) {
-                dim_min = val;
-            }
-            if (val > dim_max) {
-                dim_max = val;
-            }
-        }
-//        std::cout << "Dim: " << i << " min: " << dim_min << " max: " << dim_max << std::endl;
-
-        assert(dim_min <= dim_max);
-        dim_spread = fabs(dim_max - dim_min);
-        if (dim_spread > largest_spread) {
-            largest_spread = dim_spread;
-            lspread_dim    = i;
-            avg            = (dim_max + dim_min) / 2;
-        }
-    }
-//    std::cout << "spread dim: " << lspread_dim << " avg: " << avg << std::endl;
-
-    assert(largest_spread != -1 && lspread_dim != -1);
-
-    // 2. Find pivot - point closest to avg                          and
-    // 3. Group points into sets to the left and right of average (L, R)
-    double min_dist = DBL_MAX;
-    Point<D> * pivot_addr = NULL;
-
-    Point<D> ** L = new Point<D> * [n];
-    Point<D> ** R = new Point<D> * [n];
-    int lcount = 0;
-    int rcount = 0;
-
-    for (int i = 0; i < n; i++) {
-        double val = pts[i]->coords[lspread_dim];
-        Point<D> * addr = pts[i];
-        double dist = fabs(avg - val);
-
-        if (dist < min_dist) {
-            // Add old pivot to L or R
-            if (pivot_addr) {
-                if (pivot_addr->coords[lspread_dim] <= avg) {
-                    L[lcount] = pivot_addr;
-                    lcount++;
-                } else {
-                    R[rcount] = pivot_addr;
-                    rcount++;
-                }
-            }
-
-            // Save new pivot
-            min_dist = dist;
-            pivot_addr = pts[i];
-
-        } else {
-            if (val <= avg) {
-                L[lcount] = addr;
-                lcount++;
-            } else {
-                R[rcount] = addr;
-                rcount++;
-            }
-        }
-    }
-    assert(pivot_addr != NULL);
-    assert(rcount != 0 || lcount != 0);
-    assert(min_dist < DBL_MAX);
-    for (int i = 0; i < lcount; i++) {
-        assert(L[i] != pivot_addr);
-    }
-    for (int i = 0; i < rcount; i++) {
-        assert(R[i] != pivot_addr);
-    }
-
-    // 4. Recurse on L and R
-    if (lcount > 0) {
-        pivot_addr->lchild = construct_point_btree_recursive(L, lcount);
-        assert(pivot_addr->lchild != pivot_addr);
-    } else {
-        pivot_addr->lchild = NULL;
-    }
-    if (rcount > 0) {
-        pivot_addr->rchild = construct_point_btree_recursive(R, rcount);
-    } else {
-        pivot_addr->rchild = NULL;
-    }
-
-    // This should only happen if there is only one element left, and in that case this line shouldnt be reached
-    assert(pivot_addr->lchild != NULL || pivot_addr->rchild != NULL);
-
-    // 5. Determine ball radius
-    pivot_addr->pbtree_radius_sq = 0;
-    for (int i = 0; i < n; i++) {
-        double dist = 0;
-        for (int j = 0; j < D; j++) {
-            dist += pow(pts[i]->coords[j] - pivot_addr->coords[j], 2);
-        }
-
-        if (dist > pivot_addr->pbtree_radius_sq) {
-            pivot_addr->pbtree_radius_sq = dist;
-        }
-    }
-
-    delete[] L;
-    delete[] R;
-
-    return pivot_addr;
 }
 
 
@@ -618,7 +733,7 @@ Simplex<D> * Cool<N, D, S>::construct_simplex_btree_recursive(Simplex<D> ** simp
         }
 //        std::cout << "Dim: " << i << " min: " << dim_min << " max: " << dim_max << std::endl;
 
-        assert(dim_min < dim_max);
+        assert(dim_min <= dim_max);
         dim_spread = fabs(dim_max - dim_min);
         if (dim_spread > largest_spread) {
             largest_spread = dim_spread;
@@ -718,32 +833,6 @@ Simplex<D> * Cool<N, D, S>::construct_simplex_btree_recursive(Simplex<D> ** simp
 
 
 template<int N, int D, int S>
-void Cool<N, D, S>::save_pbtree(std::string filename) {
-    /**
-     * Saves the Ball tree. Format: [Index of simplex] [Index of left child] [Index of right child] [pbtree_radius_sq]
-     *
-     * Grows with O(N^2) ... TODO
-     */
-    std::ofstream file;
-    file.open(filename);
-    for (int i = 0; i < N; i++) {
-        file << i << " ";
-        int lchild = -1, rchild = -1;
-        for (int j = 0; j < S; j++) {
-            if (points[i].lchild == &points[j]) {
-                lchild = j;
-            }
-            if (points[i].rchild == &points[j]) {
-                rchild = j;
-            }
-        }
-        file << lchild << " " << rchild << " " << points[i].pbtree_radius_sq << std::endl;
-    }
-    file.close();
-}
-
-
-template<int N, int D, int S>
 void Cool<N, D, S>::save_sbtree(std::string filename) {
     /**
      * Saves the Ball tree. Format: [Index of simplex] [Index of left child] [Index of right child] [pbtree_radius_sq]
@@ -770,110 +859,6 @@ void Cool<N, D, S>::save_sbtree(std::string filename) {
 
 
 template<int N, int D, int S>
-Point<D> * Cool<N, D, S>::find_nearest_neighbour_pbtree(Point<D> * root, const double * target, Point<D> * best, double min_dist2) {
-    /**
-     * Recursive function to find the nearest neighbor of point target in tree root.
-     * Adapted from https://en.wikipedia.org/wiki/Ball_tree#Pseudocode_2
-     *
-     * TODO I think this algorithm can be optimized to reduce the number of distance calculations
-     *  -> talk to Klaus
-     *
-     * root             Root of subtree to search in
-     * target           Coordinates of input point
-     * best             Point with closest coords found so far
-     * min_dist2        Distance to the coords of that simplex
-     */
-    double dist2 = 0;  // squared distance
-    for (int i = 0; i < D; i++) {
-        dist2 += pow(target[i] - root->coords[i], 2);
-    }
-
-    // Recursion exit condition - root is further than current closest neighbour
-    if (dist2 - root->pbtree_radius_sq >= min_dist2) {
-//        std::cout << "Worse." << std::endl;
-        return best;
-    }
-
-    // assert(root->lchild != NULL || root->rchild != NULL);
-
-    // Perhaps the current point is the new closest?
-    if (dist2 < min_dist2) {
-        min_dist2 = dist2;
-        best = root;
-
-//        int index = -1;
-//        for (int i = 0; i < S; i++) {
-//            if (best == &simplices[i]) {
-//                index = i;
-//                break;
-//            }
-//        }
-//        std::cout << "New best: " << index << " dist: " << min_dist2 << std::endl;
-    }
-
-    // Find closest child
-    double ldist2 = 0;
-    double rdist2 = 0;
-
-    if (root->lchild != NULL) {
-        for (int i = 0; i < D; i++) {
-            ldist2 += pow(target[i] - root->lchild->coords[i], 2);
-        }
-    }
-    if (root->rchild != NULL) {
-        for (int i = 0; i < D; i++) {
-            rdist2 += pow(target[i] - root->rchild->coords[i], 2);
-        }
-    }
-
-    // Recurse into closest child first
-    // I wonder if this would be prettier with gotos...
-    Point<D> * old_best = best;
-    if (ldist2 <= rdist2) {
-        if (root->lchild != NULL) {
-//            std::cout << "Recursing left" << std::endl;
-            best = find_nearest_neighbour_pbtree(root->lchild, target, best, min_dist2);
-        }
-        if (best != old_best) {
-            // Recalculate min_dist2
-            // TODO: Inefficient.
-            min_dist2 = 0;
-            for (int i = 0; i < D; i++) {
-                min_dist2 += pow(target[i] - best->coords[i], 2);
-            }
-//            std::cout << "New min_dist2: " << min_dist2 << std::endl;
-        }
-        if (root->rchild != NULL) {
-//            std::cout << "Recursing right" << std::endl;
-            best = find_nearest_neighbour_pbtree(root->rchild, target, best, min_dist2);
-        }
-    } else {
-        if (root->rchild != NULL) {
-//            std::cout << "Recursing left" << std::endl;
-            best = find_nearest_neighbour_pbtree(root->rchild, target, best, min_dist2);
-        }
-        if (best != old_best) {
-            // Recalculate min_dist2
-            // TODO: Inefficient.
-            min_dist2 = 0;
-            for (int i = 0; i < D; i++) {
-                min_dist2 += pow(target[i] - best->coords[i], 2);
-            }
-//            std::cout << "New min_dist2: " << min_dist2 << std::endl;
-        }
-        if (root->lchild != NULL) {
-//            std::cout << "Recursing right" << std::endl;
-            best = find_nearest_neighbour_pbtree(root->lchild, target, best, min_dist2);
-        }
-    }
-//    std::cout << "Going up " << std::endl;
-//    std::cout << std::endl;
-
-    return best;
-}
-
-
-template<int N, int D, int S>
 Simplex<D> * Cool<N, D, S>::find_nearest_neighbour_sbtree(Simplex<D> * root, const double * target, Simplex<D> * best, double min_dist2) {
     /**
      * Recursive function to find the nearest neighbor of point target in tree root.
@@ -894,7 +879,6 @@ Simplex<D> * Cool<N, D, S>::find_nearest_neighbour_sbtree(Simplex<D> * root, con
 
     // Recursion exit condition - root is further than current closest neighbour
     if (dist2 - root->sbtree_radius_sq >= min_dist2) {
-//        std::cout << "Worse." << std::endl;
         return best;
     }
 
@@ -904,15 +888,6 @@ Simplex<D> * Cool<N, D, S>::find_nearest_neighbour_sbtree(Simplex<D> * root, con
     if (dist2 < min_dist2) {
         min_dist2 = dist2;
         best = root;
-
-//        int index = -1;
-//        for (int i = 0; i < S; i++) {
-//            if (best == &simplices[i]) {
-//                index = i;
-//                break;
-//            }
-//        }
-//        std::cout << "New best: " << index << " dist: " << min_dist2 << std::endl;
     }
 
     // Find closest child
@@ -935,7 +910,6 @@ Simplex<D> * Cool<N, D, S>::find_nearest_neighbour_sbtree(Simplex<D> * root, con
     Simplex<D> * old_best = best;
     if (ldist2 <= rdist2) {
         if (root->lchild != NULL) {
-//            std::cout << "Recursing left" << std::endl;
             best = find_nearest_neighbour_sbtree(root->lchild, target, best, min_dist2);
         }
         if (best != old_best) {
@@ -948,12 +922,10 @@ Simplex<D> * Cool<N, D, S>::find_nearest_neighbour_sbtree(Simplex<D> * root, con
 //            std::cout << "New min_dist2: " << min_dist2 << std::endl;
         }
         if (root->rchild != NULL) {
-//            std::cout << "Recursing right" << std::endl;
             best = find_nearest_neighbour_sbtree(root->rchild, target, best, min_dist2);
         }
     } else {
         if (root->rchild != NULL) {
-//            std::cout << "Recursing left" << std::endl;
             best = find_nearest_neighbour_sbtree(root->rchild, target, best, min_dist2);
         }
         if (best != old_best) {
@@ -963,15 +935,11 @@ Simplex<D> * Cool<N, D, S>::find_nearest_neighbour_sbtree(Simplex<D> * root, con
             for (int i = 0; i < D; i++) {
                 min_dist2 += pow(target[i] - best->centroid[i], 2);
             }
-//            std::cout << "New min_dist2: " << min_dist2 << std::endl;
         }
         if (root->lchild != NULL) {
-//            std::cout << "Recursing right" << std::endl;
             best = find_nearest_neighbour_sbtree(root->lchild, target, best, min_dist2);
         }
     }
-//    std::cout << "Going up " << std::endl;
-//    std::cout << std::endl;
 
     return best;
 }
@@ -985,70 +953,30 @@ double Cool<N, D, S>::interpolate_sbtree(double * coords) {
      * repeated "flips". Finally, interpolate using a weighted average (Delaunay).
      */
 
-    std::cout << "coords: ";
-    for (int i = 0; i < D; i++) {
-        std::cout << coords[i] << " ";
-    }
-    std::cout << std::endl;
-    std::map<Simplex<D> *, int> visited;
+//    std::cout << "coords: ";
+//    for (int i = 0; i < D; i++) {
+//        std::cout << coords[i] << " ";
+//    }
+//    std::cout << std::endl;
+//    std::map<Simplex<D> *, int> visited;
     Simplex<D> * best = NULL;
     Simplex<D> * nn = find_nearest_neighbour_sbtree(sbtree, coords, best, DBL_MAX);
 
-
     double * bary = nn->convert_to_bary(coords);
     int inside = nn->check_bary(bary);
+    int flips = 0;
 
-    int dbg_count = 0;
     while (!inside) {
-        std::cout << dbg_count << std::endl;
-        for (int i = 0; i < S; i++) {
-            if (&simplices[i] == nn) {
-                std::cout << "Simplex: " << i << std::endl;
-                break;
-            }
-        }
-
-        std::cout << "Simplex points: " << std::endl;
-        for (int i = 0; i < D+1; i++) {
-            for (int j = 0; j < D; j++) {
-                std::cout << nn->points[i]->coords[j] << " ";
-            }
-            std::cout << std::endl;
-        }
-        std::cout << std::endl;
-
-        // Find nearest midpoint
-        std::cout << "Finding midpoints" << std::endl;
-        double midpoints[D+1][D];
-        for (int i = 0; i < D+1; i++) { // D+1 midpoints, one per plane
-            for (int j = 0; j < D; j++) {   // D coordinates
-                midpoints[i][j] = 0;
-                for (int k = 0; k < D; k++) {   // D points defining plane
-                    if (k < i) {
-                        midpoints[i][j] += nn->points[k]->coords[j];
-                    } else {
-                        midpoints[i][j] += nn->points[k+1]->coords[j];
-                    }
-                }
-                midpoints[i][j] /= D;
-            }
-        }
-        std::cout << "All midpoints: " << std::endl;
-        for (int i = 0; i < D+1; i++) {
-            for (int j = 0; j < D; j++) {
-                std::cout << midpoints[i][j] << " ";
-            }
-            std::cout << std::endl;
-        }
-
-        std::cout << "Projecting midpoint normals" << std::endl;
-        double best_dir_dot = 0;
+        std::cout << flips << std::endl;
+        // Calculate difference vectors from coords to midpoints; normalize; figure out the one with largest scalar
+        // product (= smallest angle)
+        double best_dir_dot = - DBL_MAX;
         int best_dir;
         for (int i = 0; i < D+1; i++) {
             double diff_vec[D];
             double diff_len = 0;
             for (int j = 0; j < D; j++) {
-                diff_vec[j] = coords[j] - midpoints[i][j];
+                diff_vec[j] = coords[j] - nn->midpoints[i][j];
                 diff_len += pow(diff_vec[j], 2);
             }
             diff_len = sqrt(diff_len);
@@ -1060,247 +988,221 @@ double Cool<N, D, S>::interpolate_sbtree(double * coords) {
             for (int j = 0; j < D; j++) {
                 dot += diff_vec[j] * nn->normals[i][j];
             }
-            std::cout << "Midpoint: " << midpoints[i][0] << " " << midpoints[i][1] << std::endl;
-            std::cout << "Normal: " << nn->normals[i][0] << " " << nn->normals[i][1] << std::endl;
-            std::cout << "diff vec: " << diff_vec[0] << " " << diff_vec[1] << std::endl;
-            std::cout << std::endl;
 
             if (dot > best_dir_dot) {
                 best_dir_dot = dot;
                 best_dir = i;
             }
-            std::cout << "dot: " << dot << " best dot: " << best_dir_dot << std::endl;
         }
 
-        assert(best_dir_dot > 0);
-        std::cout << "Going to new nearest neighbor" << std::endl;
         nn = nn->neighbour_pointers[best_dir];
-
-        std::cout << "convert to bary" << std::endl;
+        std::cout << "Simplex index: ";
+        int si = -1;
+        for (int i = 0; i < S; i++) {
+            if (&simplices[i] == nn) {
+                si = i;
+                break;
+            }
+        }
+        std::cout << si << std::endl;
         bary = nn->convert_to_bary(coords);
-
-        std::cout << "checking bary" << std::endl << std::endl;
         inside = nn->check_bary(bary);
 
-        dbg_count++;
-        if (dbg_count > 100) {
+        flips++;
+        if (flips > 100) {
             std::cerr << "Error: More than 100 flips." << std::endl;
-            exit(1);
+            abort();
             break;
         }
+
+        std::cout << "inside: " << inside << std::endl;
+//        // Error handling
+//        if (best_dir_dot <= 0 && inside == 0) {
+//            std::cerr << "Error in Simplex traversal: no positive scalar product: "
+//                      << best_dir_dot << " <= 0" << std::endl;
+//
+//            std::cerr << "Simplex index: " << std::endl;
+//            int si = -1;
+//            for (int i = 0; i < S; i++) {
+//                if (&simplices[i] == nn) {
+//                    si = i;
+//                    break;
+//                }
+//            }
+//            if (si > -1) {
+//                std::cerr << si << std::endl;
+//                simplices[si].validate_normals();
+//            } else {
+//                std::cerr << "Not found" << std::endl;
+//            }
+//            std::cerr << "Target point in regular/barycentric coordinates:" << std::endl;
+//            for (int i = 0; i < D; i++) {
+//                std::cerr << coords[i] << " ";
+//            }
+//            std::cerr << "\t\t";
+//            for (int i = 0; i < D; i++) {
+//                std::cerr << bary[i] << " ";
+//            }
+//            std::cerr << std::endl;
+//
+//            std::cerr << "Simplex points:" << std::endl;
+//            for (int j = 0; j < D+1; j++) {
+//                std::cerr << j << ":\t";
+//                for (int k = 0; k < D; k++) {
+//                    std::cerr << nn->points[j]->coords[k] << " ";
+//                }
+//                std::cerr << std::endl;
+//            }
+//            std::cerr << "Centroid: " << std::endl;
+//            for (int j = 0; j < D; j++) {
+//                std::cerr << nn->centroid[j] << " ";
+//            }
+//            std::cerr << std::endl;
+//            std::cerr << "Midpoints:" << std::endl;
+//            for (int j = 0; j < D+1; j++) {
+//                std::cerr << j << ":   ";
+//                for (int k = 0; k < D; k++) {
+//                    std::cerr << nn->midpoints[j][k] << " ";
+//                }
+//                std::cerr << std::endl;
+//            }
+//            std::cerr << "Midpoint diffs: " << std::endl;
+//            for (int j = 0; j < D+1; j++) {
+//                double diff[D];
+//                double len = 0;
+//                for (int k = 0; k < D; k++) {
+//                    diff[k] = coords[k] - nn->midpoints[j][k];
+//                    len += pow(diff[k], 2);
+//                }
+//                len = sqrt(len);
+//                std::cerr << j << ":   ";
+//                for (int k = 0; k < D; k++) {
+//                    std::cerr << diff[k] / len << " ";
+//                }
+//                std::cerr << std::endl;
+//            }
+//            std::cerr << "Normal vectors:" << std::endl;
+//            for (int j = 0; j < D+1; j++) {
+//                std::cerr << j << ":\t";
+//                for (int k = 0; k < D; k++) {
+//                    std::cerr << nn->normals[j][k] << " ";
+//                }
+//                std::cerr << std::endl;
+//            }
+//
+//            abort();
+//        }
     }
 
-    std::cout << "Found simplex" << std::endl;
+//    int dbg_count = 0;
+//    while (!inside) {
+//        std::cout << dbg_count << std::endl;
+//        for (int i = 0; i < S; i++) {
+//            if (&simplices[i] == nn) {
+//                std::cout << "Simplex: " << i << std::endl;
+//                break;
+//            }
+//        }
+
+//        std::cout << "Simplex points: " << std::endl;
+//        for (int i = 0; i < D+1; i++) {
+//            for (int j = 0; j < D; j++) {
+//                std::cout << nn->points[i]->coords[j] << " ";
+//            }
+//            std::cout << std::endl;
+//        }
+//        std::cout << std::endl;
+
+//        // Find nearest midpoint
+//        std::cout << "Finding midpoints" << std::endl;
+//        double midpoints[D+1][D];
+//        for (int i = 0; i < D+1; i++) { // D+1 midpoints, one per plane
+//            for (int j = 0; j < D; j++) {   // D coordinates
+//                midpoints[i][j] = 0;
+//                for (int k = 0; k < D; k++) {   // D points defining plane
+//                    if (k < i) {
+//                        midpoints[i][j] += nn->points[k]->coords[j];
+//                    } else {
+//                        midpoints[i][j] += nn->points[k+1]->coords[j];
+//                    }
+//                }
+//                midpoints[i][j] /= D;
+//            }
+//        }
+//        std::cout << "All midpoints: " << std::endl;
+//        for (int i = 0; i < D+1; i++) {
+//            for (int j = 0; j < D; j++) {
+//                std::cout << midpoints[i][j] << " ";
+//            }
+//            std::cout << std::endl;
+//        }
+
+//        std::cout << "Projecting midpoint normals" << std::endl;
+//        double best_dir_dot = 0;
+//        int best_dir;
+//        for (int i = 0; i < D+1; i++) {
+//            double diff_vec[D];
+//            double diff_len = 0;
+//            for (int j = 0; j < D; j++) {
+//                diff_vec[j] = coords[j] - midpoints[i][j];
+//                diff_len += pow(diff_vec[j], 2);
+//            }
+//            diff_len = sqrt(diff_len);
+//            for (int j = 0; j < D; j++) {
+//                diff_vec[j] /= diff_len;
+//            }
+//
+//            double dot = 0;
+//            for (int j = 0; j < D; j++) {
+//                dot += diff_vec[j] * nn->normals[i][j];
+//            }
+//            std::cout << "Midpoint: " << midpoints[i][0] << " " << midpoints[i][1] << std::endl;
+//            std::cout << "Normal: " << nn->normals[i][0] << " " << nn->normals[i][1] << std::endl;
+//            std::cout << "diff vec: " << diff_vec[0] << " " << diff_vec[1] << std::endl;
+//            std::cout << std::endl;
+//
+//            if (dot > best_dir_dot) {
+//                best_dir_dot = dot;
+//                best_dir = i;
+//            }
+//            std::cout << "dot: " << dot << " best dot: " << best_dir_dot << std::endl;
+//        }
+
+//        std::cout << "Going to new nearest neighbor" << std::endl;
+//        nn = nn->neighbour_pointers[best_dir];
+//
+//        std::cout << "convert to bary" << std::endl;
+//        bary = nn->convert_to_bary(coords);
+//
+//        std::cout << "checking bary" << std::endl << std::endl;
+//        inside = nn->check_bary(bary);
+//
+//        dbg_count++;
+//        if (dbg_count > 100) {
+//            std::cerr << "Error: More than 100 flips." << std::endl;
+//            exit(1);
+//            break;
+//        }
+//    }
+
+//    std::cout << "Found simplex" << std::endl;
 
     // The actual interpolation step
     double val = 0;
     for (int i = 0; i < D+1; i++) {
-        val += bary[i] * nn->points[i]->coords[D];  // The Dth "coordinate" is the function value
+        val += bary[i] * nn->points[i]->value;
     }
 
     delete[] bary;
+    delete best;
 
     sbtree_interpolate_calls++;
-    sbtree_flips += dbg_count;
+    sbtree_flips += flips;
     avg_sbtree_flips = sbtree_flips / (float) sbtree_interpolate_calls;
 
     return val;
 }
 
-
-//template<int N, int D, int S>
-//double Cool<N, D, S>::interpolate_pbtree(double * coords) {
-//    /**
-//     * Interpolate the given point.
-//     * Find closest point, then check all simplices touching that point
-//     */
-//    Point<D> * best = NULL;
-//    Point<D> * nnp = find_nearest_neighbour_pbtree(pbtree, coords, best, DBL_MAX);
-//    std::cout << "Simplices: " << nnp->simplices[0] << std::endl;
-//
-//    Simplex<D> * nns = NULL;
-//    double min_dist2 = DBL_MAX;
-//    for (int i = 0; i < nnp->simplices.size(); i++) {
-//        std::cout << i << std::endl;
-//        double dist2 = 0;
-//        for (int j = 0; j < D; j++) {
-//            dist2 += pow(nnp->simplices[i]->centroid[j] - coords[j], 2);
-//        }
-//        if (dist2 < min_dist2) {
-//            min_dist2 = dist2;
-//            nns = nnp->simplices[i];
-//        }
-//    }
-//    assert(min_dist2 != DBL_MAX);
-//
-//    std::map<Simplex<D> *, int> visited;
-//
-//
-//    double * bary = nns->convert_to_bary(coords);
-//    int inside = nns->check_bary(bary);
-//
-//    double dist = 0;
-//    for (int i = 0; i < D; i++) {
-//        dist += pow(coords[i] - nns->centroid[i], 2);
-//    }
-////    dist = sqrt(dist);
-////    std::cout << "Coordinates: " << coords[0] << " " << coords[1] << std::endl;
-////    for (int i = 0; i < S; i++) {
-////        if (nn == &(simplices[i])) {
-////            std::cout << "Simplex: " << i << " " << simplices[i].centroid[0] << " " << simplices[i].centroid[1] << std::endl;
-////        }
-////    }
-////    std::cout << "Dist: " << dist << std::endl;
-//
-//
-//    int dbg_count = 0;
-//    while (!inside) {
-////        std::cout << "Coords: " << coords[0] << " " << coords[1] << " " << coords[2] << " " << coords[3] << std::endl;
-////        std::cout << "Centroid: " << nns->centroid[0] << " " << nns->centroid[1] << " " << nns->centroid[2] << " " << nns->centroid[3] << std::endl;
-////        double dist = 0;
-////        for (int i = 0; i < D; i++) {
-////            dist += pow(nns->centroid[i] - coords[i], 2);
-////        }
-////        dist = sqrt(dist);
-////        std::cout << "Dist: " << dist << std::endl;
-//        // If the point is not contained in the simplex, the "most negative" barycentric coordinate denotes the one
-//        // "most opposite" of our coordinates. Take the simplex' neighbor on the opposite of that opposite,
-//        // and try again
-//        // If we have visited once before, check the second furthest coordinate instead etc.
-//        // Note: This could technically lead to a case where we have walk from an N-1 times visited simplex to
-//        // an N times visited simplex and would have to instead "go back". I think this case is negligible
-//        int n_visits = 0;
-//        if (visited.find(nns) != visited.end()) {
-//            n_visits = visited[nns];
-//        } else {
-//            visited[nns] = 0;
-//        }
-//        if (n_visits >= D+1) {
-//            std::cerr << "Error: Simplex has been visited maximum number of times before" << std::endl;
-//            break;
-//        }
-//
-////        std::cout << "n_visits: " << n_visits << std::endl;
-//        // TODO: Better variable names
-//        double min_bary = -1 * DBL_MAX;
-//        int    min_bary_index = -1;
-//        std::cout << "dbg_count: " << dbg_count << std::endl;
-//        std::cout << "n_visits: " << n_visits << std::endl;
-//        for (int i = 0; i < n_visits+1; i++) {
-////            std::cout << i << std::endl;
-//            double nth_min_bary = DBL_MAX;
-//            int nth_min_bary_index = -1;
-//            for (int j = 0; j < D+1; j++) {
-//                std::cout << bary[j] << std::endl;
-//                if (bary[j] < nth_min_bary && bary[j] > min_bary) {
-//                    nth_min_bary = bary[j];
-//                    nth_min_bary_index = j;
-//                }
-//            }
-//            min_bary = nth_min_bary;
-//            min_bary_index = nth_min_bary_index;
-//            std::cout << nth_min_bary << " " << min_bary << std::endl;
-//        }
-//        std::cout << std::endl;
-//        assert(min_bary > (-1*DBL_MAX) && min_bary_index != -1);
-////        std::cout << std::endl;
-//
-////        std::cout << "Flip " << dbg_count << std::endl;
-//
-//        visited[nns] += 1;
-//        nns = nns->neighbour_pointers[min_bary_index];
-//
-////        for (int i = 0; i < S; i++) {
-////            if (nn == &(simplices[i])) {
-////                std::cout << "Simplex: " << i << " " << simplices[i].centroid[0] << " " << simplices[i].centroid[1] << std::endl;
-////            }
-////        }
-//
-////        double dist = 0;
-////        for (int i = 0; i < D; i++) {
-////            dist += pow(coords[i] - nn->centroid[i], 2);
-////        }
-////        dist = sqrt(dist);
-////        std::cout << "Dist: " << dist << std::endl;
-//
-//        bary = nns->convert_to_bary(coords);
-//
-//        inside = nns->check_bary(bary);
-//
-//        dbg_count++;
-//        if (dbg_count > 100) {
-//            std::cerr << "Error: More than 100 flips." << std::endl;
-//            break;
-//        }
-//    }
-//
-//    // The actual interpolation step
-//    double val = 0;
-//    for (int i = 0; i < D+1; i++) {
-//        val += bary[i] * nns->points[i]->coords[D];  // The Dth "coordinate" is the function value
-//    }
-//
-//    delete[] bary;
-//
-//    pbtree_interpolate_calls++;
-//    pbtree_flips += dbg_count;
-//    avg_pbtree_flips = pbtree_flips / (float) pbtree_interpolate_calls;
-//
-//    return val;
-//
-///*    double * bary;
-//    int simp_index;
-//
-////    std::cout << "Interpolation coords: " << coords[0] << " " << coords[1] << std::endl;
-////    int nni;
-////    for (int i = 0; i < N; i++) {
-////        if (&points[i] == nn) {
-////            nni = i;
-////            break;
-////        }
-////    }
-////    std::cout << "NN: " << nni << " " << nn->coords[0] << " " << nn->coords[1] << std::endl;
-//
-//    int dbg_count = 0;
-//    for (int i = 0; i < nn->simplices.size()+1; i++) {
-//        for (int j = 0; j < S; j++) {
-//            if (nn->simplices[i] == &simplices[j]) {
-//                std::cout << "Simplex " << i << ": " << j << " " << simplices[j].centroid[0] << " " << simplices[j].centroid[1] << std::endl;
-//                break;
-//            }
-//        }
-//
-//        if (i >= nn->simplices.size()) {
-//            std::cerr << "Error: Target not found in vicinity of nearest neighbor" << std::endl;
-//            abort();
-//        }
-//
-//        int inside;
-//        bary = nn->simplices[i]->convert_to_bary(coords);
-//        inside = nn->simplices[i]->check_bary(bary);
-//
-//        dbg_count++;
-//        if (inside) {
-//            simp_index = i;
-//            std::cout << "Interpolation success" << std::endl << std::endl;
-//            break;
-//        }
-//    }
-//
-//    // The actual interpolation step
-//    double val = 0;
-//    for (int i = 0; i < D+1; i++) {
-//        val += bary[i] * nn->simplices[simp_index]->points[i]->value;  // The Dth "coordinate" is the function value
-//    }
-//
-//    delete[] bary;
-//
-//    pbtree_interpolate_calls++;
-//    pbtree_tries += dbg_count;
-//    avg_pbtree_tries = pbtree_tries / (float) pbtree_interpolate_calls;
-//
-//    return val;*/
-//}
 
 template<int N, int D, int S>
 int Cool<N, D, S>::read_files(std::string cool_file, std::string tri_file, std::string neighbour_file) {
@@ -1326,23 +1228,25 @@ int Cool<N, D, S>::read_files(std::string cool_file, std::string tri_file, std::
     for (int i = 0; i < N; i++) {
         std::getline(file, line);
         std::stringstream linestream(line);
-        for (int j = 0; j < D+1; j++) {     // D coordinates, 1 value
+        for (int j = 0; j < D; j++) {     // D coordinates, 1 value
             std::getline(linestream, value, ',');
             points[i].coords[j] = std::stod(value);
+        }
+        std::getline(linestream, value, ',');
+        points[i].value = std::stod(value);
 
-//            if (points[i].coords[j] < dims[j][0]) {
-//                dims[j][0] = points[i].coords[j];
-//            }
-//            if (points[i].coords[j] > dims[j][1]) {
-//                dims[j][1] = points[i].coords[j];
-//            }
+        for (int j = 0; j < D; j++) {
+            if (points[i].coords[j] < mins[j]) {
+//                std::cout << "Updating mins[" << j << "] from " << mins[j] << " to " << points[i].coords[j] << std::endl;
+                mins[j] = points[i].coords[j];
+            }
+            if (points[i].coords[j] > maxs[j]) {
+//                std::cout << "Updating maxs[" << j << "] from " << maxs[j] << " to " << points[i].coords[j] << std::endl;
+                maxs[j] = points[i].coords[j];
+            }
         }
     }
 
-//    for (int i = 0; i < D; i++) {
-//        assert(dims[i][1] > dims[i][0]);
-//        block_size[i] = (dims[i][1] - dims[i][0]) / n_blocks[i];
-//    }
 
     file.close();
 
@@ -1364,7 +1268,6 @@ int Cool<N, D, S>::read_files(std::string cool_file, std::string tri_file, std::
             buffer[j] = std::stoi(value);
 
             simplices[i].points[j] = &points[std::stoi(value)];
-//            points[std::stoi(value)].simplices.push_back(&simplices[i]);
         }
 
         for (int j = 0; j < D+1; j++) {
@@ -1374,55 +1277,48 @@ int Cool<N, D, S>::read_files(std::string cool_file, std::string tri_file, std::
                 }
             }
         }
-        simplices[i].calculate_centroid();
-        simplices[i].calculate_normals();
 
-//        // Assign simplex to slices
-//        for (int j = 0; j < D; j++) {           // for each dimension
-//            // find min and max of vertex coordinates in that dimension
-//            double d_min = DBL_MAX;
-//            double d_max = 0;
-//            for (int k = 0; k < D+1; k++) {     // for each vertex
-//                if (simplices[i].points[k].coords[j] < d_min) {
-//                    d_min = simplices[i].points[k].coords[j];
-//                }
-//                if (simplices[i].points[k].coords[j] > d_max) {
-//                    d_max = simplices[i].points[k].coords[j];
-//                }
-//            }
-//
-//            assert(d_max > d_min);
-//
-//            // Assign to respective slices
-//            for (int k = 0; k < n_slices[j]; k++) {
-//                // slice_val = dimension min + k * slice_width
-//                // slice_width = (dimension max - dimension min) / n_slices[j]
-//                double slice_val = dims[j][0] + k * (d_max - d_min) / n_slices[j];
-//
-//                if (d_min < slice_val) {
-//                    continue;
-//                } else if (d_max > slice_val) {
-//                    continue;
-//                } else {
-//                    // Insert index of simplex - slices are automatically sorted!
-//                    (*slices[i])[k]->push_back(i);
-//                }
-//            }
-//        }
-//
-//        // Assign blocks to simplex
-//        // Strategy: Take a block that is known to intersect with the simplex. Check all its neighboring blocks.
-//        // For the ones that also intersect, recurse until no more intersecting blocks are left.
-//        find_block_intersections(simplices[i]);
+        // scipy.spatial.Delaunay unfortunately likes making simplices out of the D-1d hyperplanes making up the
+        // faces of the D dimensional hypercube which is the parameter space
+        // But D-1d planes cannot be D dimensional simplices
+        // This leads to problems when validating the normal vectors (and makes the normal vectors meaningless)
+        // So those are skipped
+//        simplices[i].validate_simplex();
+        int skip = 0;
+        for (int j = 0; j < D; j++) {
+            int samemin = 1;
+            int samemax = 1;
+            for (int k = 0; k < D+1; k++) {
+                if (simplices[i].points[k]->coords[j] != mins[j]) {
+                    samemin = 0;
+                    break;
+                }
+            }
+            for (int k = 0; k < D+1; k++) {
+                if (simplices[i].points[k]->coords[j] != maxs[j]) {
+                    samemax = 0;
+                    break;
+                }
+            }
+            if (samemin || samemax) {
+                skip = 1;
+                break;
+            }
+        }
+
+        simplices[i].calculate_centroid();
+        simplices[i].calculate_midpoints();
+
+        for (int j = 0; j < D; j++) {
+            std::cout << mins[j] << " " << maxs[j] << std::endl;
+        }
+        if (skip == 1) {
+            continue;
+        }
+        simplices[i].calculate_normals();
+        simplices[i].validate_normals();
     }
 
-//    // Slices will not be modified from here on
-//    for (int i = 0; i < D; i++) {
-//        slices[i]->shrink_to_fit();
-//        for (int j = 0; j < slices[i]->size(); j++) {
-//            slices[i]->at(j)->shrink_to_fit();
-//        }
-//    }
 
     file.close();
 
@@ -1475,22 +1371,6 @@ int Cool<N, D, S>::read_files(std::string cool_file, std::string tri_file, std::
 
 template<int D>
 void Simplex<D>::invert_T() {
-    /**
-     * Invert matrix in place using Gauss Jordan Elimination with partial pivoting
-     * Adapated from Numerical Recipes, 2.1
-     *
-     * TODO Efficiency? This should only be called once per simplex, probably not an issue
-     * TODO Adopt implicit pivoting since we are not in a normalized space
-     *
-     * TODO This was mostly copied from my older C version of this code, and has not been properly tested for C++
-     */
-
-    int row_idx [D];
-    for (int i = 0; i < D; i++) {
-        row_idx[i] = i;
-    }
-
-    // yes, you can work in place instead, but i cant be bothered right now
     double unit[D][D];  // unit matrix
     for (int i = 0; i < D; i++) {
         for (int j = 0; j < D; j++) {
@@ -1502,112 +1382,54 @@ void Simplex<D>::invert_T() {
         }
     }
 
-
-    for (int i = 0; i < D; i++) {
-        // find pivot
-        int pivot_row_idx = i;
-        double pivot = T_inv[row_idx[i]][i];
-        for (int j = i; j < D; j++) {
-            if (fabs(T_inv[row_idx[j]][i]) > fabs(pivot)) {
-                pivot = T_inv[row_idx[j]][i];
-                pivot_row_idx = j;
-            }
-        }
-
-        // pivoting
-        int temp = row_idx[i];
-        row_idx[i] = row_idx[pivot_row_idx];
-        row_idx[pivot_row_idx] = temp;
-
-        // Normalization of current row
-        double norm_factor = T_inv[row_idx[i]][i];
-        for (int j = 0; j < D; j++) {
-            T_inv[row_idx[i]][j] /= norm_factor;
-            unit[row_idx[i]][j] /= norm_factor;
-        }
-
-        // Subtracting the current row from all other rows
-        for (int j = 0; j < D; j++) {
-            if (j != i) {
-                double factor = T_inv[row_idx[j]][i];
-                for (int k = 0; k < D; k++) {
-                    T_inv[row_idx[j]][k] -= factor * T_inv[row_idx[i]][k];
-                    unit[row_idx[j]][k] -= factor * unit[row_idx[i]][k];
-                }
-            }
-        }
-    }
+    gauss_elimination<D, D, D>(T_inv, unit, 1);
 
     for (int i = 0; i < D; i++) {
         for (int j = 0; j < D; j++) {
-            T_inv[row_idx[i]][j] = unit[i][j]; // TODO verify
+            T_inv[i][j] = unit[i][j];
         }
     }
 }
 
+
+
 template<int D>
-double * Simplex<D>::find_normal(Point<D> ** vertices) {
+template<size_t M, size_t N1, size_t N2>
+void Simplex<D>::gauss_elimination(double (&A)[M][N1], double (&B)[M][N2], int apply_permutation) {
     /**
-     * Finds the normal on a hyperplane defined by a set of points. Will crash if they are linearly dependent.
+     * Ax = B
+     * Performs row wise Gauss Jordan elimination on A with given dimensions. Transformations are also applied to B.
+     * Uses partial pivoting. Adapted from Numerical Recipes chapter 2.1
      *
-     * The normal is given by the nullspace of the matrix of the in-plane vectors:
-     * https://en.wikipedia.org/wiki/Normal_(geometry)#Hypersurfaces_in_n-dimensional_space
+     * Works in place on A and B.
      *
-     * The nullspace/kernel can be calculated using Gaussian elimination:
-     * https://en.wikipedia.org/wiki/Kernel_(linear_algebra)#Computation_by_Gaussian_elimination
+     * TODO Implicit pivoting
      *
+     * double A[M][N1]          The matrix to solve
+     * double B[M][N2]          The other matrix to apply the transformations to; can also be a solution vector etc.
+     * int apply_permutation    Whether to apply the row permutations to the matrices in the end; important for some
+     *                          applications (inverse calculation), irrelevant for others (calculating normals).
+     *                          0 for now, 1 for yes
      */
 
-    double * norm = new double[D];
-
-    // Construct matrix
-    double matrix[D][D-1];      // D-1 points, D coordinates; transposed
-    for (int i = 0; i < D-1; i++) {
-        for (int j = 0; j < D; j++) {
-            matrix[j][i] = vertices[i]->coords[j] - vertices[D-1]->coords[j];
-        }
-    }
-
-    int row_idx [D];
-    for (int i = 0; i < D; i++) {
+    // Permutation of ROW InDiXes
+    int row_idx[D];
+    for (int i = 0; i < M; i++) {
         row_idx[i] = i;
     }
 
-    // unit matrix
-    double unit[D][D];  // unit matrix
-    for (int i = 0; i < D; i++) {
-        for (int j = 0; j < D; j++) {
-            if (i == j) {
-                unit[i][j] = 1;
-            } else {
-                unit[i][j] = 0;
-            }
-        }
-    }
-
-    std::cout << "." << std::endl;
-    for (int j = 0; j < D; j++) {
-        for (int k = 0; k < D-1; k++) {
-            std::cout << matrix[j][k] << " ";
-        }
-        std::cout << "| ";
-        for (int k = 0; k < D; k++) {
-            std::cout << unit[j][k] << " ";
-        }
-        std::cout << std::endl;
-    }
-    std::cout << std::endl;
-
-    int found = 0;
-    for (int i = 0; i < D-1; i++) {     // D-1 - last should automatically be zero?
+    for (int i = 0; i < M; i++) {
         // find pivot
         int pivot_row_idx = i;
-        double pivot = matrix[row_idx[i]][i];
-        for (int j = i; j < D; j++) {
-            if (fabs(matrix[row_idx[j]][i]) > fabs(pivot)) {
-                pivot = matrix[row_idx[j]][i];
+        double pivot = A[row_idx[i]][i];
+        for (int j = i; j < M; j++) {
+            if (fabs(A[row_idx[j]][i]) > fabs(pivot)) {
+                pivot = A[row_idx[j]][i];
                 pivot_row_idx = j;
             }
+        }
+        if (pivot == 0) {
+            continue;
         }
 
         // pivoting
@@ -1616,232 +1438,65 @@ double * Simplex<D>::find_normal(Point<D> ** vertices) {
         row_idx[pivot_row_idx] = temp;
 
         // Normalization of current row
-        double norm_factor = matrix[row_idx[i]][i];
-        for (int j = 0; j < D-1; j++) {
-            matrix[row_idx[i]][j] /= norm_factor;
-            unit[row_idx[i]][j] /= norm_factor;
+        double norm_factor = A[row_idx[i]][i];
+        for (int j = 0; j < N1; j++) {
+            A[row_idx[i]][j] /= norm_factor;
         }
-        unit[row_idx[i]][D-1] /= norm_factor;
+        for (int j = 0; j < N2; j++) {
+            B[row_idx[i]][j] /= norm_factor;
+        }
 
         // Subtracting the current row from all other rows
-        for (int j = 0; j < D; j++) {
+        for (int j = 0; j < M; j++) {
             if (j != i) {
-                double factor = matrix[row_idx[j]][i];
-                for (int k = 0; k < D-1; k++) {
-                    matrix[row_idx[j]][k] -= factor * matrix[row_idx[i]][k];
-                    unit[row_idx[j]][k] -= factor * unit[row_idx[i]][k];
+                double factor = A[row_idx[j]][i];
+                for (int k = 0; k < N1; k++) {
+                    A[row_idx[j]][k] -= factor * A[row_idx[i]][k];
                 }
-                unit[row_idx[j]][D-1] -= factor * unit[row_idx[i]][D-1];
+                for (int k = 0; k < N2; k++) {
+                    B[row_idx[j]][k] -= factor * B[row_idx[i]][k];
+                }
             }
         }
 
-
-        std::cout << "." << std::endl;
-        for (int j = 0; j < D; j++) {
-            for (int k = 0; k < D-1; k++) {
-                std::cout << matrix[j][k] << " ";
+        for (int j = 0; j < M; j++) {
+            for (int k = 0; k < N1; k++) {
+                std::cout << A[j][k] << " ";
             }
             std::cout << "| ";
-            for (int k = 0; k < D; k++) {
-                std::cout << unit[j][k] << " ";
+            for (int k = 0; k < N2; k++) {
+                std::cout << B[j][k] << " ";
             }
             std::cout << std::endl;
         }
         std::cout << std::endl;
-
     }
 
-    for (int i = 0; i < D; i++) {
-        // If current row is full of zeros -> found norm
-        int allzero = 1;
-        for (int j = 0; j < D-1; j++) {
-            if (matrix[row_idx[i]][j] != 0) {
-                allzero = 0;
-                break;
+    if (apply_permutation) {
+        for (int i = 0; i < M; i++) {
+            for (int j = 0; j < N1; j++) {
+                double temp = A[row_idx[i]][j];
+                A[row_idx[i]][j] = A[i][j];
+                A[i][j] = temp;
+            }
+            for (int j = 0; j < N2; j++) {
+                double temp = B[row_idx[i]][j];
+                B[row_idx[i]][j] = B[i][j];
+                B[i][j] = temp;
             }
         }
-
-        if (allzero == 1) {
-            std::cout << "Zero row: " << row_idx[i] << std::endl;
-            found = 1;
-            for (int j = 0; j < D; j++) {
-                norm[j] = unit[row_idx[i]][j];
-                std::cout << norm[j] << " ";
-            }
-            std::cout << std::endl;
-            break;
-        }
     }
-    if (found != 1) {
-        std::cerr << "Did not find zero row" << std::endl;
-    }
-//    for (int i = 0; i < D; i++) {
-//        std::cout << "Column " << i << std::endl;
-//        // find pivot
-//        int pivot_col_idx = i;
-//        double pivot = matrix[i][col_idx[i]];
-//        for (int j = i; j < D; j++) {
-//            if (fabs(matrix[i][col_idx[j]]) > fabs(pivot)) {
-//                pivot = matrix[i][col_idx[j]];
-//                pivot_col_idx = j;
-//            }
-//        }
-//
-//        // pivoting
-//        int temp = col_idx[i];
-//        col_idx[i] = col_idx[pivot_col_idx];
-//        col_idx[pivot_col_idx] = temp;
-//
-//        // Normalization of current column
-//        double norm_factor = matrix[i][col_idx[i]];
-//        for (int j = 0; j < D-1; j++) {
-//            matrix[j][col_idx[i]] /= norm_factor;
-//            unit[j][col_idx[i]] /= norm_factor;
-//        }
-//
-//        // Subtracting the current column from all other columns
-//        for (int j = 0; j < D; j++) {
-//            if (j != i) {
-//                double factor = matrix[i][col_idx[j]];
-//                for (int k = 0; k < D-1; k++) {
-//                    matrix[k][col_idx[j]] -= factor * matrix[k][col_idx[i]];
-//                    unit[k][col_idx[j]] -= factor * unit[k][col_idx[i]];
-//                }
-//            }
-//        }
-//
-//        for (int j = 0; j < D-1; j++) {
-//            for (int k = 0; k < D; k++) {
-//                std::cout << matrix[j][k] << " ";
-//            }
-//            std::cout << std::endl;
-//        }
-//        for (int j = 0; j < D; j++) {
-//            for (int k = 0; k < D; k++) {
-//                std::cout << unit[j][k] << " ";
-//            }
-//            std::cout << std::endl;
-//        }
-//        std::cout << std::endl;
-//        // Check if current column is now all zeros. If yes, the equivalent unit matrix column now contains the normal
-//        int allzero = 1;
-//        int idx = -1;
-//        for (int l = i; l < D; l++) {
-//            for (int j = 0; j < D-1; j++) {
-//                if (matrix[j][col_idx[l]] != 0) {
-//                    allzero = 0;
-//                    idx = l;
-//                    break;
-//                }
-//            }
-//
-//        }
-//
-//        if (idx != -1) {
-//            for (int j = 0; j < D; j++) {
-//                norm[j] = unit[j][col_idx[idx]];
-//            }
-//            break;
-//        }
-//    }
-
-    // Normalize norm
-    double len;
-    for (int i = 0; i < D; i++) {
-        len += pow(norm[i], 2);
-    }
-    len = sqrt(len);
-    std::cout << "Len: " << len << std::endl;
-    for (int i = 0; i < D; i++) {
-        norm[i] /= len;
-    }
-
-//    delete[] matrix;
-    return norm;
 }
 
-template<int D>
-double * Simplex<D>::find_normal2(Point<D> ** vertices) {
-    /**
-     *
-     * CURRENTLY BROKEN
-     * Finds the normal on a hyperplane defined by a set of points. Will crash if they are linearly dependent.
-     *
-     * https://math.stackexchange.com/questions/2723294/how-to-determine-the-equation-of-the-hyperplane-that-contains-several-points
-     *
-     */
 
-    // Construct matrix
-    double matrix[D][D+1];  // D points (rows) with D+1 coordinates (columns; 1 at the end because homogeneous coords)
-    double * norm = (double*)malloc(D);
-
-    for (int i = 0; i < D; i++) {
-        for (int j = 0; j < D; j++) {
-            matrix[i][j] = vertices[i]->coords[j];
-        }
-
-        matrix[i][D] = 1;
-    }
-
-    int row_idx [D];
-    for (int i = 0; i < D; i++) {
-        row_idx[i] = i;
-    }
-
-    for (int i = 0; i < D; i++) {
-        // find pivot
-        int pivot_row_idx = i;
-        double pivot = matrix[row_idx[i]][i];
-        for (int j = i; j < D; j++) {
-            if (fabs(matrix[row_idx[j]][i]) > fabs(pivot)) {
-                pivot = matrix[row_idx[j]][i];
-                pivot_row_idx = j;
-            }
-        }
-
-        // pivoting
-        int temp = row_idx[i];
-        row_idx[i] = row_idx[pivot_row_idx];
-        row_idx[pivot_row_idx] = temp;
-
-        // Normalization of current row
-        double norm_factor = matrix[row_idx[i]][i];
-        for (int j = 0; j < D+1; j++) {
-            matrix[row_idx[i]][j] /= norm_factor;
-        }
-
-        // Subtracting the current row from all other rows
-        for (int j = 0; j < D; j++) {
-            if (j != i) {
-                double factor = matrix[row_idx[j]][i];
-                for (int k = 0; k < D+1; k++) {
-                    matrix[row_idx[j]][k] -= factor * matrix[row_idx[i]][k];
-                }
-            }
-        }
-    }
-
-//    for (int i = 0; i < D; i++) {
-//        for (int j = 0; j < D+1; j++) {
-//            std::cout << matrix[i][j] << " ";
-//        }
-//        std::cout << std::endl;
-//    }
-
-    double len;
-    for (int i = 0; i < D; i++) {
-        len += pow(matrix[i][D], 2);
-    }
-    len = sqrt(len);
-    len = 1;
-    for (int i = 0; i < D; i++) {
-        norm[i] = matrix[i][D] / len;
-    }
-
-
-//    delete[] matrix;
-    return norm;
-}
+//template<int D>
+//double * Simplex<D>::gauss_elimination(double * A, double * B, int M, int N) {
+//    /**
+//     * Ax = B
+//     * Overloaded version of gauss_elimination, for when B is only a vector.
+//     */
+//     return gauss_elimination(A, B, M, N, 1);
+//}
 
 
 template<int D>
@@ -1886,17 +1541,24 @@ inline int Simplex<D>::check_bary(const double* bary) {
     double bsum = 0;
     for (int i = 0; i < D+1; i++) {
         if (bary[i] < 0) {
+            std::cout << i << ": bary " << bary[i] << " < 0" << std::endl;
             // Consider points on edges to not be contained, in order to avoid degeneracies!
             return 0;
         }
         if (isnanf(bary[i])) {
             std::cerr << "Error: Barycentric coordinate " << i << " is nan" << std::endl;
-            return 0;
+//            return 0;
+            abort();
         }
         bsum += bary[i];
+        std::cout << bsum << std::endl;
     }
 
-    if (bsum > 1) {
+    if (bsum > 1 + EPSILON) {
+        for (int i = 0; i < D+1; i++) {
+            std::cout << bary[i] << " + ";
+        }
+        std::cout << " = " << bsum << " > 1" << std::endl;
         return 0;
     }
 

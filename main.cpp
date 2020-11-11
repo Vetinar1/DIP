@@ -11,25 +11,25 @@ int main() {
     std::cout << sizeof(Cool<221, 2, 436>) << std::endl;
     std::cout << "Initializing cool object... ";
 //    Cool<35731, 4, 1002570> cool;
-    Cool<25758, 3, 162445> cool;
-//    Cool<221, 2, 436> cool;
+//    Cool<5994, 3, 38602> cool;
+    Cool<1050, 2, 2082> cool;
 
     std::cout << "Done" << std::endl << "Reading files... ";
 //    cool.read_files("../data4d/data.csv", "../data4d/dtri.csv", "../data4d/dneighbours.csv");
-    cool.read_files("../data3d/data.csv", "../data3d/dtri.csv", "../data3d/dneighbours.csv");
-//    cool.read_files("../data2d/data.csv", "../data2d/dtri.csv", "../data2d/dneighbours.csv");
+//    cool.read_files("../data3d/data.csv", "../data3d/dtri.csv", "../data3d/dneighbours.csv");
+    cool.read_files("../data2d/data.csv", "../data2d/dtri.csv", "../data2d/dneighbours.csv");
 
-    std::cout << "Done" << std::endl << "Constructing ball tree... ";
+    std::cout << "Done" << std::endl << "Constructing ball tree... " << std::flush;
     cool.construct_simplex_btree();
-//    std::cout << "Done" << std::endl << "Saving ball tree... ";
-//    cool.save_sbtree("tree");
+    std::cout << "Done" << std::endl << "Saving ball tree... ";
+    cool.save_sbtree("tree");
     std::cout << "Done" << std::endl << "Beginning interpolation... " << std::endl;
 
     std::ofstream outfile;
     outfile.open("interp");
 
-    double coord[3];
-    coord[2] = 0;
+    double coord[2];
+//    coord[2] = 0;
 //    coord[3] = 20;
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     for (int i = 0; i < 100; i++) {
@@ -40,6 +40,7 @@ int main() {
             double interp = cool.interpolate_sbtree(coord);
 
             outfile << coord[0] << " " << coord[1] << " " << interp << std::endl;
+            std::cout << std::endl;
         }
     }
     std::cout << "Done" << std::endl;
