@@ -6,8 +6,33 @@
 #include <chrono>
 #include "cool.cpp"
 #include <climits>
+#include <bitset>
 
 int main() {
+    const int N = 10;
+    double grid[N][N][N];
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            for (int k = 0; k < N; k++) {
+                grid[i][j][k] = i*j*k;
+            }
+        }
+    }
+
+    double minmax[N][2] = {
+            {0, 10},
+            {0, 10},
+            {0, 10}
+    };
+
+    int dims[3] = {10, 10, 10};
+
+    MultilinearInterpolator<3> MLI(&grid[0][0][0], &minmax[0][0], &dims[0]);
+    double point[3] = {2.33, 4.7, 3.1};
+    double result = MLI.interpolate(&point[0]);
+    std::cout << result << std::endl;
+
+    return 0;
     std::cout << sizeof(Cool<221, 2, 436>) << std::endl;
     std::cout << "Initializing cool object... ";
 //    Cool<35731, 4, 1002570> cool;
