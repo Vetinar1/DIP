@@ -1576,7 +1576,6 @@ private:
     double * grid;
     double minmax[N][2];
     double dim_lens[N];
-    double diffs[N];
     double dim_offsets[N];
 
     double linear_interpolation(double, double, double, double, double);
@@ -1590,7 +1589,6 @@ public:
         }
         for (int i = 0; i < N; i++) {
             dims[i] = in_dims[i];
-            diffs[i] = dims[i] / dim_lens[i];
         }
         for (int i = 0; i < N; i++) {
             dim_offsets[i] = 1;
@@ -1622,10 +1620,21 @@ double MultilinearInterpolator<N>::interpolate(const double* point) {
 
     // 1. Figure out points of surrounding hypercube
     int indices[N];
+    double diffs[N];
 
     for (int i = 0; i < N; i++) {
         // Automatically cast to int!
         indices[i] = (point[i] - minmax[i][0]) * dims[i] / dim_lens[i];
+        double xi_0 = minmax[i][0] + dim_lens[i] * indices[i] / dims[i];
+        double xi_1 = minmax[i][0] + dim_lens[i] * (indices[i] + 1) / dims[i];
+//        std::cout << "double " << xi_0 << " = " << minmax[i][0] << " + " << dim_lens[i] << " * " << indices[i] << std::endl;
+        diffs[i] = (point[i] - xi_0) / (xi_1 - xi_0);
+//        std::cout << indices[i] << std::endl;
+//        std::cout << "minmax " << minmax[i][0] << " " << minmax[i][1] << std::endl;
+//        std::cout << "xi_0 xi_1 " << xi_0 << " " << xi_1 << std::endl;
+//        std::cout << "point coordinate " << point[i] << std::endl;
+//        std::cout << diffs[i] << std::endl;
+//        std::cout << std::endl;
     }
 
     double * vals = new double[(int) pow(2, N)];
@@ -1639,16 +1648,23 @@ double MultilinearInterpolator<N>::interpolate(const double* point) {
         }
 
         vals[i] = grid[index];
-        std::cout << offsets << " " << vals[i] << std::endl;
+//        std::cout << offsets << " " << vals[i] << std::endl;
     }
 
     double * new_vals;
     for (int i = N; i > 0; i--) {
+//        for (int j = 0; j < (int) pow(2, i); j++) {
+//            std::cout << vals[j] << std::endl;
+//        }
+//        std::cout << std::endl;
         new_vals = new double[(int) pow(2, i-1)];
         for (int j = 0; j < (int) pow(2, i-1); j++) {
             // To understand why the offset in the second vals[] works, look at the bit representation of the indices
             // Those bits correspond to the offsets above
             new_vals[j] = vals[j] * (1 - diffs[i]) + vals[j + (int) pow(2, i-1)] * diffs[i];
+//            std::cout << vals[j] << " * " << (1 - diffs[i]) << " = " << vals[j] * (1 - diffs[i]) << std::endl;
+//            std::cout << vals[j + (int) pow(2, i-1)] << " * " << diffs[i] << " = " << vals[j + (int) pow(2, i-1)] * diffs[i] << std::endl;
+//            std::cout << new_vals[j] << std::endl;
         }
 
         delete[] vals;

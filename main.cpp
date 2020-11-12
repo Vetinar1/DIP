@@ -9,30 +9,73 @@
 #include <bitset>
 
 int main() {
-    const int N = 10;
-    double grid[N][N][N];
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
-            for (int k = 0; k < N; k++) {
-                grid[i][j][k] = i*j*k;
+
+    int dims[3] = {86, 71, 10};
+    double grid[86][71][10];
+
+    double minmax[3][2] = {
+            {1, 9.5},
+            {-8, 6},
+            {-4, 0.5}
+    };
+
+
+    std::ifstream file;
+    std::string line;
+    std::string value;
+    file.open("../repr1_schaye.csv");
+
+    int x = 0;
+    int y = 0;
+    int z = 0;
+    for (int i = 0; i < 86*71*10; i++) {
+        std::getline(file, line);
+        std::stringstream linestream(line);
+        for (int j = 0; j < 4; j++) {     // D coordinates, 1 value
+            std::getline(linestream, value, ',');
+        }
+        std::getline(linestream, value, ',');
+        grid[x][y][z] = std::stod(value);
+        x++;
+        if (x >= 86) {
+            y++;
+            x = 0;
+            if (y >= 71) {
+                z++;
+                y = 0;
             }
         }
     }
 
-    double minmax[N][2] = {
-            {0, 10},
-            {0, 10},
-            {0, 10}
-    };
 
-    int dims[3] = {10, 10, 10};
+    file.close();
 
     MultilinearInterpolator<3> MLI(&grid[0][0][0], &minmax[0][0], &dims[0]);
     double point[3] = {2.33, 4.7, 3.1};
-    double result = MLI.interpolate(&point[0]);
-    std::cout << result << std::endl;
+
+    std::ofstream outfile;
+    outfile.open("interp");
+
+    double coord[3];
+    coord[2] = -0.17;
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+    for (int i = 0; i < 100; i++) {
+        for (int j = 0; j < 100; j++) {
+            std::cout << i << " " << j << std::endl;
+            coord[0] = 2 + i * (8-2)/100.;
+            coord[1] = -4 + j * 8 / 100.;
+            double result = MLI.interpolate(&point[0]);
+
+            outfile << coord[0] << " " << coord[1] << " " << result << std::endl;
+            std::cout << std::endl;
+        }
+    }
+    std::cout << "Done" << std::endl;
+    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+    std::cout << "Time to complete = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
 
     return 0;
+/*
     std::cout << sizeof(Cool<221, 2, 436>) << std::endl;
     std::cout << "Initializing cool object... ";
 //    Cool<35731, 4, 1002570> cool;
@@ -73,4 +116,5 @@ int main() {
     std::cout << "Time to complete = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
     std::cout << "Avg flips: " << cool.avg_sbtree_flips << std::endl;
     return 0;
+    */
 }
