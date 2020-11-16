@@ -10,7 +10,6 @@
 #include <math.h>
 
 int main() {
-    /*
     const int X = 86;
     const int Y = 71;
     const int Z = 10;
@@ -85,7 +84,7 @@ int main() {
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     std::cout << "Time to complete = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
 
-    return 0;*/
+    return 0;
 
     std::cout << sizeof(Cool<221, 2, 436>) << std::endl;
     std::cout << "Initializing cool object... ";
