@@ -7,11 +7,15 @@
 #include "cool.cpp"
 #include <climits>
 #include <bitset>
+#include <math.h>
 
 int main() {
-
-    int dims[3] = {86, 71, 10};
-    double grid[86][71][10];
+    /*
+    const int X = 86;
+    const int Y = 71;
+    const int Z = 10;
+    int dims[3] = {X, Y, Z};
+    double grid[X][Y][Z];
 
     double minmax[3][2] = {
             {1, 9.5},
@@ -28,14 +32,15 @@ int main() {
     int x = 0;
     int y = 0;
     int z = 0;
-    for (int i = 0; i < 86*71*10; i++) {
+    for (int i = 0; i < X*Y*Z; i++) {
         std::getline(file, line);
         std::stringstream linestream(line);
-        for (int j = 0; j < 4; j++) {     // D coordinates, 1 value
+        for (int j = 0; j < 4; j++) {
             std::getline(linestream, value, ',');
         }
         std::getline(linestream, value, ',');
         grid[x][y][z] = std::stod(value);
+        grid[x][y][z] = log10(grid[x][y][z]);
         x++;
         if (x >= 86) {
             y++;
@@ -47,11 +52,16 @@ int main() {
         }
     }
 
-
     file.close();
+//    for (int i = 0; i < X; i++) {
+//        for (int j = 0; j < Y; j++) {
+//            for (int k = 0; k < Z; k++) {
+//                std::cout << i << " " << j << " " << k << ": " << grid[i][j][k] << std::endl;
+//            }
+//        }
+//    }
 
     MultilinearInterpolator<3> MLI(&grid[0][0][0], &minmax[0][0], &dims[0]);
-    double point[3] = {2.33, 4.7, 3.1};
 
     std::ofstream outfile;
     outfile.open("interp");
@@ -61,10 +71,11 @@ int main() {
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     for (int i = 0; i < 100; i++) {
         for (int j = 0; j < 100; j++) {
-            std::cout << i << " " << j << std::endl;
+//            std::cout << i << " " << j << std::endl;
             coord[0] = 2 + i * (8-2)/100.;
             coord[1] = -4 + j * 8 / 100.;
-            double result = MLI.interpolate(&point[0]);
+//            std::cout << coord[0] << " " << coord[1] << " " << coord[2] << std::endl;
+            double result = MLI.interpolate(&coord[0]);
 
             outfile << coord[0] << " " << coord[1] << " " << result << std::endl;
             std::cout << std::endl;
@@ -74,8 +85,8 @@ int main() {
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     std::cout << "Time to complete = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
 
-    return 0;
-/*
+    return 0;*/
+
     std::cout << sizeof(Cool<221, 2, 436>) << std::endl;
     std::cout << "Initializing cool object... ";
 //    Cool<35731, 4, 1002570> cool;
@@ -116,5 +127,5 @@ int main() {
     std::cout << "Time to complete = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
     std::cout << "Avg flips: " << cool.avg_sbtree_flips << std::endl;
     return 0;
-    */
+
 }

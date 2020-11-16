@@ -1625,9 +1625,10 @@ double MultilinearInterpolator<N>::interpolate(const double* point) {
     for (int i = 0; i < N; i++) {
         // Automatically cast to int!
         indices[i] = (point[i] - minmax[i][0]) * dims[i] / dim_lens[i];
+//        std::cout << "indices[i]: " << indices[i] << " = (" << point[i] << " - " << minmax[i][0] << ") * " << dims[i] << " / " << dim_lens[i] << std::endl;
         double xi_0 = minmax[i][0] + dim_lens[i] * indices[i] / dims[i];
         double xi_1 = minmax[i][0] + dim_lens[i] * (indices[i] + 1) / dims[i];
-//        std::cout << "double " << xi_0 << " = " << minmax[i][0] << " + " << dim_lens[i] << " * " << indices[i] << std::endl;
+//        std::cout << "double " << xi_0 << " = " << minmax[i][0] << " + " << dim_lens[i] << " * " << indices[i] << " / " << dims[i] << std::endl;
         diffs[i] = (point[i] - xi_0) / (xi_1 - xi_0);
 //        std::cout << indices[i] << std::endl;
 //        std::cout << "minmax " << minmax[i][0] << " " << minmax[i][1] << std::endl;
