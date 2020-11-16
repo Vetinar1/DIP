@@ -18,11 +18,6 @@
 // TODO ?
 #define EPSILON 0.001
 
-// https://stackoverflow.com/a/4609795
-template <typename T> int sgn(T val) {
-    return (T(0) < val) - (val < T(0));
-}
-
 
 template<int D> class Point;
 template<int D> class Simplex;
@@ -141,20 +136,7 @@ void Simplex<D>::calculate_normals() {
      * away from the centroid.
      */
 
-//    std::cout << "Calculating normals for:" << std::endl;
-//    for (int i = 0; i < D+1; i++) {
-//        for (int j = 0; j < D; j++) {
-//            std::cout << points[i]->coords[j] << " ";
-//        }
-//        std::cout << std::endl;
-//    }
-//    std::cout << "Centroid:" << std::endl;
-//    for (int i = 0; i < D; i++) {
-//        std::cout << centroid[i] << " ";
-//    }
-//    std::cout << std::endl;
     for (int i = 0; i < D+1; i++) { // Each face/point opposite
-        std::cout << "\nNormal " << i << std::endl;
         Point<D> * face[D];
 
         // All points except the one opposite
@@ -165,21 +147,8 @@ void Simplex<D>::calculate_normals() {
                 face[j] = points[j+1];
             }
         }
-//        std::cout << std::endl << "Face " << i << std::endl;
-//        for (int j = 0; j < D; j++) {
-//            for (int k = 0; k <D; k++) {
-//                std::cout << face[j]->coords[k] << " ";
-//            }
-//            std::cout << std::endl;
-//        }
 
         double * norm = find_normal(&face[0]);
-
-        std::cout << "Found normal: " << std::endl;
-        for (int j = 0; j < D; j++) {
-            std::cout << norm[j] << " ";
-        }
-        std::cout << std::endl;
 
         // Make sure norm points away from centroid
         // Go +1/-1 in direction of the normal from the centroid.
@@ -194,20 +163,12 @@ void Simplex<D>::calculate_normals() {
             step_neg[j] = centroid[j] - norm[j];
         }
 
-        std::cout << step_pos[0] << " " << step_pos[1] << std::endl;
-        std::cout << step_neg[0] << " " << step_neg[1] << std::endl;
-        std::cout << midpoints[i][0] << " " << midpoints[i][1] << std::endl;
-
         for (int j = 0; j < D; j++) {
             dist2_pos += pow(step_pos[j] - midpoints[i][j], 2);
             dist2_neg += pow(step_neg[j] - midpoints[i][j], 2);
         }
 
-        std::cout << "pos dist: " << sqrt(dist2_pos) << std::endl;
-        std::cout << "neg dist: " << sqrt(dist2_neg) << std::endl;
-
         if (dist2_neg < dist2_pos) {
-            std::cout << "Flip" << std::endl;
             for (int j = 0; j < D; j++) {
                 norm[j] *= -1;
             }
@@ -220,8 +181,6 @@ void Simplex<D>::calculate_normals() {
 
         delete[] norm;
     }
-
-    std::cout << std::endl;
 }
 
 
@@ -276,13 +235,10 @@ double * Simplex<D>::find_normal(Point<D> ** vertices) {
         }
 
         if (allzero == 1) {
-//            std::cout << "Zero row: " << i << std::endl;
             found = 1;
             for (int j = 0; j < D; j++) {
                 norm[j] = unit[i][j];
-//                std::cout << norm[j] << " ";
             }
-//            std::cout << std::endl;
             break;
         }
     }
@@ -331,7 +287,6 @@ double * Simplex<D>::find_normal(Point<D> ** vertices) {
         len += pow(norm[i], 2);
     }
     len = sqrt(len);
-//    std::cout << "Len: " << len << std::endl;
     for (int i = 0; i < D; i++) {
         norm[i] /= len;
     }
@@ -374,12 +329,12 @@ double laplace_expansion(double (&matrix)[n][n]) {
     return det;
 }
 
-/*
+
 template<>
 double laplace_expansion<1>(double (&matrix)[1][1]) {
     return matrix[0][0];
 }
- */
+
 
 
 template<int D>
@@ -734,7 +689,6 @@ Simplex<D> * Cool<N, D, S>::construct_simplex_btree_recursive(Simplex<D> ** simp
                 dim_max = val;
             }
         }
-//        std::cout << "Dim: " << i << " min: " << dim_min << " max: " << dim_max << std::endl;
 
         assert(dim_min <= dim_max);
         dim_spread = fabs(dim_max - dim_min);
@@ -744,7 +698,6 @@ Simplex<D> * Cool<N, D, S>::construct_simplex_btree_recursive(Simplex<D> ** simp
             avg            = (dim_max + dim_min) / 2;
         }
     }
-//    std::cout << "spread dim: " << lspread_dim << " avg: " << avg << std::endl;
 
     assert(largest_spread != -1 && lspread_dim != -1);
 
@@ -922,7 +875,6 @@ Simplex<D> * Cool<N, D, S>::find_nearest_neighbour_sbtree(Simplex<D> * root, con
             for (int i = 0; i < D; i++) {
                 min_dist2 += pow(target[i] - best->centroid[i], 2);
             }
-//            std::cout << "New min_dist2: " << min_dist2 << std::endl;
         }
         if (root->rchild != NULL) {
             best = find_nearest_neighbour_sbtree(root->rchild, target, best, min_dist2);
@@ -956,12 +908,6 @@ double Cool<N, D, S>::interpolate_sbtree(double * coords) {
      * repeated "flips". Finally, interpolate using a weighted average (Delaunay).
      */
 
-//    std::cout << "coords: ";
-//    for (int i = 0; i < D; i++) {
-//        std::cout << coords[i] << " ";
-//    }
-//    std::cout << std::endl;
-//    std::map<Simplex<D> *, int> visited;
     Simplex<D> * best = NULL;
     Simplex<D> * nn = find_nearest_neighbour_sbtree(sbtree, coords, best, DBL_MAX);
 
@@ -970,7 +916,6 @@ double Cool<N, D, S>::interpolate_sbtree(double * coords) {
     int flips = 0;
 
     while (!inside) {
-        std::cout << flips << std::endl;
         // Calculate difference vectors from coords to midpoints; normalize; figure out the one with largest scalar
         // product (= smallest angle)
         double best_dir_dot = - DBL_MAX;
@@ -999,15 +944,6 @@ double Cool<N, D, S>::interpolate_sbtree(double * coords) {
         }
 
         nn = nn->neighbour_pointers[best_dir];
-        std::cout << "Simplex index: ";
-        int si = -1;
-        for (int i = 0; i < S; i++) {
-            if (&simplices[i] == nn) {
-                si = i;
-                break;
-            }
-        }
-        std::cout << si << std::endl;
         bary = nn->convert_to_bary(coords);
         inside = nn->check_bary(bary);
 
@@ -1015,180 +951,9 @@ double Cool<N, D, S>::interpolate_sbtree(double * coords) {
         if (flips > 100) {
             std::cerr << "Error: More than 100 flips." << std::endl;
             abort();
-            break;
         }
 
-        std::cout << "inside: " << inside << std::endl;
-//        // Error handling
-//        if (best_dir_dot <= 0 && inside == 0) {
-//            std::cerr << "Error in Simplex traversal: no positive scalar product: "
-//                      << best_dir_dot << " <= 0" << std::endl;
-//
-//            std::cerr << "Simplex index: " << std::endl;
-//            int si = -1;
-//            for (int i = 0; i < S; i++) {
-//                if (&simplices[i] == nn) {
-//                    si = i;
-//                    break;
-//                }
-//            }
-//            if (si > -1) {
-//                std::cerr << si << std::endl;
-//                simplices[si].validate_normals();
-//            } else {
-//                std::cerr << "Not found" << std::endl;
-//            }
-//            std::cerr << "Target point in regular/barycentric coordinates:" << std::endl;
-//            for (int i = 0; i < D; i++) {
-//                std::cerr << coords[i] << " ";
-//            }
-//            std::cerr << "\t\t";
-//            for (int i = 0; i < D; i++) {
-//                std::cerr << bary[i] << " ";
-//            }
-//            std::cerr << std::endl;
-//
-//            std::cerr << "Simplex points:" << std::endl;
-//            for (int j = 0; j < D+1; j++) {
-//                std::cerr << j << ":\t";
-//                for (int k = 0; k < D; k++) {
-//                    std::cerr << nn->points[j]->coords[k] << " ";
-//                }
-//                std::cerr << std::endl;
-//            }
-//            std::cerr << "Centroid: " << std::endl;
-//            for (int j = 0; j < D; j++) {
-//                std::cerr << nn->centroid[j] << " ";
-//            }
-//            std::cerr << std::endl;
-//            std::cerr << "Midpoints:" << std::endl;
-//            for (int j = 0; j < D+1; j++) {
-//                std::cerr << j << ":   ";
-//                for (int k = 0; k < D; k++) {
-//                    std::cerr << nn->midpoints[j][k] << " ";
-//                }
-//                std::cerr << std::endl;
-//            }
-//            std::cerr << "Midpoint diffs: " << std::endl;
-//            for (int j = 0; j < D+1; j++) {
-//                double diff[D];
-//                double len = 0;
-//                for (int k = 0; k < D; k++) {
-//                    diff[k] = coords[k] - nn->midpoints[j][k];
-//                    len += pow(diff[k], 2);
-//                }
-//                len = sqrt(len);
-//                std::cerr << j << ":   ";
-//                for (int k = 0; k < D; k++) {
-//                    std::cerr << diff[k] / len << " ";
-//                }
-//                std::cerr << std::endl;
-//            }
-//            std::cerr << "Normal vectors:" << std::endl;
-//            for (int j = 0; j < D+1; j++) {
-//                std::cerr << j << ":\t";
-//                for (int k = 0; k < D; k++) {
-//                    std::cerr << nn->normals[j][k] << " ";
-//                }
-//                std::cerr << std::endl;
-//            }
-//
-//            abort();
-//        }
     }
-
-//    int dbg_count = 0;
-//    while (!inside) {
-//        std::cout << dbg_count << std::endl;
-//        for (int i = 0; i < S; i++) {
-//            if (&simplices[i] == nn) {
-//                std::cout << "Simplex: " << i << std::endl;
-//                break;
-//            }
-//        }
-
-//        std::cout << "Simplex points: " << std::endl;
-//        for (int i = 0; i < D+1; i++) {
-//            for (int j = 0; j < D; j++) {
-//                std::cout << nn->points[i]->coords[j] << " ";
-//            }
-//            std::cout << std::endl;
-//        }
-//        std::cout << std::endl;
-
-//        // Find nearest midpoint
-//        std::cout << "Finding midpoints" << std::endl;
-//        double midpoints[D+1][D];
-//        for (int i = 0; i < D+1; i++) { // D+1 midpoints, one per plane
-//            for (int j = 0; j < D; j++) {   // D coordinates
-//                midpoints[i][j] = 0;
-//                for (int k = 0; k < D; k++) {   // D points defining plane
-//                    if (k < i) {
-//                        midpoints[i][j] += nn->points[k]->coords[j];
-//                    } else {
-//                        midpoints[i][j] += nn->points[k+1]->coords[j];
-//                    }
-//                }
-//                midpoints[i][j] /= D;
-//            }
-//        }
-//        std::cout << "All midpoints: " << std::endl;
-//        for (int i = 0; i < D+1; i++) {
-//            for (int j = 0; j < D; j++) {
-//                std::cout << midpoints[i][j] << " ";
-//            }
-//            std::cout << std::endl;
-//        }
-
-//        std::cout << "Projecting midpoint normals" << std::endl;
-//        double best_dir_dot = 0;
-//        int best_dir;
-//        for (int i = 0; i < D+1; i++) {
-//            double diff_vec[D];
-//            double diff_len = 0;
-//            for (int j = 0; j < D; j++) {
-//                diff_vec[j] = coords[j] - midpoints[i][j];
-//                diff_len += pow(diff_vec[j], 2);
-//            }
-//            diff_len = sqrt(diff_len);
-//            for (int j = 0; j < D; j++) {
-//                diff_vec[j] /= diff_len;
-//            }
-//
-//            double dot = 0;
-//            for (int j = 0; j < D; j++) {
-//                dot += diff_vec[j] * nn->normals[i][j];
-//            }
-//            std::cout << "Midpoint: " << midpoints[i][0] << " " << midpoints[i][1] << std::endl;
-//            std::cout << "Normal: " << nn->normals[i][0] << " " << nn->normals[i][1] << std::endl;
-//            std::cout << "diff vec: " << diff_vec[0] << " " << diff_vec[1] << std::endl;
-//            std::cout << std::endl;
-//
-//            if (dot > best_dir_dot) {
-//                best_dir_dot = dot;
-//                best_dir = i;
-//            }
-//            std::cout << "dot: " << dot << " best dot: " << best_dir_dot << std::endl;
-//        }
-
-//        std::cout << "Going to new nearest neighbor" << std::endl;
-//        nn = nn->neighbour_pointers[best_dir];
-//
-//        std::cout << "convert to bary" << std::endl;
-//        bary = nn->convert_to_bary(coords);
-//
-//        std::cout << "checking bary" << std::endl << std::endl;
-//        inside = nn->check_bary(bary);
-//
-//        dbg_count++;
-//        if (dbg_count > 100) {
-//            std::cerr << "Error: More than 100 flips." << std::endl;
-//            exit(1);
-//            break;
-//        }
-//    }
-
-//    std::cout << "Found simplex" << std::endl;
 
     // The actual interpolation step
     double val = 0;
@@ -1240,11 +1005,9 @@ int Cool<N, D, S>::read_files(std::string cool_file, std::string tri_file, std::
 
         for (int j = 0; j < D; j++) {
             if (points[i].coords[j] < mins[j]) {
-//                std::cout << "Updating mins[" << j << "] from " << mins[j] << " to " << points[i].coords[j] << std::endl;
                 mins[j] = points[i].coords[j];
             }
             if (points[i].coords[j] > maxs[j]) {
-//                std::cout << "Updating maxs[" << j << "] from " << maxs[j] << " to " << points[i].coords[j] << std::endl;
                 maxs[j] = points[i].coords[j];
             }
         }
@@ -1312,9 +1075,6 @@ int Cool<N, D, S>::read_files(std::string cool_file, std::string tri_file, std::
         simplices[i].calculate_centroid();
         simplices[i].calculate_midpoints();
 
-        for (int j = 0; j < D; j++) {
-            std::cout << mins[j] << " " << maxs[j] << std::endl;
-        }
         if (skip == 1) {
             continue;
         }
@@ -1364,10 +1124,6 @@ int Cool<N, D, S>::read_files(std::string cool_file, std::string tri_file, std::
 
     file.close();
 
-//    // Shrink point vectors
-//    for (int i = 0; i < N; i++) {
-//        points[i].simplices.shrink_to_fit();
-//    }
     return 0;
 }
 
@@ -1462,17 +1218,6 @@ void Simplex<D>::gauss_elimination(double (&A)[M][N1], double (&B)[M][N2], int a
             }
         }
 
-        for (int j = 0; j < M; j++) {
-            for (int k = 0; k < N1; k++) {
-                std::cout << A[j][k] << " ";
-            }
-            std::cout << "| ";
-            for (int k = 0; k < N2; k++) {
-                std::cout << B[j][k] << " ";
-            }
-            std::cout << std::endl;
-        }
-        std::cout << std::endl;
     }
 
     if (apply_permutation) {
@@ -1490,16 +1235,6 @@ void Simplex<D>::gauss_elimination(double (&A)[M][N1], double (&B)[M][N2], int a
         }
     }
 }
-
-
-//template<int D>
-//double * Simplex<D>::gauss_elimination(double * A, double * B, int M, int N) {
-//    /**
-//     * Ax = B
-//     * Overloaded version of gauss_elimination, for when B is only a vector.
-//     */
-//     return gauss_elimination(A, B, M, N, 1);
-//}
 
 
 template<int D>
@@ -1544,24 +1279,17 @@ inline int Simplex<D>::check_bary(const double* bary) {
     double bsum = 0;
     for (int i = 0; i < D+1; i++) {
         if (bary[i] < 0) {
-            std::cout << i << ": bary " << bary[i] << " < 0" << std::endl;
             // Consider points on edges to not be contained, in order to avoid degeneracies!
             return 0;
         }
         if (isnanf(bary[i])) {
             std::cerr << "Error: Barycentric coordinate " << i << " is nan" << std::endl;
-//            return 0;
             abort();
         }
         bsum += bary[i];
-        std::cout << bsum << std::endl;
     }
 
     if (bsum > 1 + EPSILON) {
-        for (int i = 0; i < D+1; i++) {
-            std::cout << bary[i] << " + ";
-        }
-        std::cout << " = " << bsum << " > 1" << std::endl;
         return 0;
     }
 
@@ -1625,17 +1353,9 @@ double MultilinearInterpolator<N>::interpolate(const double* point) {
     for (int i = 0; i < N; i++) {
         // Automatically cast to int!
         indices[i] = (point[i] - minmax[i][0]) * dims[i] / dim_lens[i];
-//        std::cout << "indices[i]: " << indices[i] << " = (" << point[i] << " - " << minmax[i][0] << ") * " << dims[i] << " / " << dim_lens[i] << std::endl;
         double xi_0 = minmax[i][0] + dim_lens[i] * indices[i] / dims[i];
         double xi_1 = minmax[i][0] + dim_lens[i] * (indices[i] + 1) / dims[i];
-//        std::cout << "double " << xi_0 << " = " << minmax[i][0] << " + " << dim_lens[i] << " * " << indices[i] << " / " << dims[i] << std::endl;
         diffs[i] = (point[i] - xi_0) / (xi_1 - xi_0);
-//        std::cout << indices[i] << std::endl;
-//        std::cout << "minmax " << minmax[i][0] << " " << minmax[i][1] << std::endl;
-//        std::cout << "xi_0 xi_1 " << xi_0 << " " << xi_1 << std::endl;
-//        std::cout << "point coordinate " << point[i] << std::endl;
-//        std::cout << diffs[i] << std::endl;
-//        std::cout << std::endl;
     }
 
     double * vals = new double[(int) pow(2, N)];
@@ -1644,28 +1364,19 @@ double MultilinearInterpolator<N>::interpolate(const double* point) {
         int index = 0;
 
         for (int j = 0; j < N; j++) {
-            // TODO: Fix
             index += (offsets[j]) ? dim_offsets[j] * (indices[j] + 1) : dim_offsets[j] * indices[j];
         }
 
         vals[i] = grid[index];
-//        std::cout << offsets << " " << vals[i] << std::endl;
     }
 
     double * new_vals;
     for (int i = N; i > 0; i--) {
-//        for (int j = 0; j < (int) pow(2, i); j++) {
-//            std::cout << vals[j] << std::endl;
-//        }
-//        std::cout << std::endl;
         new_vals = new double[(int) pow(2, i-1)];
         for (int j = 0; j < (int) pow(2, i-1); j++) {
             // To understand why the offset in the second vals[] works, look at the bit representation of the indices
             // Those bits correspond to the offsets above
             new_vals[j] = vals[j] * (1 - diffs[i]) + vals[j + (int) pow(2, i-1)] * diffs[i];
-//            std::cout << vals[j] << " * " << (1 - diffs[i]) << " = " << vals[j] * (1 - diffs[i]) << std::endl;
-//            std::cout << vals[j + (int) pow(2, i-1)] << " * " << diffs[i] << " = " << vals[j + (int) pow(2, i-1)] * diffs[i] << std::endl;
-//            std::cout << new_vals[j] << std::endl;
         }
 
         delete[] vals;
