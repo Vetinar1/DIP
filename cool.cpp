@@ -18,7 +18,6 @@
 // TODO ?
 #define EPSILON 0.001
 
-
 template<int D> class Point;
 template<int D> class Simplex;
 template<int N, int D, int S> class Cool;
@@ -41,9 +40,9 @@ public:
 template<int D>
 class Simplex {
     /**
-     * Class representing an M-d simplex in the triangulation. Has M+1 vertices.
+     * Class representing an D-d simplex in the triangulation. Has M+1 vertices.
      *
-     * int M        Number of dimensions
+     * int D        Number of dimensions
      */
     template<int, int, int> friend class Cool;
 private:
@@ -87,7 +86,6 @@ public:
             centroid[i] /= (D+1);
         }
     }
-    template<size_t n> double laplace_expansion(double (&)[n][n]);
 };
 
 template<int N, int D, int S>
@@ -100,32 +98,32 @@ class Cool {
 private:
     inline static Point<D> points[N];
     inline static Simplex<D> simplices[S];
-    Simplex<D> * sbtree;         // Points to the root of the simplex ball tree
+    Simplex<D> * btree;         // Points to the root of the simplex ball tree
 
     Simplex<D> * construct_simplex_btree_recursive(Simplex<D> **, int);
     Simplex<D> * find_nearest_neighbour_sbtree(Simplex<D> *, const double *, Simplex<D> *, double);
 
-    int sbtree_flips, sbtree_interpolate_calls;
+    int flips, interpolate_calls;
 public:
     Cool() {
-        sbtree_flips = 0;
-        sbtree_interpolate_calls = 0;
-        avg_sbtree_flips = 0;
+        flips = 0;
+        interpolate_calls = 0;
+        avg_flips = 0;
         for (int i = 0; i < D; i++) {
             mins[i] =      DBL_MAX;
             maxs[i] = -1 * DBL_MAX;
         }
     };
-    double avg_sbtree_flips;
+    double avg_flips;
 
     // Minimum and maximum values in each dimension
     double mins[D];
     double maxs[D];
 
     int read_files(std::string, std::string, std::string);
-    void save_sbtree(std::string);
-    int construct_simplex_btree();
-    double interpolate_sbtree(double *);
+    void save_btree(std::string filename);
+    int construct_btree();
+    double interpolate(double * coords);
 };
 
 
@@ -632,7 +630,7 @@ void Simplex<D>::calculate_midpoints() {
 
 
 template<int N, int D, int S>
-int Cool<N, D, S>::construct_simplex_btree() {
+int Cool<N, D, S>::construct_btree() {
     /**
      * This function serves as a public "adapter" to the actual ball tree construction function,
      * construct_point_btree_recursive().
@@ -645,7 +643,7 @@ int Cool<N, D, S>::construct_simplex_btree() {
         simps[i] = &(simplices[i]);
     }
 
-    sbtree = construct_simplex_btree_recursive(simps, S);
+    btree = construct_simplex_btree_recursive(simps, S);
 
     return 0;
 }
@@ -789,7 +787,7 @@ Simplex<D> * Cool<N, D, S>::construct_simplex_btree_recursive(Simplex<D> ** simp
 
 
 template<int N, int D, int S>
-void Cool<N, D, S>::save_sbtree(std::string filename) {
+void Cool<N, D, S>::save_btree(std::string filename) {
     /**
      * Saves the Ball tree. Format: [Index of simplex] [Index of left child] [Index of right child] [pbtree_radius_sq]
      *
@@ -901,7 +899,7 @@ Simplex<D> * Cool<N, D, S>::find_nearest_neighbour_sbtree(Simplex<D> * root, con
 
 
 template<int N, int D, int S>
-double Cool<N, D, S>::interpolate_sbtree(double * coords) {
+double Cool<N, D, S>::interpolate(double * coords) {
     /**
      * Interpolate the given point.
      * First, find the closest simplex using the ball tree. Then, find the simplex containing the given point using
@@ -909,7 +907,7 @@ double Cool<N, D, S>::interpolate_sbtree(double * coords) {
      */
 
     Simplex<D> * best = NULL;
-    Simplex<D> * nn = find_nearest_neighbour_sbtree(sbtree, coords, best, DBL_MAX);
+    Simplex<D> * nn = find_nearest_neighbour_sbtree(btree, coords, best, DBL_MAX);
 
     double * bary = nn->convert_to_bary(coords);
     int inside = nn->check_bary(bary);
@@ -964,9 +962,9 @@ double Cool<N, D, S>::interpolate_sbtree(double * coords) {
     delete[] bary;
     delete best;
 
-    sbtree_interpolate_calls++;
-    sbtree_flips += flips;
-    avg_sbtree_flips = sbtree_flips / (float) sbtree_interpolate_calls;
+    interpolate_calls++;
+    flips += flips;
+    avg_flips = flips / (float) interpolate_calls;
 
     return val;
 }

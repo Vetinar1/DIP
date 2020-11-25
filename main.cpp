@@ -98,9 +98,9 @@ int main() {
 //    cool.read_files("../data2d/data.csv", "../data2d/dtri.csv", "../data2d/dneighbours.csv");
 
     std::cout << "Done" << std::endl << "Constructing ball tree... " << std::flush;
-    cool.construct_simplex_btree();
+    cool.construct_btree();
     std::cout << "Done" << std::endl << "Saving ball tree... ";
-    cool.save_sbtree("tree");
+    cool.save_btree("tree");
     std::cout << "Done" << std::endl << "Beginning interpolation... " << std::endl;
 
     std::ofstream outfile;
@@ -115,7 +115,7 @@ int main() {
             std::cout << i << " " << j << std::endl;
             coord[0] = 2 + i * (8-2)/100.;
             coord[1] = -4 + j * 8 / 100.;
-            double interp = cool.interpolate_sbtree(coord);
+            double interp = cool.interpolate(coord);
 
             outfile << coord[0] << " " << coord[1] << " " << interp << std::endl;
             std::cout << std::endl;
@@ -124,7 +124,7 @@ int main() {
     std::cout << "Done" << std::endl;
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     std::cout << "Time to complete = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
-    std::cout << "Avg flips: " << cool.avg_sbtree_flips << std::endl;
+    std::cout << "Avg flips: " << cool.avg_flips << std::endl;
     return 0;
 
 }
