@@ -1,6 +1,10 @@
 //
-// Created by vetinari on 15.09.20.
+// Created by vetinari on 26.11.20.
 //
+
+
+#ifndef MASTER_PROJECT_C_PART_COOL_H
+#define MASTER_PROJECT_C_PART_COOL_H
 
 #include <iostream>
 #include <fstream>
@@ -18,6 +22,170 @@
 
 // TODO ?
 #define EPSILON 0.001
+
+
+template<int D> class Point;
+template<int D> class Simplex;
+template<int N, int D, int S> class Cool;
+
+template<int D>
+class Point {
+    /**
+     * Class representing a single data point. Mostly used to find simplices it is part of.
+     */
+    template<int, int, int> friend class Cool;
+    template<int> friend class Simplex;
+private:
+    double value;
+
+public:
+    double coords[D];
+};
+
+
+template<int D>
+class Simplex {
+    /**
+     * Class representing an D-d simplex in the triangulation. Has M+1 vertices.
+     *
+     * int D        Number of dimensions
+     */
+    template<int, int, int> friend class Cool;
+private:
+    // TODO I would like to make these const, but I don't think I can, since the value is determined at runtime
+    Point<D> * points[D+1];             // D+1 points; Array of pointers to Point<D>
+    double T_inv[D][D];                 // T: https://en.wikipedia.org/wiki/Barycentric_coordinate_system#Barycentric_coordinates_on_tetrahedra
+    int neighbour_indices[D+1];         // One neighbour opposite every point
+    Simplex * neighbour_pointers[D+1];
+    double centroid[D];
+    double sbtree_radius_sq;
+    double midpoints[D+1][D];           // Midpoints of the faces; D+1 faces, D coordinates
+    double normals[D+1][D];             // Outward pointing normals of the faces; D+1 faces, D coordinates
+
+    void invert_T();
+    double * convert_to_bary(const double *);
+    int check_bary(const double *);
+    void calculate_normals();
+    void calculate_midpoints();
+
+    template<int M, int N1, int N2> void gauss_elimination(double (&)[M][N1], double (&)[M][N2], int);
+public:
+    double * find_normal(Point<D> ** );
+    void validate_simplex();
+    void validate_normals();
+    Simplex * lchild;
+    Simplex * rchild;
+
+    Simplex() {
+        sbtree_radius_sq = 0;
+    };
+
+    void calculate_centroid() {
+        /**
+         * Calculate centroid (=avg) from points.
+         */
+        for (int i = 0; i < D; i++) {   // coordinates
+            centroid[i] = 0;
+            for (int j = 0; j < D+1; j++) {     // points.csv
+                centroid[i] += points[j]->coords[i];
+            }
+            centroid[i] /= (D+1);
+        }
+    }
+};
+
+template<int N, int D, int S>
+class Cool {
+    /**
+     * int N        Number of points.csv
+     * int D        Dimensionality of points.csv
+     * int S        Number of Simplices
+     */
+private:
+    inline static Point<D> points[N];
+    inline static Simplex<D> simplices[S];
+    Simplex<D> * btree;         // Points to the root of the simplex ball tree
+
+    Simplex<D> * construct_simplex_btree_recursive(Simplex<D> **, int);
+    Simplex<D> * find_nearest_neighbour_sbtree(Simplex<D> *, const double *, Simplex<D> *, double);
+
+    int flips, interpolate_calls;
+    int N_MAX, S_MAX;
+public:
+    Cool() {
+        flips = 0;
+        interpolate_calls = 0;
+        avg_flips = 0;
+        S_MAX = S;
+        N_MAX = N;
+        for (int i = 0; i < D; i++) {
+            mins[i] = DBL_MAX;
+            maxs[i] = -1 * DBL_MAX;
+        }
+    };
+    double avg_flips;
+
+    // Minimum and maximum values in each dimension
+    double mins[D];
+    double maxs[D];
+
+    void reset_stats();
+    int read_files(std::string, std::string, std::string);
+    void save_btree(std::string filename);
+    int construct_btree();
+    double interpolate(double * coords);
+    void set_N_MAX(int n) { N_MAX = n; };
+    void set_S_MAX(int s) { S_MAX = s; };
+};
+
+
+template<int N, int D, int S>
+void Cool<N, D, S>::reset_stats() {
+    flips = 0;
+    interpolate_calls = 0;
+    N_MAX = N;
+    S_MAX = S;
+    avg_flips = 0;
+    for (int i = 0; i < D; i++) {
+        mins[i] = DBL_MAX;
+        maxs[i] = -1 * DBL_MAX;
+    }
+}
+
+
+template<int N>
+class MultilinearInterpolator {
+private:
+    int dims[N];
+    double * grid;
+    double minmax[N][2];
+    double dim_lens[N];
+    double dim_offsets[N];
+
+    double linear_interpolation(double, double, double, double, double);
+public:
+    MultilinearInterpolator(double * in_grid, const double * in_minmax, const int * in_dims) {
+        grid = in_grid;
+        for (int i = 0; i < N; i++) {
+            minmax[i][0] = in_minmax[2*i];
+            minmax[i][1] = in_minmax[2*i+1];
+            dim_lens[i] = minmax[i][1] - minmax[i][0];
+        }
+        for (int i = 0; i < N; i++) {
+            dims[i] = in_dims[i];
+        }
+        for (int i = 0; i < N; i++) {
+            dim_offsets[i] = 1;
+            if (i == N) {
+                break;
+            }
+            for (int j = i+1; j < N; j++) {
+                dim_offsets[i] *= dims[j];
+            }
+        }
+    }
+    double interpolate(const double *);
+};
 
 
 template<int D>
@@ -532,11 +700,11 @@ int Cool<N, D, S>::construct_btree() {
      */
     // Construct array of pointers
     Simplex<D> * simps[S];
-    for (int i = 0; i < S; i++) {
+    for (int i = 0; i < S_MAX; i++) {
         simps[i] = &(simplices[i]);
     }
 
-    btree = construct_simplex_btree_recursive(simps, S);
+    btree = construct_simplex_btree_recursive(simps, S_MAX);
 
     return 0;
 }
@@ -688,10 +856,10 @@ void Cool<N, D, S>::save_btree(std::string filename) {
      */
     std::ofstream file;
     file.open(filename);
-    for (int i = 0; i < S; i++) {
+    for (int i = 0; i < S_MAX; i++) {
         file << i << " ";
         int lchild = -1, rchild = -1;
-        for (int j = 0; j < S; j++) {
+        for (int j = 0; j < S_MAX; j++) {
             if (simplices[i].lchild == &simplices[j]) {
                 lchild = j;
             }
@@ -882,8 +1050,11 @@ int Cool<N, D, S>::read_files(std::string cool_file, std::string tri_file, std::
     if (!file.is_open()) {
         std::cerr << "Error reading " << cool_file << std::endl;
         return 1;
+    } else {
+        std::cout << "Reading" << cool_file << std::endl;
     }
 
+    int n = 0;
     for (int i = 0; i < N; i++) {
         std::getline(file, line);
         std::stringstream linestream(line);
@@ -902,7 +1073,14 @@ int Cool<N, D, S>::read_files(std::string cool_file, std::string tri_file, std::
                 maxs[j] = points[i].coords[j];
             }
         }
+
+        n++;
+        if (file.peek() == EOF) {
+            break;
+        }
     }
+    N_MAX = n;
+    std::cout << "N: " << N << " N_MAX: " << N_MAX << std::endl;
 
 
     file.close();
@@ -912,9 +1090,12 @@ int Cool<N, D, S>::read_files(std::string cool_file, std::string tri_file, std::
     if (!file.is_open()) {
         std::cerr << "Error reading " << tri_file << std::endl;
         return 2;
+    } else {
+        std::cout << "Reading" << tri_file << std::endl;
     }
 
 
+    int s = 0;
     for (int i = 0; i < S; i++) {
         std::getline(file, line);
         std::stringstream linestream(line);
@@ -966,19 +1147,26 @@ int Cool<N, D, S>::read_files(std::string cool_file, std::string tri_file, std::
         simplices[i].calculate_centroid();
         simplices[i].calculate_midpoints();
 
+        s++;
+        if (file.peek() == EOF) {
+            break;
+        }
         if (skip == 1) {
             continue;
         }
         simplices[i].calculate_normals();
         simplices[i].validate_normals();
     }
+    S_MAX = s;
+    std::cout << "S: " << S << " S_MAX: " << S_MAX << std::endl;
+
 
 
     file.close();
 
     // Construct matrices for each simplex
     // https://en.wikipedia.org/wiki/Barycentric_coordinate_system#Barycentric_coordinates_on_tetrahedra
-    for (int s = 0; s < S; s++) {   // for each simplex
+    for (int s = 0; s < S_MAX; s++) {   // for each simplex
 
         for (int i = 0; i < D; i++) {   // for each point (except the last)
             for (int j = 0; j < D; j++) {   // for each coordinate
@@ -997,10 +1185,12 @@ int Cool<N, D, S>::read_files(std::string cool_file, std::string tri_file, std::
     if (!file.is_open()) {
         std::cerr << "Error reading " << neighbour_file << std::endl;
         return 2;
+    } else {
+        std::cout << "Reading" << neighbour_file << std::endl;
     }
 
 
-    for (int i = 0; i < S; i++) {
+    for (int i = 0; i < S_MAX; i++) {
         std::getline(file, line);
         std::stringstream linestream(line);
         for (int j = 0; j < D+1; j++) {     // D+1 points.csv per simplex
@@ -1243,3 +1433,6 @@ double MultilinearInterpolator<N>::interpolate(const double* point) {
     delete[] new_vals;
     return result;
 }
+
+
+#endif //MASTER_PROJECT_C_PART_COOL_H
