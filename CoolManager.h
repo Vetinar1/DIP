@@ -6,7 +6,6 @@
 #define MASTER_PROJECT_C_PART_COOLMANAGER_H
 
 #include "cool.h"
-#include "CoolManager.h"
 #include <map>
 #include <iostream>
 #include <assert.h>

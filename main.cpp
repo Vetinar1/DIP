@@ -14,11 +14,11 @@
 #include <iostream>
 
 int main() {
-    std::string mode = "slice3d";
+    std::string mode = "block2d";
 
     if (mode == "slice3d") {
         std::ifstream mapfile;
-        mapfile.open("../slice3d/map");
+        mapfile.open("../slice3d/mapfile");
 
         if (!mapfile.is_open()) {
             std::cerr << "Error reading mapfile" << std::endl;
@@ -36,44 +36,45 @@ int main() {
         CoolManager<1293, 3, 2561> CM(3.9, 4, filenames);
     }
 
-//    if (mode == "block2d") {
-//        std::cout << sizeof(Cool<221, 2, 436>) << std::endl;
-//        std::cout << "Initializing cool object... ";
-//        //    Cool<35731, 4, 1002570> cool;
+    if (mode == "block2d") {
+        std::cout << "Initializing cool object... ";
+        //    Cool<35731, 4, 1002570> cool;
 //        Cool<5994, 3, 38602> cool;
-//        //    Cool<1050, 2, 2082> cool;
-//
-//        std::cout << "Done" << std::endl << "Reading files... ";
+//        Cool<1050, 2, 2082> cool;
+        Cool<980, 2, 1939> cool;
+
+        std::cout << "Done" << std::endl << "Reading files... ";
 //        cool.read_files("../data3d/data.csv", "../data3d/dtri.csv", "../data3d/dneighbours.csv");
-//
-//        std::cout << "Done" << std::endl << "Constructing ball tree... " << std::flush;
-//        cool.construct_btree();
-//        std::cout << "Done" << std::endl << "Saving ball tree... ";
-//        cool.save_btree("tree");
-//        std::cout << "Done" << std::endl << "Beginning interpolation... " << std::endl;
-//
-//        std::ofstream outfile;
-//        outfile.open("interp");
-//
-//        double coord[2];
-//        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-//        for (int i = 0; i < 100; i++) {
-//            for (int j = 0; j < 100; j++) {
-//                std::cout << i << " " << j << std::endl;
-//                coord[0] = 2 + i * (8-2)/100.;
-//                coord[1] = -4 + j * 8 / 100.;
-//                double interp = cool.interpolate(coord);
-//
-//                outfile << coord[0] << " " << coord[1] << " " << interp << std::endl;
-//                std::cout << std::endl;
-//            }
-//        }
-//        std::cout << "Done" << std::endl;
-//        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-//        std::cout << "Time to complete = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
-//        std::cout << "Avg flips: " << cool.avg_flips << std::endl;
-//        return 0;
-//    }
+        cool.read_files("../slice3d/z3.9.points", "../slice3d/z3.9.tris", "../data3d/z3.9.neighbors");
+
+        std::cout << "Done" << std::endl << "Constructing ball tree... " << std::flush;
+        cool.construct_btree();
+        std::cout << "Done" << std::endl << "Saving ball tree... ";
+        cool.save_btree("tree");
+        std::cout << "Done" << std::endl << "Beginning interpolation... " << std::endl;
+
+        std::ofstream outfile;
+        outfile.open("interp");
+
+        double coord[2];
+        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+        for (int i = 0; i < 100; i++) {
+            for (int j = 0; j < 100; j++) {
+                std::cout << i << " " << j << std::endl;
+                coord[0] = 2 + i * (8-2)/100.;
+                coord[1] = -4 + j * 8 / 100.;
+                double interp = cool.interpolate(coord);
+
+                outfile << coord[0] << " " << coord[1] << " " << interp << std::endl;
+                std::cout << std::endl;
+            }
+        }
+        std::cout << "Done" << std::endl;
+        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+        std::cout << "Time to complete = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
+        std::cout << "Avg flips: " << cool.avg_flips << std::endl;
+        return 0;
+    }
 //
 //    if (mode == "multilinear") {
 //        const int X = 86;

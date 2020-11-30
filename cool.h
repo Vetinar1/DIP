@@ -1080,7 +1080,6 @@ int Cool<N, D, S>::read_files(std::string cool_file, std::string tri_file, std::
         }
     }
     N_MAX = n;
-    std::cout << "N: " << N << " N_MAX: " << N_MAX << std::endl;
 
 
     file.close();
