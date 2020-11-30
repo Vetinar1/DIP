@@ -14,7 +14,7 @@
 #include <iostream>
 
 int main() {
-    std::string mode = "slice3d";
+    std::string mode = "block2d";
 
     if (mode == "slice3d") {
         std::ifstream mapfile;
@@ -40,12 +40,12 @@ int main() {
         std::cout << "Initializing cool object... ";
         //    Cool<35731, 4, 1002570> cool;
 //        Cool<5994, 3, 38602> cool;
-//        Cool<1050, 2, 2082> cool;
-        Cool<980, 2, 1939> cool;
+        Cool<1050, 2, 2082> cool;
+//        Cool<980, 2, 1940> cool;
 
         std::cout << "Done" << std::endl << "Reading files... ";
-//        cool.read_files("../data3d/data.csv", "../data3d/dtri.csv", "../data3d/dneighbours.csv");
-        cool.read_files("../slice3d/z3.9.points", "../slice3d/z3.9.tris", "../data3d/z3.9.neighbors");
+        cool.read_files("../data2d/data.csv", "../data2d/dtri.csv", "../data2d/dneighbours.csv");
+//        cool.read_files("../slice3d/z3.9.points", "../slice3d/z3.9.tris", "../data3d/z3.9.neighbors");
 
         std::cout << "Done" << std::endl << "Constructing ball tree... " << std::flush;
         cool.construct_btree();
