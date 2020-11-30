@@ -14,7 +14,7 @@
 #include <iostream>
 
 int main() {
-    std::string mode = "block2d";
+    std::string mode = "slice3d";
 
     if (mode == "slice3d") {
         std::ifstream mapfile;
@@ -33,7 +33,7 @@ int main() {
             std::cout << key << " " << value << " " << filenames[key] << std::endl;
         }
         mapfile.close();
-        CoolManager<1293, 3, 2561> CM(3.9, 4, filenames);
+        CoolManager<1293, 3, 2562> CM(3.9, 4, filenames);
     }
 
     if (mode == "block2d") {
