@@ -14,7 +14,7 @@
 #include <iostream>
 
 int main() {
-    std::string mode = "slice2d";
+    std::string mode = "block2d";
 
     if (mode == "slice3d") {
         std::ifstream mapfile;
@@ -34,17 +34,41 @@ int main() {
         }
         mapfile.close();
         CoolManager<1293, 3, 2562> CM(3.9, 4, filenames);
+
+        std::ofstream outfile;
+        outfile.open("interp");
+        double coord[2]; // T, nH
+        double z = 3.9;
+        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+        for (int i = 0; i < 100; i++) {
+            for (int j = 0; j < 100; j++) {
+                std::cout << i << " " << j << std::endl;
+                coord[0] = 2 + i * (8-2)/100.;
+                coord[1] = -4 + j * 8 / 100.;
+                double interp = CM.interpolate(coord, z);
+
+                outfile << coord[0] << " " << coord[1] << " " << interp << std::endl;
+                std::cout << std::endl;
+            }
+        }
+        std::cout << "Done" << std::endl;
+        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+        std::cout << "Time to complete = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
+        outfile.close();
+        return 0;
     }
 
     if (mode == "block2d") {
         std::cout << "Initializing cool object... ";
         //    Cool<35731, 4, 1002570> cool;
 //        Cool<5994, 3, 38602> cool;
-        Cool<1050, 2, 2082> cool;
+//        Cool<1050, 2, 2082> cool;
+        Cool<10000, 2, 10000> cool;
 //        Cool<980, 2, 1940> cool;
 
         std::cout << "Done" << std::endl << "Reading files... ";
-        cool.read_files("../data2d/data.csv", "../data2d/dtri.csv", "../data2d/dneighbours.csv");
+//        cool.read_files("../data2d/data.csv", "../data2d/dtri.csv", "../data2d/dneighbours.csv");
+        cool.read_files("../slice3d/z3.9.points", "../slice3d/z3.9.tris", "../slice3d/z3.9.neighbors");
 //        cool.read_files("../slice3d/z3.9.points", "../slice3d/z3.9.tris", "../data3d/z3.9.neighbors");
 
         std::cout << "Done" << std::endl << "Constructing ball tree... " << std::flush;

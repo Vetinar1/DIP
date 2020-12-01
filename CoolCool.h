@@ -29,10 +29,14 @@ class Cool {
      * int N        Number of points.csv
      * int D        Dimensionality of points.csv
      * int S        Number of Simplices
+     *
+     * Make sure to allocate Cool objets on the heap, otherwise the size of the points and simplices attributes will
+     * lead to a stack overflow
      */
 private:
-    inline static Point<D> points[N];
-    inline static Simplex<D> simplices[S];
+
+    Point<D> points[N];
+    Simplex<D> simplices[S];
     Simplex<D> * btree;         // Points to the root of the simplex ball tree
 
     Simplex<D> * construct_simplex_btree_recursive(Simplex<D> **, int);
@@ -70,15 +74,29 @@ public:
 
 template<int N, int D, int S>
 void Cool<N, D, S>::reset() {
+    /**
+     * Resets all properties of the cool object (and associates simplex objects) so it can be reused. Intended
+     * to be a preparation for read_files()
+     */
     flips = 0;
     interpolate_calls = 0;
     avg_flips = 0;
-    S_MAX = S;
-    N_MAX = N;
     for (int i = 0; i < D; i++) {
         mins[i] = DBL_MAX;
         maxs[i] = -1 * DBL_MAX;
     }
+
+    // Delete ball tree
+    // Note: All other simplex properties will be overwritten on next call to read_files()
+    for (int s = 0; s < S; s++) {
+        simplices[s].sbtree_radius_sq = 0;
+        simplices[s].lchild = nullptr;
+        simplices[s].rchild = nullptr;
+    }
+    btree = nullptr;
+
+    S_MAX = S;
+    N_MAX = N;
 
     // Points[N] will be overwritten on next call to read_files()
 }
@@ -400,6 +418,7 @@ double Cool<N, D, S>::interpolate(double * coords) {
         bary = nn->convert_to_bary(coords);
         inside = nn->check_bary(bary);
 
+
         flips++;
         if (flips > 100) {
             std::cerr << "Error: More than 100 flips." << std::endl;
@@ -541,14 +560,15 @@ int Cool<N, D, S>::read_files(std::string cool_file, std::string tri_file, std::
         simplices[i].calculate_midpoints();
 
         s++;
+        if (skip != 1) {
+//            std::cout << "Skip: " << s << std::endl;
+            simplices[i].calculate_normals();
+            simplices[i].validate_normals();
+        }
         if (file.peek() == EOF) {
             break;
         }
-        if (skip == 1) {
-            continue;
-        }
-        simplices[i].calculate_normals();
-        simplices[i].validate_normals();
+//        std::cout << "Validating: " << s << std::endl;
     }
     S_MAX = s;
     std::cout << "S: " << S << " S_MAX: " << S_MAX << std::endl;
@@ -559,6 +579,7 @@ int Cool<N, D, S>::read_files(std::string cool_file, std::string tri_file, std::
 
     // Construct matrices for each simplex
     // https://en.wikipedia.org/wiki/Barycentric_coordinate_system#Barycentric_coordinates_on_tetrahedra
+    // TODO Integrate into simplex class?
     for (int s = 0; s < S_MAX; s++) {   // for each simplex
 
         for (int i = 0; i < D; i++) {   // for each point (except the last)

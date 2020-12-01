@@ -37,6 +37,7 @@ public:
         filenames = fnames;
         low  = new Cool<N_MAX, D-1, S_MAX>;
         high = new Cool<N_MAX, D-1, S_MAX>;
+
         low->read_files(
                 filenames[z_low] + ".points",
                 filenames[z_low] + ".tris",
@@ -47,6 +48,9 @@ public:
                 filenames[z_high] + ".tris",
                 filenames[z_high] + ".neighbors"
         );
+
+        low->construct_btree();
+        high->construct_btree();
     }
     ~CoolManager() {
         delete low;
@@ -65,7 +69,9 @@ double CoolManager<N_MAX, D, S_MAX>::interpolate(double * args, double z) {
 #endif
     // Interpolate inside slices
     double lambda_low = low->interpolate(args);
+//    std::cout << "Low: " << lambda_low << std::endl;
     double lambda_high = high->interpolate(args);
+//    std::cout << "High: " << lambda_high << std::endl;
     // Simple linear interpolation in between slices
     return (lambda_low * (z_high - z) + lambda_high * (z - z_low)) / z_diff;
 }
@@ -73,6 +79,11 @@ double CoolManager<N_MAX, D, S_MAX>::interpolate(double * args, double z) {
 
 template<int N_MAX, int D, int S_MAX>
 void CoolManager<N_MAX, D, S_MAX>::autoload(double z) {
+    /**
+     * If the current z is outside of the bounds of the current two slices, load another slice so that z is covered.
+     * Note: Only updates one slice. This means it implicitly assumes we only ever move to adjacent slices, forwards
+     * in time! This should be a reasonable assumption for a cosmological simulation.
+     */
     if (z <= z_high && z >= z_low) {
         return;
     }
@@ -100,7 +111,7 @@ void CoolManager<N_MAX, D, S_MAX>::autoload(double z) {
 
 template<int N_MAX, int D, int S_MAX>
 void CoolManager<N_MAX, D, S_MAX>::push_slice(std::string filename) {
-    Cool<N_MAX, D, S_MAX> * temp = high;
+    Cool<N_MAX, D-1, S_MAX> * temp = high;
     high = low;
     low = temp;
     low->reset();

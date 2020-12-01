@@ -17,15 +17,14 @@ class Simplex {
      */
     template<int, int, int> friend class Cool;
 private:
-    // TODO I would like to make these const, but I don't think I can, since the value is determined at runtime
     Point<D> * points[D+1];             // D+1 points; Array of pointers to Point<D>
+    double centroid[D];
+    double midpoints[D+1][D];           // Midpoints of the faces; D+1 faces, D coordinates
+    double normals[D+1][D];             // Outward pointing normals of the faces; D+1 faces, D coordinates
     double T_inv[D][D];                 // T: https://en.wikipedia.org/wiki/Barycentric_coordinate_system#Barycentric_coordinates_on_tetrahedra
     int neighbour_indices[D+1];         // One neighbour opposite every point
     Simplex * neighbour_pointers[D+1];
-    double centroid[D];
     double sbtree_radius_sq;
-    double midpoints[D+1][D];           // Midpoints of the faces; D+1 faces, D coordinates
-    double normals[D+1][D];             // Outward pointing normals of the faces; D+1 faces, D coordinates
 
     void invert_T();
     double * convert_to_bary(const double *);
@@ -58,6 +57,39 @@ public:
         }
     }
 };
+
+
+template<int D>
+void Simplex<D>::calculate_midpoints() {
+    /**
+     * Calculates the coordinates of the midpoints of each face. The ith midpoint belongs to the ith face, opposite
+     * of the ith vertex. It is the average of the set of vertices excluding the ith.
+     */
+
+    for (int i = 0; i < D+1; i++) { // D+1 midpoints/faces/vertices
+        // Initialize current midpoint to 0
+        for (int j = 0; j < D; j++) {
+            midpoints[i][j] = 0;
+        }
+
+        for (int j = 0; j < D; j++) { // D *other* midpoints/faces/vertices
+            int k;
+            if (j < i) {
+                k = j;
+            } else {
+                k = j+1;
+            }
+
+            for (int l = 0; l < D; l++) {   // D coordinates
+                midpoints[i][l] += points[k]->coords[l];
+            }
+        }
+
+        for (int j = 0; j < D; j++) {
+            midpoints[i][j] /= D;
+        }
+    }
+}
 
 
 template<int D>
@@ -223,6 +255,47 @@ double * Simplex<D>::find_normal(Point<D> ** vertices) {
     }
 
     return norm;
+}
+
+
+template<int n>
+double laplace_expansion(double (&matrix)[n][n]) {
+    /**
+     * Recursive function implementing Laplace expansion to calculate determinant of a matrix.
+     * Slow, inefficient, simple.
+     *
+     * https://en.wikipedia.org/wiki/Laplace_expansion
+     *
+     * double * matrix      Pointer to matrix[i][j], n x n
+     * int n                size of matrix
+     * returns              Determinant
+     */
+
+    double det = 0;
+    for (int i = 0; i < n; i++) {   // All elements of first row
+        // Build submatrix without first row and ith column
+        double submatrix[n-1][n-1];
+        for (int j = 1; j < n; j++) {   // All rows except first
+            for (int k = 0; k < n-1; k++) { // All columns except ith
+                int l;
+                if (k < i) {
+                    l = k;
+                } else {
+                    l = k+1;
+                }
+                submatrix[j-1][k] = matrix[j][l];
+            }
+        }
+        // The exponent is i+j. But in math indices start at one, so i becomes i+1. and j is the first row - becomes 1.
+        det += pow(-1, i+1 + 1) * matrix[0][i] * laplace_expansion<n-1>(submatrix);
+    }
+    return det;
+}
+
+
+template<>
+double laplace_expansion<1>(double (&matrix)[1][1]) {
+    return matrix[0][0];
 }
 
 
@@ -489,39 +562,6 @@ void Simplex<D>::validate_normals() {
 
 
 template<int D>
-void Simplex<D>::calculate_midpoints() {
-    /**
-     * Calculates the coordinates of the midpoints of each face. The ith midpoint belongs to the ith face, opposite
-     * of the ith vertex. It is the average of the set of vertices excluding the ith.
-     */
-
-    for (int i = 0; i < D+1; i++) { // D+1 midpoints/faces/vertices
-        // Initialize current midpoint to 0
-        for (int j = 0; j < D; j++) {
-            midpoints[i][j] = 0;
-        }
-
-        for (int j = 0; j < D; j++) { // D *other* midpoints/faces/vertices
-            int k;
-            if (j < i) {
-                k = j;
-            } else {
-                k = j+1;
-            }
-
-            for (int l = 0; l < D; l++) {   // D coordinates
-                midpoints[i][l] += points[k]->coords[l];
-            }
-        }
-
-        for (int j = 0; j < D; j++) {
-            midpoints[i][j] /= D;
-        }
-    }
-}
-
-
-template<int D>
 void Simplex<D>::invert_T() {
     double unit[D][D];  // unit matrix
     for (int i = 0; i < D; i++) {
@@ -687,47 +727,6 @@ inline int Simplex<D>::check_bary(const double* bary) {
     }
 
     return 1;
-}
-
-
-template<int n>
-double laplace_expansion(double (&matrix)[n][n]) {
-    /**
-     * Recursive function implementing Laplace expansion to calculate determinant of a matrix.
-     * Slow, inefficient, simple.
-     *
-     * https://en.wikipedia.org/wiki/Laplace_expansion
-     *
-     * double * matrix      Pointer to matrix[i][j], n x n
-     * int n                size of matrix
-     * returns              Determinant
-     */
-
-    double det = 0;
-    for (int i = 0; i < n; i++) {   // All elements of first row
-        // Build submatrix without first row and ith column
-        double submatrix[n-1][n-1];
-        for (int j = 1; j < n; j++) {   // All rows except first
-            for (int k = 0; k < n-1; k++) { // All columns except ith
-                int l;
-                if (k < i) {
-                    l = k;
-                } else {
-                    l = k+1;
-                }
-                submatrix[j-1][k] = matrix[j][l];
-            }
-        }
-        // The exponent is i+j. But in math indices start at one, so i becomes i+1. and j is the first row - becomes 1.
-        det += pow(-1, i+1 + 1) * matrix[0][i] * laplace_expansion<n-1>(submatrix);
-    }
-    return det;
-}
-
-
-template<>
-double laplace_expansion<1>(double (&matrix)[1][1]) {
-    return matrix[0][0];
 }
 
 #endif //MASTER_PROJECT_C_PART_COOLSIMPLEX_H
