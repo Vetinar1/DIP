@@ -5,12 +5,11 @@
 #ifndef MASTER_PROJECT_C_PART_COOLMANAGER_H
 #define MASTER_PROJECT_C_PART_COOLMANAGER_H
 
-#include "cool.h"
+#include "CoolCool.h"
 #include <map>
 #include <iostream>
 #include <assert.h>
-
-#define AUTOMATIC_LOADING 1
+#include "CoolConst.h"
 
 // TODO D = D-1
 template<int N_MAX, int D, int S_MAX>
@@ -53,7 +52,6 @@ public:
         delete low;
         delete high;
     }
-    void test();
     double interpolate(double*, double);
     void save_trees(std::string fname_low, std::string fname_high);
     void push_slice(std::string);
@@ -65,21 +63,20 @@ double CoolManager<N_MAX, D, S_MAX>::interpolate(double * args, double z) {
 #if AUTOMATIC_LOADING==1
     autoload(z);
 #endif
+    // Interpolate inside slices
     double lambda_low = low->interpolate(args);
     double lambda_high = high->interpolate(args);
+    // Simple linear interpolation in between slices
     return (lambda_low * (z_high - z) + lambda_high * (z - z_low)) / z_diff;
 }
 
 
 template<int N_MAX, int D, int S_MAX>
-void CoolManager<N_MAX, D, S_MAX>::save_trees(std::string fname_low, std::string fname_high) {
-    low->save_btree(fname_low);
-    high->save_btree(fname_high);
-}
-
-
-template<int N_MAX, int D, int S_MAX>
 void CoolManager<N_MAX, D, S_MAX>::autoload(double z) {
+    if (z <= z_high && z >= z_low) {
+        return;
+    }
+
     if (z > z_high) {
         std::cerr << "Moving backwards in time?" << std::endl;
         std::cerr << "Current z interval: [" << z_low << ", " << z_high << "]" << std::endl;
@@ -87,12 +84,8 @@ void CoolManager<N_MAX, D, S_MAX>::autoload(double z) {
         assert(0);
     }
 
-    if (z <= z_high && z >= z_low) {
-        return;
-    }
-
-//    for (std::map<double, std::string>::iterator it=filenames.begin(); it!=filenames.end(); ++it) {
     std::string fname;
+    // std::map is sorted by keys
     for (auto it=filenames.begin(); it!=filenames.end(); ++it) {
         if (it->first > z_low) {
             it--;
@@ -110,6 +103,7 @@ void CoolManager<N_MAX, D, S_MAX>::push_slice(std::string filename) {
     Cool<N_MAX, D, S_MAX> * temp = high;
     high = low;
     low = temp;
+    low->reset();
     low->read_files(
             filename + ".points",
             filename + ".tris",
@@ -119,9 +113,11 @@ void CoolManager<N_MAX, D, S_MAX>::push_slice(std::string filename) {
 
 }
 
-template<int N_MAX, int D, int S_MAX>
-void CoolManager<N_MAX, D, S_MAX>::test() {
 
+template<int N_MAX, int D, int S_MAX>
+void CoolManager<N_MAX, D, S_MAX>::save_trees(std::string fname_low, std::string fname_high) {
+    low->save_btree(fname_low);
+    high->save_btree(fname_high);
 }
 
 #endif // MASTER_PROJECT_C_PART_COOLMANAGER_H

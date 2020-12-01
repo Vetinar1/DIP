@@ -6,6 +6,6 @@ set(CMAKE_CXX_STANDARD 14)
 include_directories(.)
 
 add_executable(Master_Project_C_Part
-        cool.h
+        CoolCool.h
         CoolManager.h
-        main.cpp)
+        main.cpp CoolPoint.h CoolSimplex.h CoolConst.h CoolMLI.h)

@@ -4,7 +4,7 @@
 
 #include <iostream>
 #include <chrono>
-#include "cool.h"
+#include "CoolCool.h"
 #include "CoolManager.h"
 #include <climits>
 #include <bitset>
@@ -14,7 +14,7 @@
 #include <iostream>
 
 int main() {
-    std::string mode = "block2d";
+    std::string mode = "slice2d";
 
     if (mode == "slice3d") {
         std::ifstream mapfile;

@@ -1,0 +1,11 @@
+//
+// Created by vetinari on 01.12.20.
+//
+
+#ifndef MASTER_PROJECT_C_PART_COOLCONST_H
+#define MASTER_PROJECT_C_PART_COOLCONST_H
+
+#define EPSILON 0.001
+#define AUTOMATIC_LOADING 1
+
+#endif //MASTER_PROJECT_C_PART_COOLCONST_H
