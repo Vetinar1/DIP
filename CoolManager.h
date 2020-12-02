@@ -98,9 +98,13 @@ void CoolManager<N_MAX, D, S_MAX>::autoload(double z) {
     std::string fname;
     // std::map is sorted by keys
     for (auto it=filenames.begin(); it!=filenames.end(); ++it) {
-        if (it->first > z_low) {
+        if (it->first >= z_low) {
             it--;
             fname = it->second;
+
+            z_high = z_low;
+            z_low = it->first;
+            z_diff = z_high - z_low;
             break;
         }
     }
@@ -111,6 +115,7 @@ void CoolManager<N_MAX, D, S_MAX>::autoload(double z) {
 
 template<int N_MAX, int D, int S_MAX>
 void CoolManager<N_MAX, D, S_MAX>::push_slice(std::string filename) {
+    // TODO Manual usage of this function needs to update z_low, z_high and z_diff
     Cool<N_MAX, D-1, S_MAX> * temp = high;
     high = low;
     low = temp;
@@ -121,7 +126,6 @@ void CoolManager<N_MAX, D, S_MAX>::push_slice(std::string filename) {
             filename + ".neighbors"
     );
     low->construct_btree();
-
 }
 
 

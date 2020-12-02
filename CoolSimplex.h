@@ -185,7 +185,6 @@ double * Simplex<D>::find_normal(Point<D> ** vertices) {
 
     gauss_elimination<D, D-1, D>(matrix, unit, 0);
 
-
     int found;
     for (int i = 0; i < D; i++) {
         // If current row is full of zeros -> found norm
@@ -604,7 +603,7 @@ void Simplex<D>::gauss_elimination(double (&A)[M][N1], double (&B)[M][N2], int a
      *                          0 for now, 1 for yes
      */
 
-    // Permutation of ROW InDiXes
+    // Permutation of ROW InDeXes
     int row_idx[D];
     for (int i = 0; i < M; i++) {
         row_idx[i] = i;
@@ -620,7 +619,7 @@ void Simplex<D>::gauss_elimination(double (&A)[M][N1], double (&B)[M][N2], int a
                 pivot_row_idx = j;
             }
         }
-        if (pivot == 0) {
+        if (fabs(pivot) < EPSILON) {
             continue;
         }
 

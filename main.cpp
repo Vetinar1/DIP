@@ -14,7 +14,7 @@
 #include <iostream>
 
 int main() {
-    std::string mode = "block2d";
+    std::string mode = "slice3d";
 
     if (mode == "slice3d") {
         std::ifstream mapfile;
@@ -33,21 +33,36 @@ int main() {
             std::cout << key << " " << value << " " << filenames[key] << std::endl;
         }
         mapfile.close();
-        CoolManager<1293, 3, 2562> CM(3.9, 4, filenames);
+        CoolManager<1232, 3, 2444> CM(3.9, 4, filenames);
 
         std::ofstream outfile;
         outfile.open("interp");
         double coord[2]; // T, nH
-        double z = 3.9;
+        double z = 3.95;
         std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+        // Parallel slice
+//        for (int i = 0; i < 100; i++) {
+//            for (int j = 0; j < 100; j++) {
+//                std::cout << i << " " << j << std::endl;
+//                coord[0] = 2 + i * (8-2)/100.;
+//                coord[1] = -4 + j * 8 / 100.;
+//                double interp = CM.interpolate(coord, z);
+//
+//                outfile << coord[0] << " " << coord[1] << " " << interp << std::endl;
+//                std::cout << std::endl;
+//            }
+//        }
+        // Orthogonal slice
+        coord[1] = 3;
+        z = 4;
         for (int i = 0; i < 100; i++) {
             for (int j = 0; j < 100; j++) {
-                std::cout << i << " " << j << std::endl;
-                coord[0] = 2 + i * (8-2)/100.;
-                coord[1] = -4 + j * 8 / 100.;
+                coord[0] = 2 + j * (8-2)/100.;
+                z = 4 - i * 4 / 100.;
+                std::cout << coord[0] << " " << z << std::endl;
                 double interp = CM.interpolate(coord, z);
 
-                outfile << coord[0] << " " << coord[1] << " " << interp << std::endl;
+                outfile << coord[0] << " " << z << " " << interp << std::endl;
                 std::cout << std::endl;
             }
         }
@@ -67,8 +82,8 @@ int main() {
 //        Cool<980, 2, 1940> cool;
 
         std::cout << "Done" << std::endl << "Reading files... ";
-//        cool.read_files("../data2d/data.csv", "../data2d/dtri.csv", "../data2d/dneighbours.csv");
-        cool.read_files("../slice3d/z3.9.points", "../slice3d/z3.9.tris", "../slice3d/z3.9.neighbors");
+        cool.read_files("../data2d/data.csv", "../data2d/dtri.csv", "../data2d/dneighbours.csv");
+//        cool.read_files("../slice3d/z3.9.points", "../slice3d/z3.9.tris", "../slice3d/z3.9.neighbors");
 //        cool.read_files("../slice3d/z3.9.points", "../slice3d/z3.9.tris", "../data3d/z3.9.neighbors");
 
         std::cout << "Done" << std::endl << "Constructing ball tree... " << std::flush;

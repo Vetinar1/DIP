@@ -571,7 +571,6 @@ int Cool<N, D, S>::read_files(std::string cool_file, std::string tri_file, std::
 //        std::cout << "Validating: " << s << std::endl;
     }
     S_MAX = s;
-    std::cout << "S: " << S << " S_MAX: " << S_MAX << std::endl;
 
 
 
