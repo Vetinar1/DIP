@@ -399,6 +399,17 @@ double Cool<N, D, S>::interpolate(double * coords) {
      *                      of sampled area of parameter space.
      */
 
+#if COOL_CLAMP_COORDS==1
+    // Warning! Input coordinates are modified
+    for (int i = 0; i < D; i++) {
+        if (coords[i] > maxs[i]) {
+            coords[i] = maxs[i];
+        } else if (coords[i] < mins[i]) {
+            coords[i] = mins[i];
+        }
+    }
+#endif
+
     // 1. Find closest simplex (by centroid) using the ball tree
     Simplex<D> * best = NULL;
     Simplex<D> * nn = find_nearest_neighbour_sbtree(btree, coords, best, DBL_MAX);
