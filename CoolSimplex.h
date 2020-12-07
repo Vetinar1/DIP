@@ -11,7 +11,7 @@
 template<int D>
 class Simplex {
     /**
-     * Class representing an D-d simplex in the triangulation. Has M+1 vertices.
+     * Class representing an D-dimensional simplex in the triangulation. Has D+1 vertices.
      *
      * int D        Number of dimensions
      */
@@ -20,11 +20,11 @@ private:
     Point<D> * points[D+1];             // D+1 points; Array of pointers to Point<D>
     double centroid[D];
     double midpoints[D+1][D];           // Midpoints of the faces; D+1 faces, D coordinates
-    double normals[D+1][D];             // Outward pointing normals of the faces; D+1 faces, D coordinates
+    double normals[D+1][D];             // Outward pointing normals of the faces; D+1 faces, D vector components
     double T_inv[D][D];                 // T: https://en.wikipedia.org/wiki/Barycentric_coordinate_system#Barycentric_coordinates_on_tetrahedra
     int neighbour_indices[D+1];         // One neighbour opposite every point
     Simplex * neighbour_pointers[D+1];
-    double sbtree_radius_sq;
+    double sbtree_radius_sq;            // Squared radius of ball in ball tree
 
     void invert_T();
     double * convert_to_bary(const double *);
@@ -34,9 +34,12 @@ private:
 
     template<int M, int N1, int N2> void gauss_elimination(double (&)[M][N1], double (&)[M][N2], int);
 public:
+    // TODO does this need to be public?
     double * find_normal(Point<D> ** );
     void validate_simplex();
     void validate_normals();
+
+    // Pointers to left and right children in ball tree
     Simplex * lchild;
     Simplex * rchild;
 
@@ -50,7 +53,7 @@ public:
          */
         for (int i = 0; i < D; i++) {   // coordinates
             centroid[i] = 0;
-            for (int j = 0; j < D+1; j++) {     // points.csv
+            for (int j = 0; j < D+1; j++) {     // points
                 centroid[i] += points[j]->coords[i];
             }
             centroid[i] /= (D+1);
@@ -100,9 +103,8 @@ void Simplex<D>::calculate_normals() {
      */
 
     for (int i = 0; i < D+1; i++) { // Each face/point opposite
+        // Build face out of all points except the one opposite
         Point<D> * face[D];
-
-        // All points except the one opposite
         for (int j = 0; j < D; j++) {
             if (j < i) {
                 face[j] = points[j];
@@ -111,6 +113,7 @@ void Simplex<D>::calculate_normals() {
             }
         }
 
+        // Find normal on that face
         double * norm = find_normal(&face[0]);
 
         // Make sure norm points away from centroid
@@ -169,7 +172,6 @@ double * Simplex<D>::find_normal(Point<D> ** vertices) {
             matrix[j][i] = vertices[i]->coords[j] - vertices[D-1]->coords[j];
         }
     }
-
 
     // unit matrix
     double unit[D][D];  // unit matrix

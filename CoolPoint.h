@@ -8,7 +8,7 @@
 template<int D>
 class Point {
     /**
-     * Class representing a single data point. Mostly used to find simplices it is part of.
+     * Class representing a single data point.
      */
     template<int, int, int> friend class Cool;
     template<int> friend class Simplex;
