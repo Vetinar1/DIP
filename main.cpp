@@ -14,7 +14,7 @@
 #include <iostream>
 
 int main() {
-    std::string mode = "slice3d";
+    std::string mode = "block2d";
 
     if (mode == "slice3d") {
         std::ifstream mapfile;
@@ -82,7 +82,8 @@ int main() {
 //        Cool<980, 2, 1940> cool;
 
         std::cout << "Done" << std::endl << "Reading files... ";
-        cool.read_files("../data2d/data.csv", "../data2d/dtri.csv", "../data2d/dneighbours.csv");
+//        cool.read_files("../data2d/data.csv", "../data2d/dtri.csv", "../data2d/dneighbours.csv");
+        cool.read_files("data2d/data.csv", "data2d/dtri.csv", "data2d/dneighbours.csv");
 //        cool.read_files("../slice3d/z3.9.points", "../slice3d/z3.9.tris", "../slice3d/z3.9.neighbors");
 //        cool.read_files("../slice3d/z3.9.points", "../slice3d/z3.9.tris", "../data3d/z3.9.neighbors");
 

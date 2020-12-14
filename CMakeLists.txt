@@ -8,4 +8,4 @@ include_directories(.)
 add_executable(Master_Project_C_Part
         CoolCool.h
         CoolManager.h
-        main.cpp CoolPoint.h CoolSimplex.h CoolConst.h CoolMLI.h)
+        main.cpp CoolPoint.h CoolSimplex.h CoolConst.h CoolMLI.h CoolCInterface.cpp CoolCInterface.h CoolCool.cpp CoolManager.cpp CoolPoint.cpp CoolSimplex.cpp)
