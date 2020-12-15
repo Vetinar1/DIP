@@ -8,16 +8,15 @@
 #include "CoolPoint.h"
 #include "CoolConst.h"
 
-template<int D>
 class Simplex {
     /**
      * Class representing an D-dimensional simplex in the triangulation. Has D+1 vertices.
      *
      * int D        Number of dimensions
      */
-    template<int, int, int> friend class Cool;
+    friend class Cool;
 private:
-    Point<D> * points[D+1];             // D+1 points; Array of pointers to Point<D>
+    Point * points[D+1];             // D+1 points; Array of pointers to Point<D>
     double centroid[D];
     double midpoints[D+1][D];           // Midpoints of the faces; D+1 faces, D coordinates
     double normals[D+1][D];             // Outward pointing normals of the faces; D+1 faces, D vector components
@@ -35,7 +34,7 @@ private:
     template<int M, int N1, int N2> void gauss_elimination(double (&)[M][N1], double (&)[M][N2], int);
 public:
     // TODO does this need to be public?
-    double * find_normal(Point<D> ** );
+    double * find_normal(Point ** );
     void validate_simplex();
     void validate_normals();
 

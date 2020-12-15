@@ -21,9 +21,7 @@
 #include "CoolConst.h"
 #include "CoolCool.h"
 
-
-template<int N, int D, int S>
-void Cool<N, D, S>::reset() {
+void Cool::reset() {
     /**
      * Resets all properties of the cool object (and associates simplex objects) so it can be reused. Intended
      * to be a preparation for read_files()
@@ -45,15 +43,14 @@ void Cool<N, D, S>::reset() {
     }
     btree = nullptr;
 
-    S_MAX = S;
-    N_MAX = N;
+    S_LIM = S;
+    N_LIM = N;
 
     // Points[N] will be overwritten on next call to read_files()
 }
 
 
-template<int N, int D, int S>
-int Cool<N, D, S>::construct_btree() {
+int Cool::construct_btree() {
     /**
      * This function serves as a public "adapter" to the actual ball tree construction function,
      * construct_point_btree_recursive().
@@ -61,26 +58,25 @@ int Cool<N, D, S>::construct_btree() {
      * Returns 0 on success.
      */
     // Construct array of pointers
-    Simplex<D> * simps[S];
-    for (int i = 0; i < S_MAX; i++) {
+    Simplex * simps[S];
+    for (int i = 0; i < S_LIM; i++) {
         simps[i] = &(simplices[i]);
     }
 
-    btree = construct_simplex_btree_recursive(simps, S_MAX);
+    btree = construct_simplex_btree_recursive(simps, S_LIM);
 
     return 0;
 }
 
 
-template< int N, int D, int S>
-Simplex<D> * Cool<N, D, S>::construct_simplex_btree_recursive(Simplex<D> ** simps, int n) {
+Simplex * Cool::construct_simplex_btree_recursive(Simplex ** simps, int n) {
     /**
      * Implements ball tree construction algorithm. For a given array of simplices, determine the "middle" one (pivot).
      * Split the array in half at this simplex, and call function recursively on each half. Determine ball tree radius
      * of current pivot, and hook it up to the returns of the left/right half function calls. Return pointer to current
      * pivot.
      *
-     * Simplex<D> simps     Pointer to array of pointers to simplices to organize in tree
+     * Simplex simps     Pointer to array of pointers to simplices to organize in tree
      * int n                Number of elements in array
      */
 
@@ -130,16 +126,16 @@ Simplex<D> * Cool<N, D, S>::construct_simplex_btree_recursive(Simplex<D> ** simp
     // 2. Find pivot - simplex with centroid closest to avg          and
     // 3. Group points into sets to the left and right of average (L, R)
     double min_dist = DBL_MAX;
-    Simplex<D> * pivot_addr = NULL;
+    Simplex * pivot_addr = NULL;
 
-    Simplex<D> ** L = new Simplex<D> * [n];
-    Simplex<D> ** R = new Simplex<D> * [n];
+    Simplex ** L = new Simplex * [n];
+    Simplex ** R = new Simplex * [n];
     int lcount = 0;
     int rcount = 0;
 
     for (int i = 0; i < n; i++) {
         double val = simps[i]->centroid[lspread_dim];
-        Simplex<D> * addr = simps[i];
+        Simplex * addr = simps[i];
         double dist = fabs(avg - val);
 
         if (dist < min_dist) {
@@ -216,8 +212,7 @@ Simplex<D> * Cool<N, D, S>::construct_simplex_btree_recursive(Simplex<D> ** simp
 }
 
 
-template<int N, int D, int S>
-void Cool<N, D, S>::save_btree(std::string filename) {
+void Cool::save_btree(std::string filename) {
     /**
      * Saves the Ball tree. Format: [Index of simplex] [Index of left child] [Index of right child] [pbtree_radius_sq]
      *
@@ -226,13 +221,13 @@ void Cool<N, D, S>::save_btree(std::string filename) {
      * std::string filename     Filename.
      */
     // Map simplex pointer -> index
-    std::unordered_map<Simplex<D> *, int> s_indices;
-    for (int i = 0; i < S_MAX; i++) {
+    std::unordered_map<Simplex *, int> s_indices;
+    for (int i = 0; i < S_LIM; i++) {
         s_indices[&(simplices[i])] = i;
     }
     std::ofstream file;
     file.open(filename);
-    for (int i = 0; i < S_MAX; i++) {
+    for (int i = 0; i < S_LIM; i++) {
         file << i << s_indices[simplices[i].lchild] << " "
              << s_indices[simplices[i].rchild] << " " << simplices[i].sbtree_radius_sq << std::endl;
     }
@@ -240,8 +235,7 @@ void Cool<N, D, S>::save_btree(std::string filename) {
 }
 
 
-template<int N, int D, int S>
-Simplex<D> * Cool<N, D, S>::find_nearest_neighbour_sbtree(Simplex<D> * root, const double * target, Simplex<D> * best, double min_dist2) {
+Simplex * Cool::find_nearest_neighbour_sbtree(Simplex * root, const double * target, Simplex * best, double min_dist2) {
     /**
      * Recursive function to find the nearest neighbor of point target in tree root.
      * Adapted from https://en.wikipedia.org/wiki/Ball_tree#Pseudocode_2
@@ -291,7 +285,7 @@ Simplex<D> * Cool<N, D, S>::find_nearest_neighbour_sbtree(Simplex<D> * root, con
 
     // Recurse into closest child first
     // I wonder if this would be prettier with gotos...
-    Simplex<D> * old_best = best;
+    Simplex * old_best = best;
     if (ldist2 <= rdist2) {
         if (root->lchild != NULL) {
             best = find_nearest_neighbour_sbtree(root->lchild, target, best, min_dist2);
@@ -328,8 +322,7 @@ Simplex<D> * Cool<N, D, S>::find_nearest_neighbour_sbtree(Simplex<D> * root, con
 }
 
 
-template<int N, int D, int S>
-double Cool<N, D, S>::interpolate(double * coords) {
+double Cool::interpolate(double * coords) {
     /**
      * Interpolate the given point.
      * First, find the closest simplex using the ball tree. Then, find the simplex containing the given point using
@@ -352,8 +345,8 @@ double Cool<N, D, S>::interpolate(double * coords) {
 #endif
 
     // 1. Find closest simplex (by centroid) using the ball tree
-    Simplex<D> * best = NULL;
-    Simplex<D> * nn = find_nearest_neighbour_sbtree(btree, coords, best, DBL_MAX);
+    Simplex * best = NULL;
+    Simplex * nn = find_nearest_neighbour_sbtree(btree, coords, best, DBL_MAX);
 
     // 2. Find simplex actually containing the target point using simplex flipping algorithm
     // Check if current nearest neighbor contains point
@@ -420,8 +413,7 @@ double Cool<N, D, S>::interpolate(double * coords) {
 }
 
 
-template<int N, int D, int S>
-int Cool<N, D, S>::read_files(std::string cool_file, std::string tri_file, std::string neighbour_file) {
+int Cool::read_files(std::string cool_file, std::string tri_file, std::string neighbour_file) {
     /**
      * Reads files generated by CHIPS.
      *
@@ -471,7 +463,7 @@ int Cool<N, D, S>::read_files(std::string cool_file, std::string tri_file, std::
             break;
         }
     }
-    N_MAX = n;
+    N_LIM = n;
 
     file.close();
 
@@ -548,8 +540,7 @@ int Cool<N, D, S>::read_files(std::string cool_file, std::string tri_file, std::
             break;
         }
     }
-    S_MAX = s;
-
+    S_LIM = s;
 
 
     file.close();
@@ -557,7 +548,7 @@ int Cool<N, D, S>::read_files(std::string cool_file, std::string tri_file, std::
     // Construct matrices for each simplex
     // https://en.wikipedia.org/wiki/Barycentric_coordinate_system#Barycentric_coordinates_on_tetrahedra
     // TODO Integrate into simplex class?
-    for (int s = 0; s < S_MAX; s++) {   // for each simplex
+    for (int s = 0; s < S_LIM; s++) {   // for each simplex
         for (int i = 0; i < D; i++) {   // for each point (except the last)
             for (int j = 0; j < D; j++) {   // for each coordinate
                 // matrix[j][i], not matrix[i][j] - coordinates go down, points go right
@@ -580,7 +571,7 @@ int Cool<N, D, S>::read_files(std::string cool_file, std::string tri_file, std::
     }
 
 
-    for (int i = 0; i < S_MAX; i++) {
+    for (int i = 0; i < S_LIM; i++) {
         std::getline(file, line);
         std::stringstream linestream(line);
         for (int j = 0; j < D+1; j++) {     // D+1 points per simplex

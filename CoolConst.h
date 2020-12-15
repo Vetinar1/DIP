@@ -5,6 +5,13 @@
 #ifndef MASTER_PROJECT_C_PART_COOLCONST_H
 #define MASTER_PROJECT_C_PART_COOLCONST_H
 
+#define N 10000
+#define D 2
+#define S 10000
+
+//#define N_LIM 10000
+//#define S_LIM 10000
+
 #define EPSILON 1e-6
 #define AUTOMATIC_LOADING 1         // Whether to automatically load in new z slices in CoolManager. Warning: Assumes each call to interpolate has less or equal z than before
 #define MAX_FLIPS 100               // Max number of flips in simplex flipping algorithm before throwing an error

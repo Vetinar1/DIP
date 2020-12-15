@@ -24,7 +24,6 @@
 #include "CoolConst.h"
 
 
-template<int N, int D, int S>
 class Cool {
     /**
      * int N        Size of points array. Recommended to be number of lines in .points file. More will also work.
@@ -44,22 +43,22 @@ class Cool {
      */
 private:
 
-    Point<D> points[N];
-    Simplex<D> simplices[S];
-    Simplex<D> * btree;         // Points to the root of the simplex ball tree
+    Point points[N];
+    Simplex simplices[S];
+    Simplex * btree;         // Points to the root of the simplex ball tree
 
-    Simplex<D> * construct_simplex_btree_recursive(Simplex<D> **, int);
-    Simplex<D> * find_nearest_neighbour_sbtree(Simplex<D> *, const double *, Simplex<D> *, double);
+    Simplex * construct_simplex_btree_recursive(Simplex **, int);
+    Simplex * find_nearest_neighbour_sbtree(Simplex *, const double *, Simplex *, double);
 
     int flips, interpolate_calls;
-    int N_MAX, S_MAX;
+    int N_LIM, S_LIM;
 public:
     Cool() {
         flips = 0;
         interpolate_calls = 0;
         avg_flips = 0;
-        S_MAX = S;
-        N_MAX = N;
+        S_LIM = S;
+        N_LIM = N;
         for (int i = 0; i < D; i++) {
             mins[i] = DBL_MAX;
             maxs[i] = -1 * DBL_MAX;
@@ -76,8 +75,8 @@ public:
     void save_btree(std::string filename);
     int construct_btree();
     double interpolate(double * coords);
-    void set_N_MAX(int n) { N_MAX = n; };
-    void set_S_MAX(int s) { S_MAX = s; };
+    void set_N_MAX(int n) { N_LIM = n; };
+    void set_S_MAX(int s) { S_LIM = s; };
 };
 
 

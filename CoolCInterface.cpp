@@ -5,75 +5,68 @@
 #ifndef MASTER_PROJECT_C_PART_COOLCINTERFACE_CPP
 #define MASTER_PROJECT_C_PART_COOLCINTERFACE_CPP
 
+//#include "CoolCool.h"
 #include "CoolCool.h"
-#include "CoolManager.h"
+#include <stdio.h>
+#include <string>
 
 // TODO Find a good solution for these
-#define N 10000
-#define D 5
-#define S 10000
-
-#define N_MAX 10000
-#define S_MAX 10000
 
 // Wrapper to be understood by C
 // 1. Create or destroy Cool Objects
 // 2. Handling of multiple objects?
 // 3. Interface for member functions
 
-extern "C" {
+//Cool<N, D, S> * C;
+Cool * C;
 
-    /* Cool<int N, int D, int S> */
-    // TODO Can I return pointers like this? Probably not
-    // Work with indices and a list?
-    Cool<N, D, S> * Cool_new() {
-        return new Cool<N, D, S>;
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+    void Cool_new() {
+//        C = new Cool<N, D, S>;
+        C = new Cool;
     }
 
-    int Cool_read_files(Cool<N, D, S> * C, char * cool_file, char * tri_file, char * neighbour_file) {
+    int Cool_read_files(char * cool_file, char * tri_file, char * neighbour_file) {
         return C->read_files(std::string(cool_file), std::string(tri_file), std::string(neighbour_file));
     }
 
-    void Cool_reset(Cool<N, D, S> * C) {
+    void Cool_reset() {
         C->reset();
     }
 
-    void Cool_construct_tree(Cool<N, D, S> * C) {
+    void Cool_construct_tree() {
         C->construct_btree();
     }
 
-    void Cool_save_tree(Cool<N, D, S> * C, char* fname) {
+    void Cool_save_tree(char* fname) {
         C->save_btree(std::string(fname));
     }
 
-    double Cool_interpolate(Cool<N, D, S> * C, double * coords) {
+    double Cool_interpolate(double * coords) {
         return C->interpolate(coords);
     }
 
 
-    /* CoolManager<int N_MAX, int D, int S_MAX> */
+    /* CoolManager<int N_LIM, int D, int S_LIM> */
     // TODO Find way to pass filenames
-//    CoolManager<N_MAX, D, S_MAX> * CoolManager_new(double init_z_low, double init_z_high, ) {
-//        return new CoolManager<N_MAX, D, S_MAX>;
+//    CoolManager<N_LIM, D, S_LIM> * CoolManager_new(double init_z_low, double init_z_high, ) {
+//        return new CoolManager<N_LIM, D, S_LIM>;
+//    }
+//
+//    double CoolManager_interpolate(CoolManager<N_LIM, D, S_LIM> * CM, double * args, double z) {
+//        return CM->interpolate(args, z);
+//    }
+//
+//    void CoolManager_push_slice(CoolManager<N_LIM, D, S_LIM> * CM, char * fname) {
+//        CM->push_slice(fname);
 //    }
 
-    double CoolManager_interpolate(CoolManager<N_MAX, D, S_MAX> * CM, double * args, double z) {
-        return CM->interpolate(args, z);
-    }
-
-    void CoolManager_push_slice(CoolManager<N_MAX, D, S_MAX> * CM, char * fname) {
-        CM->push_slice(fname);
-    }
-
+#ifdef __cplusplus
 };
+#endif
 
-
-// Undef to not interfere with implementation. TODO: Correct? Rename?
-#undef N
-#undef D
-#undef S
-
-#undef N_MAX
-#undef S_MAX
 
 #endif //MASTER_PROJECT_C_PART_COOLCINTERFACE_CPP

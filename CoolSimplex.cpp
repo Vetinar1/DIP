@@ -9,8 +9,7 @@
 #include <cmath>
 
 
-template<int D>
-void Simplex<D>::calculate_midpoints() {
+void Simplex::calculate_midpoints() {
     /**
      * Calculates the coordinates of the midpoints of each face. The ith midpoint belongs to the ith face, opposite
      * of the ith vertex. It is the average of the set of vertices excluding the ith.
@@ -42,8 +41,7 @@ void Simplex<D>::calculate_midpoints() {
 }
 
 
-template<int D>
-void Simplex<D>::calculate_normals() {
+void Simplex::calculate_normals() {
     /**
      * Calculates the normals for the simplex. The ith normal is opposite the ith vertex. All normals face "outwards",
      * away from the centroid.
@@ -51,7 +49,7 @@ void Simplex<D>::calculate_normals() {
 
     for (int i = 0; i < D+1; i++) { // Each face/point opposite
         // Build face out of all points except the one opposite
-        Point<D> * face[D];
+        Point * face[D];
         for (int j = 0; j < D; j++) {
             if (j < i) {
                 face[j] = points[j];
@@ -97,8 +95,7 @@ void Simplex<D>::calculate_normals() {
 }
 
 
-template<int D>
-double * Simplex<D>::find_normal(Point<D> ** vertices) {
+double * Simplex::find_normal(Point ** vertices) {
     /**
      * Finds the normal on a hyperplane defined by a set of points. Will crash if they are linearly dependent.
      *
@@ -248,8 +245,7 @@ double laplace_expansion<1>(double (&matrix)[1][1]) {
 
 
 
-template<int D>
-void Simplex<D>::validate_simplex() {
+void Simplex::validate_simplex() {
     /**
      * Check that simplex is not degenerate - i.e. actualy n-d object
      * TODO doesnt work right
@@ -287,8 +283,7 @@ void Simplex<D>::validate_simplex() {
 }
 
 
-template<int D>
-void Simplex<D>::validate_normals() {
+void Simplex::validate_normals() {
     /**
      * Check that all normals are
      * a) Normalized
@@ -347,7 +342,7 @@ void Simplex<D>::validate_normals() {
 
     // b) Normal on hyperplanes
     for (int i = 0; i < D+1; i++) { // all faces/normals
-        Point<D> * facepoints[D];
+        Point * facepoints[D];
         for (int j = 0; j < D; j++) {   // All points in face/All points in simplex except point i
             int k;
             if (j < i) {
@@ -509,8 +504,7 @@ void Simplex<D>::validate_normals() {
 }
 
 
-template<int D>
-void Simplex<D>::invert_T() {
+void Simplex::invert_T() {
     double unit[D][D];  // unit matrix
     for (int i = 0; i < D; i++) {
         for (int j = 0; j < D; j++) {
@@ -533,9 +527,8 @@ void Simplex<D>::invert_T() {
 
 
 
-template<int D>
 template<int M, int N1, int N2>
-void Simplex<D>::gauss_elimination(double (&A)[M][N1], double (&B)[M][N2], int apply_permutation) {
+void Simplex::gauss_elimination(double (&A)[M][N1], double (&B)[M][N2], int apply_permutation) {
     /**
      * Ax = B
      * Performs row wise Gauss Jordan elimination on A with given dimensions. Transformations are also applied to B.
@@ -618,8 +611,7 @@ void Simplex<D>::gauss_elimination(double (&A)[M][N1], double (&B)[M][N2], int a
 }
 
 
-template<int D>
-double * Simplex<D>::convert_to_bary(const double * coords) {
+double * Simplex::convert_to_bary(const double * coords) {
     /**
      * Convert the given coordinates to the barycentric coordinate system of the simplex.
      *
@@ -650,8 +642,7 @@ double * Simplex<D>::convert_to_bary(const double * coords) {
 }
 
 
-template<int D>
-inline int Simplex<D>::check_bary(const double* bary) {
+int Simplex::check_bary(const double* bary) {
     /**
      * Check if the given barycentric coordinates belong to a point inside or outside of the simplex
      * Returns 1 if inside, 0 otherwise.
