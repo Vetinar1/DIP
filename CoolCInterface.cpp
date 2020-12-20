@@ -24,8 +24,8 @@
 //Cool<N, D, S> * C;
 Cool * C[COOL_OBJ_COUNT];
 CoolManager * CM[COOLMANAGER_OBJ_COUNT];
-cool_counter = 0;
-coolmanager_counter = 0;
+int cool_counter = 0;
+int coolmanager_counter = 0;
 
 #ifdef __cplusplus
 extern "C" {
