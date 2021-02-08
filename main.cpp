@@ -12,6 +12,7 @@
 #include <string>
 #include <map>
 #include <iostream>
+//#include "CoolMLI.h"
 
 int main() {
     std::string mode = "block2d";
@@ -20,12 +21,12 @@ int main() {
 //    if (mode == "slice3d") {
 //        std::ifstream mapfile;
 //        mapfile.open("../slice3d/mapfile");
-//
+
 //        if (!mapfile.is_open()) {
 //            std::cerr << "Error reading mapfile" << std::endl;
 //            return 1;
 //        }
-//
+
 //        std::map<double, std::string> filenames;
 //        double key;
 //        std::string value;
@@ -35,24 +36,24 @@ int main() {
 //        }
 //        mapfile.close();
 //        CoolManager<1232, 3, 2444> CM(3.9, 4, filenames);
-//
+
 //        std::ofstream outfile;
 //        outfile.open("interp");
 //        double coord[2]; // T, nH
 //        double z = 3.95;
 //        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 //        // Parallel slice
-////        for (int i = 0; i < 100; i++) {
-////            for (int j = 0; j < 100; j++) {
-////                std::cout << i << " " << j << std::endl;
-////                coord[0] = 2 + i * (8-2)/100.;
-////                coord[1] = -4 + j * 8 / 100.;
-////                double interp = CM.interpolate(coord, z);
-////
-////                outfile << coord[0] << " " << coord[1] << " " << interp << std::endl;
-////                std::cout << std::endl;
-////            }
-////        }
+// //        for (int i = 0; i < 100; i++) {
+// //            for (int j = 0; j < 100; j++) {
+// //                std::cout << i << " " << j << std::endl;
+// //                coord[0] = 2 + i * (8-2)/100.;
+// //                coord[1] = -4 + j * 8 / 100.;
+// //                double interp = CM.interpolate(coord, z);
+// //
+// //                outfile << coord[0] << " " << coord[1] << " " << interp << std::endl;
+// //                std::cout << std::endl;
+// //            }
+// //        }
 //        // Orthogonal slice
 //        coord[1] = 3;
 //        z = 4;
@@ -62,7 +63,7 @@ int main() {
 //                z = 4 - i * 4 / 100.;
 //                std::cout << coord[0] << " " << z << std::endl;
 //                double interp = CM.interpolate(coord, z);
-//
+
 //                outfile << coord[0] << " " << z << " " << interp << std::endl;
 //                std::cout << std::endl;
 //            }
@@ -84,116 +85,124 @@ int main() {
 //        Cool<980, 2, 1940> cool;
 
         std::cout << "Reading files... ";
-        cool->read_files("../data2d/data.csv", "../data2d/dtri.csv", "../data2d/dneighbours.csv");
-//        cool->read_files("data2d/data.csv", "data2d/dtri.csv", "data2d/dneighbours.csv");
+        cool->read_files("../gasoline_header2_tri/z0.0.points",
+                    "../gasoline_header2_tri/z0.0.tris",
+                    "../gasoline_header2_tri/z0.0.neighbors");
+//        cool->read_files("../data2d/data.csv", "../data2d/dtri.csv", "../data2d/dneighbours.csv");
 //        cool.read_files("../slice3d/z3.9.points", "../slice3d/z3.9.tris", "../slice3d/z3.9.neighbors");
 //        cool.read_files("../slice3d/z3.9.points", "../slice3d/z3.9.tris", "../data3d/z3.9.neighbors");
 
         std::cout << "Done" << std::endl << "Constructing ball tree... " << std::flush;
         cool->construct_btree();
-        std::cout << "Done" << std::endl << "Saving ball tree... ";
-        cool->save_btree("tree");
+        // std::cout << "Done" << std::endl << "Saving ball tree... ";
+        // cool->save_btree("tree");
         std::cout << "Done" << std::endl << "Beginning interpolation... " << std::endl;
 
         std::ofstream outfile;
         outfile.open("interp");
 
-        double coord[2];
+        double coord[D];
         std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
         for (int i = 0; i < 100; i++) {
             for (int j = 0; j < 100; j++) {
-                std::cout << i << " " << j << std::endl;
-                coord[0] = 2 + i * (8-2)/100.;
-                coord[1] = -4 + j * 8 / 100.;
-                double interp = cool->interpolate(coord);
+//                for (int k = 0; k < 10; k++) {
+//                    for (int l = 0; l < 10; l++) {
+//                         std::cout << i << " " << j << std::endl;
+                        coord[0] = 2 + i * (8-2)/100.;
+                        coord[1] = -4 + j * 8 / 100.;
+                        double interp = cool->interpolate(coord);
 
-                outfile << coord[0] << " " << coord[1] << " " << interp << std::endl;
-                std::cout << std::endl;
+//                         outfile << coord[0] << " " << coord[1] << " " << interp << std::endl;
+//                         std::cout << std::endl;
+
+//                    }
+//                }
             }
         }
         std::cout << "Done" << std::endl;
         std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
         std::cout << "Time to complete = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
+        std::cout << "Avg = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() / pow(100, D) << "[ms]" << std::endl;
         std::cout << "Avg flips: " << cool->avg_flips << std::endl;
         return 0;
     }
+
+//   if (mode == "multilinear") {
+//       const int X = 86;
+//       const int Y = 71;
+//       const int Z = 10;
+//       int dims[3] = {X, Y, Z};
+//       double grid[X][Y][Z];
 //
-//    if (mode == "multilinear") {
-//        const int X = 86;
-//        const int Y = 71;
-//        const int Z = 10;
-//        int dims[3] = {X, Y, Z};
-//        double grid[X][Y][Z];
-//
-//        double minmax[3][2] = {
-//                {1, 9.5},
-//                {-8, 6},
-//                {-4, 0.5}
-//        };
+//       double minmax[3][2] = {
+//               {1, 9.5},
+//               {-8, 6},
+//               {-4, 0.5}
+//       };
 //
 //
-//        std::ifstream file;
-//        std::string line;
-//        std::string value;
-//        file.open("../repr1_schaye.csv");
+//       std::ifstream file;
+//       std::string line;
+//       std::string value;
+//       file.open("../repr1_schaye.csv");
 //
-//        int x = 0;
-//        int y = 0;
-//        int z = 0;
-//        for (int i = 0; i < X*Y*Z; i++) {
-//            std::getline(file, line);
-//            std::stringstream linestream(line);
-//            for (int j = 0; j < 4; j++) {
-//                std::getline(linestream, value, ',');
-//            }
-//            std::getline(linestream, value, ',');
-//            grid[x][y][z] = std::stod(value);
-//            grid[x][y][z] = log10(grid[x][y][z]);
-//            x++;
-//            if (x >= 86) {
-//                y++;
-//                x = 0;
-//                if (y >= 71) {
-//                    z++;
-//                    y = 0;
-//                }
-//            }
-//        }
+//       int x = 0;
+//       int y = 0;
+//       int z = 0;
+//       for (int i = 0; i < X*Y*Z; i++) {
+//           std::getline(file, line);
+//           std::stringstream linestream(line);
+//           for (int j = 0; j < 4; j++) {
+//               std::getline(linestream, value, ',');
+//           }
+//           std::getline(linestream, value, ',');
+//           grid[x][y][z] = std::stod(value);
+//           grid[x][y][z] = log10(grid[x][y][z]);
+//           x++;
+//           if (x >= 86) {
+//               y++;
+//               x = 0;
+//               if (y >= 71) {
+//                   z++;
+//                   y = 0;
+//               }
+//           }
+//       }
 //
-//        file.close();
-//    //    for (int i = 0; i < X; i++) {
-//    //        for (int j = 0; j < Y; j++) {
-//    //            for (int k = 0; k < Z; k++) {
-//    //                std::cout << i << " " << j << " " << k << ": " << grid[i][j][k] << std::endl;
-//    //            }
-//    //        }
-//    //    }
+//       file.close();
+//   //    for (int i = 0; i < X; i++) {
+//   //        for (int j = 0; j < Y; j++) {
+//   //            for (int k = 0; k < Z; k++) {
+//   //                std::cout << i << " " << j << " " << k << ": " << grid[i][j][k] << std::endl;
+//   //            }
+//   //        }
+//   //    }
 //
-//        MultilinearInterpolator<3> MLI(&grid[0][0][0], &minmax[0][0], &dims[0]);
+//       MultilinearInterpolator<3> MLI(&grid[0][0][0], &minmax[0][0], &dims[0]);
 //
-//        std::ofstream outfile;
-//        outfile.open("interp");
+//       std::ofstream outfile;
+//       outfile.open("interp");
 //
-//        double coord[3];
-//        coord[2] = -0.17;
-//        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-//        for (int i = 0; i < 100; i++) {
-//            for (int j = 0; j < 100; j++) {
-//                std::cout << i << " " << j << std::endl;
-//                coord[0] = 2 + i * (8-2)/100.;
-//                coord[1] = -4 + j * 8 / 100.;
-//    //            std::cout << coord[0] << " " << coord[1] << " " << coord[2] << std::endl;
-//                double result = MLI.interpolate(&coord[0]);
+//       double coord[3];
+//       coord[2] = -0.17;
+//       std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+//       for (int i = 0; i < 100; i++) {
+//           for (int j = 0; j < 100; j++) {
+//               std::cout << i << " " << j << std::endl;
+//               coord[0] = 2 + i * (8-2)/100.;
+//               coord[1] = -4 + j * 8 / 100.;
+//   //            std::cout << coord[0] << " " << coord[1] << " " << coord[2] << std::endl;
+//               double result = MLI.interpolate(&coord[0]);
 //
-//                outfile << coord[0] << " " << coord[1] << " " << result << std::endl;
-//                std::cout << std::endl;
-//            }
-//        }
-//        std::cout << "Done" << std::endl;
-//        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-//        std::cout << "Time to complete = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
+//               outfile << coord[0] << " " << coord[1] << " " << result << std::endl;
+//               std::cout << std::endl;
+//           }
+//       }
+//       std::cout << "Done" << std::endl;
+//       std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+//       std::cout << "Time to complete = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
 //
-//        return 0;
+//       return 0;
 //
-//    }
+//   }
 }

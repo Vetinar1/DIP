@@ -8,7 +8,7 @@
 #include <iostream>
 #include <cmath>
 
-
+// TODO: Unify error messages
 void Simplex::calculate_midpoints() {
     /**
      * Calculates the coordinates of the midpoints of each face. The ith midpoint belongs to the ith face, opposite
@@ -61,7 +61,68 @@ void Simplex::calculate_normals() {
         // Find normal on that face
         double * norm = find_normal(&face[0]);
 
-        // Make sure norm points away from centroid
+        double diff[D];
+        double difflen2 = 0;
+        for (int j = 0; j < D; j++) {
+            diff[j] = centroid[j] - midpoints[i][j];
+            difflen2 += diff[j] * diff[j];
+        }
+
+        double dot = 0;
+        // Note: norm is normalized, diff is not
+        for (int j = 0; j < D; j++) {
+            dot += diff[j] * norm[j] / difflen2;
+        }
+
+        if (dot > EPSILON) {
+            for (int j = 0; j < D; j++) {
+                norm[j] *= -1;
+            }
+        } else if (dot < -EPSILON) {
+            // fine
+        } else {
+            std::cerr << "Problem in normal calculation: Normal vector perpendicular on centroid-midpoint connection" << std::endl;
+            std::cerr << "This simplex is likely degenerate, or very close to it" << std::endl;
+
+            std::cerr << "Centroid:\t\t";
+            for (int k = 0; k < D; k++) {
+                std::cerr << centroid[k] << " ";
+            }
+            std::cerr << std::endl;
+
+            std::cerr << "Face Midpoint:\t";
+            for (int k = 0; k < D; k++) {
+                std::cerr << midpoints[i][k] << " ";
+            }
+            std::cerr << std::endl;
+
+            std::cerr << "Difference vector:\t" << std::endl;
+            for (int j = 0; j < D; j++) {
+                std::cerr << diff[j] / difflen2 << " ";
+            }
+            std::cerr << std::endl;
+
+            std::cerr << "Normal vector:" << std::endl;
+            for (int k = 0; k < D; k++) {
+                std::cerr << norm[k] << " ";
+            }
+            std::cerr << std::endl;
+
+            std::cerr << "Dot product between difference vector and normal vector: " << dot << std::endl;
+
+            std::cerr << "Simplex points:" << std::endl;
+            for (int j = 0; j < D+1; j++) {
+                std::cerr << j << ":   ";
+                for (int k = 0; k < D; k++) {
+                    std::cerr << points[j]->coords[k] << " ";
+                }
+                std::cerr << std::endl;
+            }
+            std::cerr << std::endl;
+
+        }
+
+        /*// Make sure norm points away from centroid
         // Go +1/-1 in direction of the normal from the centroid.
         // If +1 is closer to the midpoint, normal points in the right direction. Else, flip
         double step_pos[D];
@@ -79,11 +140,27 @@ void Simplex::calculate_normals() {
             dist2_neg += pow(step_neg[j] - midpoints[i][j], 2);
         }
 
+        if (fabs(dist2_pos - dist2_neg) < EPSILON) {
+            std::cerr << "Error in normal calculation: Could not determine 'outward' direction" << std::endl;
+            std::cerr << "This This simplex is likely degenerate, or very close to it" << std::endl;
+            std::cerr << "fabs(" << dist2_pos << " - " << dist2_neg << ") = " << fabs(dist2_pos - dist2_neg) << " < " << EPSILON << std::endl;
+            std::cerr << "Centroid:\t\t";
+            for (int k = 0; k < D; k++) {
+                std::cerr << centroid[k] << " ";
+            }
+            std::cerr << std::endl;
+            std::cerr << "Face Midpoint:\t";
+            for (int k = 0; k < D; k++) {
+                std::cerr << midpoints[i][k] << " ";
+            }
+            std::cerr << std::endl;
+        }
+
         if (dist2_neg < dist2_pos) {
             for (int j = 0; j < D; j++) {
                 norm[j] *= -1;
             }
-        }
+        }*/
 
         // Finally, write correct normal into normals array
         for (int j = 0; j < D; j++) {
@@ -413,26 +490,44 @@ void Simplex::validate_normals() {
         for (int j = 0; j < D; j++) {
             dot += normals[i][j] * (diff[j] / len);
         }
-        if (dot > 0) {
+        if (dot > EPSILON) {
             std::cerr << "Normal vector not pointing away from centroid: " << i << std::endl;
+            std::cerr << "Simplex points:" << std::endl;
+            for (int j = 0; j < D+1; j++) {
+                std::cerr << j << ":\t";
+                for (int k = 0; k < D; k++) {
+                    std::cerr << points[j]->coords[k] << " ";
+                }
+                std::cerr << "\t\t(" << points[j] << ")" << std::endl;
+            }
+            std::cerr << "Centroid: " << std::endl;
+            for (int j = 0; j < D; j++) {
+                std::cerr << centroid[j] << " ";
+            }
+            std::cerr << std::endl;
             std::cerr << "Normal vector:" << std::endl;
             for (int j = 0; j < D; j++) {
                 std::cerr << normals[i][j] << " ";
             }
             std::cerr << std::endl;
-            std::cerr << "Centroid: " << std::endl;
-            for (int j = 0; j < D; j++) {
-                std::cerr << centroid[j] << " ";
-            }
             std::cerr << "Midpoint vector:" << std::endl;
             for (int j = 0; j < D; j++) {
                 std::cerr << midpoints[i][j] << " ";
             }
+            std::cerr << std::endl;
             std::cerr << "Difference vector: " << std::endl;
             for (int j = 0; j < D; j++) {
                 std::cerr << diff[j] << " ";
             }
+            std::cerr << std::endl;
+            std::cerr << "Difference vector normalized: " << std::endl;
+            for (int j = 0; j < D; j++) {
+                std::cerr << diff[j] / len << " ";
+            }
+            std::cerr << std::endl;
             std::cerr << "Dot product: " << dot << std::endl;
+
+            abort();
         }
     }
 
@@ -451,6 +546,7 @@ void Simplex::validate_normals() {
             for (int k = 0; k < D; k++) {
                 dot += normals[i][k] * normals[j][k];
             }
+//            std::cout << i << " " << j << " " << dot << std::endl;
 //            std::cout << "i: " << i << " j: " << j << " dot: " << dot << std::endl;
             if (dot < smallest_dot) {
                 smallest_dot = dot;
@@ -459,19 +555,20 @@ void Simplex::validate_normals() {
             }
         }
     }
+//    std::cout << std::endl;
 
     if (smallest_dot > -1./D) {
         std::cerr << "Error in normal validation: Scalar product of Normals "
                   << smallest_dot_idx1 << " and " << smallest_dot_idx2 << ": "
-                  << smallest_dot << " < 1/" << D << " = " << 1./D << std::endl;
+                  << smallest_dot << " > -1/" << D << " = " << -1./D << std::endl;
 
         std::cerr << "Simplex points:" << std::endl;
         for (int j = 0; j < D+1; j++) {
-            std::cerr << j << ":   ";
+            std::cerr << j << ":\t";
             for (int k = 0; k < D; k++) {
                 std::cerr << points[j]->coords[k] << " ";
             }
-            std::cerr << std::endl;
+            std::cerr << "\t\t(" << points[j] << ")" << std::endl;
         }
         std::cerr << "Centroid: " << std::endl;
         for (int j = 0; j < D; j++) {
@@ -498,8 +595,8 @@ void Simplex::validate_normals() {
             }
             std::cerr << std::endl;
         }
-
-        abort();
+        std::cerr << std::endl;
+//        abort();
     }
 }
 

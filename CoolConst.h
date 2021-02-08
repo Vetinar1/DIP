@@ -5,9 +5,9 @@
 #ifndef MASTER_PROJECT_C_PART_COOLCONST_H
 #define MASTER_PROJECT_C_PART_COOLCONST_H
 
-#define N 10000
-#define D 2
-#define S 10000
+#define N 57076
+#define D 4
+#define S 1706632
 
 //#define N_LIM 10000
 //#define S_LIM 10000

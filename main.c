@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "CoolCInterface.h"
 
-#define C
+#define CM
 int main() {
 #ifdef CM
     int cm_idx = CoolManager_new(3.9, 4.0, "slice3d/mapfile");

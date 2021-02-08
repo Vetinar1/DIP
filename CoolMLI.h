@@ -8,7 +8,7 @@
 #include <math.h>
 #include <bitset>
 
-template<int N>
+//template<int N>
 class MultilinearInterpolator {
 private:
     int dims[N];
@@ -43,12 +43,12 @@ public:
 };
 
 
-template<int N>
+//template<int N>
 double MultilinearInterpolator<N>::linear_interpolation(double x, double x0, double y0, double x1, double y1) {
     return (y0 * (x1 - x) + y1 * (x - x0)) / (x1 - x0);
 }
 
-template<int N>
+//template<int N>
 double MultilinearInterpolator<N>::interpolate(const double* point) {
     /**
      * Optimized multilinear interpolation function.
