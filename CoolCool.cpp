@@ -2,6 +2,8 @@
 // Created by vetinari on 14.12.20.
 //
 
+// TODO: Flag for diagnostics
+// TODO: Flag for warnings
 
 #include <iostream>
 #include <fstream>
@@ -50,6 +52,27 @@ void Cool::reset() {
 }
 
 
+//int Cool::construct_btree() {
+//    /**
+//     * This function serves as a public "adapter" to the actual ball tree construction function,
+//     * construct_point_btree_recursive().
+//     *
+//     * Returns 0 on success.
+//     */
+//    // Construct array of pointers
+////    std::cout << "test" << std::endl;
+//    return 0;
+//    Simplex * simps[S];
+//    for (int i = 0; i < S_LIM; i++) {
+//        std::cout << i << std::endl;
+//        simps[i] = &(simplices[i]);
+//    }
+//
+//    btree = construct_simplex_btree_recursive(simps, S_LIM);
+//
+//    return 0;
+//}
+
 int Cool::construct_btree() {
     /**
      * This function serves as a public "adapter" to the actual ball tree construction function,
@@ -57,13 +80,16 @@ int Cool::construct_btree() {
      *
      * Returns 0 on success.
      */
-    // Construct array of pointers
-    Simplex * simps[S];
+    // Construct array of pointers; allocate on heap to avoid stack overflows
+    std::cout << "test" << std::endl;
+    Simplex ** simps = new Simplex *[S];
     for (int i = 0; i < S_LIM; i++) {
         simps[i] = &(simplices[i]);
     }
 
     btree = construct_simplex_btree_recursive(simps, S_LIM);
+
+    delete[] simps;
 
     return 0;
 }
@@ -436,6 +462,9 @@ int Cool::read_files(std::string cool_file, std::string tri_file, std::string ne
     } else {
         std::cout << "Reading" << cool_file << std::endl;
     }
+
+    // Skip first line of points file - header! TODO: Add a flag for this
+    std::getline(file, line);
 
     int n = 0;
     for (int i = 0; i < N; i++) {

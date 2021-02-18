@@ -7,34 +7,34 @@
 
 #include <math.h>
 #include <bitset>
+#include "CoolConst.h"
 
-//template<int N>
 class MultilinearInterpolator {
 private:
-    int dims[N];
+    int dims[D];
     double * grid;
-    double minmax[N][2];
-    double dim_lens[N];
-    double dim_offsets[N];
+    double minmax[D][2];
+    double dim_lens[D];
+    double dim_offsets[D];
 
     double linear_interpolation(double, double, double, double, double);
 public:
     MultilinearInterpolator(double * in_grid, const double * in_minmax, const int * in_dims) {
         grid = in_grid;
-        for (int i = 0; i < N; i++) {
+        for (int i = 0; i < D; i++) {
             minmax[i][0] = in_minmax[2*i];
             minmax[i][1] = in_minmax[2*i+1];
             dim_lens[i] = minmax[i][1] - minmax[i][0];
         }
-        for (int i = 0; i < N; i++) {
+        for (int i = 0; i < D; i++) {
             dims[i] = in_dims[i];
         }
-        for (int i = 0; i < N; i++) {
+        for (int i = 0; i < D; i++) {
             dim_offsets[i] = 1;
-            if (i == N) {
+            if (i == D) {
                 break;
             }
-            for (int j = i+1; j < N; j++) {
+            for (int j = i+1; j < D; j++) {
                 dim_offsets[i] *= dims[j];
             }
         }
@@ -43,13 +43,12 @@ public:
 };
 
 
-//template<int N>
-double MultilinearInterpolator<N>::linear_interpolation(double x, double x0, double y0, double x1, double y1) {
+double MultilinearInterpolator::linear_interpolation(double x, double x0, double y0, double x1, double y1) {
     return (y0 * (x1 - x) + y1 * (x - x0)) / (x1 - x0);
 }
 
-//template<int N>
-double MultilinearInterpolator<N>::interpolate(const double* point) {
+
+double MultilinearInterpolator::interpolate(const double* point) {
     /**
      * Optimized multilinear interpolation function.
      * Undefined behaviour when trying to interpolate outside grid.
@@ -58,10 +57,10 @@ double MultilinearInterpolator<N>::interpolate(const double* point) {
      */
 
     // 1. Figure out points of surrounding hypercube
-    int indices[N];
-    double diffs[N];
+    int indices[D];
+    double diffs[D];
 
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < D; i++) {
         // Automatically cast to int!
         indices[i] = (point[i] - minmax[i][0]) * dims[i] / dim_lens[i];
         double xi_0 = minmax[i][0] + dim_lens[i] * indices[i] / dims[i];
@@ -69,12 +68,12 @@ double MultilinearInterpolator<N>::interpolate(const double* point) {
         diffs[i] = (point[i] - xi_0) / (xi_1 - xi_0);
     }
 
-    double * vals = new double[(int) pow(2, N)];
-    for (int i = 0; i < pow(2, N); i++) {
-        std::bitset<N> offsets(i);
+    double * vals = new double[(int) pow(2, D)];
+    for (int i = 0; i < pow(2, D); i++) {
+        std::bitset<D> offsets(i);
         int index = 0;
 
-        for (int j = 0; j < N; j++) {
+        for (int j = 0; j < D; j++) {
             index += (offsets[j]) ? dim_offsets[j] * (indices[j] + 1) : dim_offsets[j] * indices[j];
         }
 
@@ -82,7 +81,7 @@ double MultilinearInterpolator<N>::interpolate(const double* point) {
     }
 
     double * new_vals;
-    for (int i = N; i > 0; i--) {
+    for (int i = D; i > 0; i--) {
         new_vals = new double[(int) pow(2, i-1)];
         for (int j = 0; j < (int) pow(2, i-1); j++) {
             // To understand why the offset in the second vals[] works, look at the bit representation of the indices

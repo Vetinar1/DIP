@@ -4,7 +4,7 @@
 #define CM
 int main() {
 #ifdef CM
-    int cm_idx = CoolManager_new(3.9, 4.0, "slice3d/mapfile");
+    int cm_idx = CoolManager_new(7.5, 8, "cooldata/mapfile");
     double coord[2];
     coord[1] = 3;
     double z = 4;
@@ -12,7 +12,8 @@ int main() {
         for (int j = 0; j < 100; j++) {
             printf("%i %f\n", i, z);
             coord[0] = 2 + j * (8-2)/100.;
-            z = 4 - i * 4 / 100.;
+//            z = 4 - i * 4 / 100.;
+            z = 8.8;
             double interp = CoolManager_interpolate(cm_idx, &(coord[0]), z);
         }
     }

@@ -71,6 +71,7 @@ public:
     double maxs[D];
 
     void reset();
+    int test();
     int read_files(std::string, std::string, std::string);
     void save_btree(std::string filename);
     int construct_btree();
