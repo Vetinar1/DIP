@@ -601,6 +601,26 @@ void Simplex::validate_normals() {
 }
 
 
+void Simplex::construct_T_inv() {
+    /**
+     * Construct the matrix required to calculate the barycentric coordinates relative to this simplex
+     * https://en.wikipedia.org/wiki/Barycentric_coordinate_system#Barycentric_coordinates_on_tetrahedra
+     */
+    calculate_T();
+    invert_T();
+}
+
+
+void Simplex::calculate_T() {
+    for (int i = 0; i < D; i++) {   // for each point (except the last)
+        for (int j = 0; j < D; j++) {   // for each coordinate
+            // matrix[j][i], not matrix[i][j] - coordinates go down, points go right
+            T_inv[j][i] = points[i]->coords[j] - points[D]->coords[j];
+        }
+    }
+}
+
+
 void Simplex::invert_T() {
     double unit[D][D];  // unit matrix
     for (int i = 0; i < D; i++) {

@@ -14,8 +14,10 @@
 #include <iostream>
 #include "CoolMLI.h"
 
+// TODO Important: Dont go all the way to core edges. -> add to coolmanager clamps
+
 int main() {
-    std::string mode = "block2d";
+    std::string mode = "multilinear";
     std::cout << mode << std::endl;
 
 //    if (mode == "slice3d") {
@@ -85,9 +87,11 @@ int main() {
 //        Cool<980, 2, 1940> cool;
 
         std::cout << "Reading files... ";
-        cool->read_files("../gasoline_header2_tri/z0.0.points",
-                    "../gasoline_header2_tri/z0.0.tris",
-                    "../gasoline_header2_tri/z0.0.neighbors");
+        cool->read_files(
+                "../complexity/mesh2/z3.0.points",
+                "../complexity/mesh2/z3.0.tris",
+                "../complexity/mesh2/z3.0.neighbors"
+        );
 //        cool->read_files("../data2d/data.csv", "../data2d/dtri.csv", "../data2d/dneighbours.csv");
 //        cool.read_files("../slice3d/z3.9.points", "../slice3d/z3.9.tris", "../slice3d/z3.9.neighbors");
 //        cool.read_files("../slice3d/z3.9.points", "../slice3d/z3.9.tris", "../data3d/z3.9.neighbors");
@@ -108,81 +112,90 @@ int main() {
 //        old:	[6, 12]		Margins: 0.1		Source file: spectra/old
         double coord[D];
         std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-        for (int i = 0; i < 10; i++) {
-            for (int j = 0; j < 10; j++) {
-                for (int k = 0; k < 10; k++) {
-                    for (int l = 0; l < 10; l++) {
-//                         std::cout << i << " " << j << std::endl;
-                        coord[0] = 2 + i * (9-2)/10.;
+        for (int i = 0; i < 100; i++) {
+            for (int j = 0; j < 100; j++) {
+//                for (int k = 0; k < 10; k++) {
+//                    for (int l = 0; l < 10; l++) {
+                        coord[0] = 2 + i * (9-2)/100.;
 //                        coord[1] = -9 + j * (4+9) / 10.;
-                        coord[1] = -3 + j * (4+3) / 10.;
-                        coord[2] = -5 + k * (8) / 10.;
-                        coord[3] = 6 + (12-6) / 10.;
+                        coord[1] = -3 + j * (4+3) / 100.;
+//                        coord[2] = -5 + k * (8) / 10.;
+//                        coord[2] = -1.9 + k * (1.8) / 10.;
+//                        coord[3] = 6 + (12-6) / 10.;
 
                         double interp = cool->interpolate(coord);
 
 //                         outfile << coord[0] << " " << coord[1] << " " << interp << std::endl;
 //                         std::cout << std::endl;
 
-                    }
-                }
+//                    }
+//                }
             }
         }
         std::cout << "Done" << std::endl;
         std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-        std::cout << "Time to complete = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
+        std::cout << "Time to complete = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[us]" << std::endl;
         std::cout << "Avg = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() / pow(100, D) << "[ms]" << std::endl;
         std::cout << "Avg flips: " << cool->avg_flips << std::endl;
         return 0;
     }
 
    if (mode == "multilinear") {
-       int dims[4] = {71, 14, 7, 9};
-       double * grid = new double[71*14*7*9];
+       int dims[D] = {71, 14};
+       int n_points = 1;
+       for (int i = 0; i < D; i++) {
+           n_points *= dims[i];
+       }
 
-       for (int i = 0; i < 71*14*7*9; i++) {
+       double * grid = new double[n_points];
+
+       for (int i = 0; i < n_points; i++) {
            grid[i] = 0;
        }
 
        // T, nH, old, SFR
-       double minmax[4][2] = {
+       double minmax[D][2] = {
                {2, 9},
-               {-9, 4},
-               {6, 12},
-               {-5, 3}
+               {-9, 4}
        };
 
        std::ifstream file;
        std::string line;
        std::string value;
-       file.open("../gasoline_header2_grid/grid_gasoline_header2.csv");
+       file.open("../complexity/grids/grid2.csv");
        if (!file.is_open()) {
            std::cerr << "Error reading grid file" << std::endl;
            return 2;
        }
-       for (int i = 0; i < 61760; i++) {
+       for (int i = 0; i < 995; i++) {
            std::getline(file, line);
            if (i == 0) {
                continue;
            }
-           std::cout << i << std::endl;
            std::stringstream linestream(line);
-           double coords[4];
-           for (int j = 0; j < 4; j++) {
+
+           // get point coords (first D columns)
+           double coords[D];
+           for (int j = 0; j < D; j++) {
                std::getline(linestream, value, ',');
-               std::cout << j << " " << value << " -> ";
                coords[j] = (std::stod(value) - minmax[j][0]) * (dims[j] - 1) / (minmax[j][1] - minmax[j][0]);
-               std::cout << coords[j] << std::endl;
            }
-           std::cout << 9 * (7 * ( 14 * (coords[0]) + coords[1]) + coords[2]) + coords[3] << std::endl;
-           std::cout << std::endl;
+
+           // get point value (last column)
            std::getline(linestream, value, ',');
-           if (grid[(int) std::round(9 * (7 * ( 14 * (coords[0]) + coords[1]) + coords[2]) + coords[3])] != 0) {
+
+           // determine grid index
+           double grid_index = coords[0];
+           for (int j = 1; j < D; j++) {
+               grid_index = dims[j] * grid_index + coords[j];
+           }
+//           if (grid[(int) std::round(9 * (7 * ( 14 * (coords[0]) + coords[1]) + coords[2]) + coords[3])] != 0) {
+           if (grid[(int) std::round(grid_index)] != 0) {
                std::cerr << "reassignment" << std::endl;
                abort();
            }
            grid[
-                   (int) std::round(9 * (7 * ( 14 * (coords[0]) + coords[1]) + coords[2]) + coords[3])
+                   (int) std::round(grid_index)
            ] = std::stod(value);
        }
 
@@ -208,29 +221,29 @@ int main() {
 //               std::cout << std::endl;
 //           }
 //       }
-       for (int i = 0; i < 10; i++) {
-           for (int j = 0; j < 10; j++) {
-               for (int k = 0; k < 10; k++) {
-                   for (int l = 0; l < 10; l++) {
+       for (int i = 0; i < 100; i++) {
+           for (int j = 0; j < 100; j++) {
+//               for (int k = 0; k < 10; k++) {
+//                   for (int l = 0; l < 10; l++) {
 //                         std::cout << i << " " << j << std::endl;
-                       coord[0] = 2 + i * (9-2)/10.;
+                       coord[0] = 2 + i * (9-2)/100.;
 //                        coord[1] = -9 + j * (4+9) / 10.;
-                       coord[1] = -3 + j * (4+3) / 10.;
-                       coord[2] = -5 + k * (8) / 10.;
-                       coord[3] = 6 + (12-6) / 10.;
+                       coord[1] = -3 + j * (4+3) / 100.;
+//                       coord[2] = -5 + k * (8) / 10.;
+//                       coord[3] = 6 + (12-6) / 10.;
 
                        double interp = MLI.interpolate(coord);
 
 //                         outfile << coord[0] << " " << coord[1] << " " << interp << std::endl;
 //                         std::cout << std::endl;
 
-                   }
-               }
+//                   }
+//               }
            }
        }
        std::cout << "Done" << std::endl;
        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-       std::cout << "Time to complete = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
+       std::cout << "Time to complete = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[us]" << std::endl;
 
        return 0;
 

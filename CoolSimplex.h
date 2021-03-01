@@ -25,6 +25,8 @@ private:
     Simplex * neighbour_pointers[D+1];
     double sbtree_radius_sq;            // Squared radius of ball in ball tree
 
+    void construct_T_inv();
+    void calculate_T();
     void invert_T();
     double * convert_to_bary(const double *);
     int check_bary(const double *);

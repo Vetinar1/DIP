@@ -38,40 +38,19 @@ void Cool::reset() {
 
     // Delete ball tree
     // Note: All other simplex properties will be overwritten on next call to read_files()
-    for (int s = 0; s < S; s++) {
+    for (int s = 0; s < S_MAX; s++) {
         simplices[s].sbtree_radius_sq = 0;
         simplices[s].lchild = nullptr;
         simplices[s].rchild = nullptr;
     }
     btree = nullptr;
 
-    S_LIM = S;
-    N_LIM = N;
+    S_LIM = S_MAX;
+    N_LIM = N_MAX;
 
     // Points[N] will be overwritten on next call to read_files()
 }
 
-
-//int Cool::construct_btree() {
-//    /**
-//     * This function serves as a public "adapter" to the actual ball tree construction function,
-//     * construct_point_btree_recursive().
-//     *
-//     * Returns 0 on success.
-//     */
-//    // Construct array of pointers
-////    std::cout << "test" << std::endl;
-//    return 0;
-//    Simplex * simps[S];
-//    for (int i = 0; i < S_LIM; i++) {
-//        std::cout << i << std::endl;
-//        simps[i] = &(simplices[i]);
-//    }
-//
-//    btree = construct_simplex_btree_recursive(simps, S_LIM);
-//
-//    return 0;
-//}
 
 int Cool::construct_btree() {
     /**
@@ -82,7 +61,7 @@ int Cool::construct_btree() {
      */
     // Construct array of pointers; allocate on heap to avoid stack overflows
     std::cout << "test" << std::endl;
-    Simplex ** simps = new Simplex *[S];
+    Simplex ** simps = new Simplex *[S_LIM];
     for (int i = 0; i < S_LIM; i++) {
         simps[i] = &(simplices[i]);
     }
@@ -103,15 +82,15 @@ Simplex * Cool::construct_simplex_btree_recursive(Simplex ** simps, int n) {
      * pivot.
      *
      * Simplex simps     Pointer to array of pointers to simplices to organize in tree
-     * int n                Number of elements in array
+     * int n             Number of elements in array
      */
 
     // Input validation + what if theres only one element left?
     if (n < 0) {
         std::cerr << "Illegal argument in construct_btree: n = " << n << std::endl;
     } else if (n == 1) {
-        simps[0]->lchild = NULL;
-        simps[0]->rchild = NULL;
+        simps[0]->lchild = nullptr;
+        simps[0]->rchild = nullptr;
         simps[0]->sbtree_radius_sq = 0;
 
         return *simps;
@@ -138,7 +117,9 @@ Simplex * Cool::construct_simplex_btree_recursive(Simplex ** simps, int n) {
             }
         }
 
+#ifdef DIP_BALLTREE_CHECKS
         assert(dim_min <= dim_max);
+#endif
         dim_spread = fabs(dim_max - dim_min);
         if (dim_spread > largest_spread) {
             largest_spread = dim_spread;
@@ -147,12 +128,14 @@ Simplex * Cool::construct_simplex_btree_recursive(Simplex ** simps, int n) {
         }
     }
 
+#ifdef DIP_BALLTREE_CHECKS
     assert(largest_spread != -1 && lspread_dim != -1);
+#endif
 
     // 2. Find pivot - simplex with centroid closest to avg          and
     // 3. Group points into sets to the left and right of average (L, R)
     double min_dist = DBL_MAX;
-    Simplex * pivot_addr = NULL;
+    Simplex * pivot_addr = nullptr;
 
     Simplex ** L = new Simplex * [n];
     Simplex ** R = new Simplex * [n];
@@ -190,7 +173,9 @@ Simplex * Cool::construct_simplex_btree_recursive(Simplex ** simps, int n) {
             }
         }
     }
-    assert(pivot_addr != NULL);
+
+#ifdef DIP_BALLTREE_CHECKS
+    assert(pivot_addr != nullptr);
     assert(rcount != 0 || lcount != 0);
     assert(min_dist < DBL_MAX);
     // TODO Take these out?
@@ -200,6 +185,7 @@ Simplex * Cool::construct_simplex_btree_recursive(Simplex ** simps, int n) {
     for (int i = 0; i < rcount; i++) {
         assert(R[i] != pivot_addr);
     }
+#endif
 
     // 4. Recurse on L and R
     if (lcount > 0) {
@@ -213,8 +199,10 @@ Simplex * Cool::construct_simplex_btree_recursive(Simplex ** simps, int n) {
         pivot_addr->rchild = NULL;
     }
 
+#ifdef DIP_BALLTREE_CHECKS
     // This should only happen if there is only one element left, and in that case this line shouldnt be reached
     assert(pivot_addr->lchild != NULL || pivot_addr->rchild != NULL);
+#endif
 
     // 5. Determine ball radius
     // squared distance to farthest element in subtree
@@ -286,8 +274,6 @@ Simplex * Cool::find_nearest_neighbour_sbtree(Simplex * root, const double * tar
         return best;
     }
 
-    // assert(root->lchild != NULL || root->rchild != NULL);
-
     // Perhaps the current point is the new closest?
     if (dist2 < min_dist2) {
         min_dist2 = dist2;
@@ -298,12 +284,12 @@ Simplex * Cool::find_nearest_neighbour_sbtree(Simplex * root, const double * tar
     double ldist2 = 0;
     double rdist2 = 0;
 
-    if (root->lchild != NULL) {
+    if (root->lchild != nullptr) {
         for (int i = 0; i < D; i++) {
             ldist2 += pow(target[i] - root->lchild->centroid[i], 2);
         }
     }
-    if (root->rchild != NULL) {
+    if (root->rchild != nullptr) {
         for (int i = 0; i < D; i++) {
             rdist2 += pow(target[i] - root->rchild->centroid[i], 2);
         }
@@ -313,7 +299,7 @@ Simplex * Cool::find_nearest_neighbour_sbtree(Simplex * root, const double * tar
     // I wonder if this would be prettier with gotos...
     Simplex * old_best = best;
     if (ldist2 <= rdist2) {
-        if (root->lchild != NULL) {
+        if (root->lchild != nullptr) {
             best = find_nearest_neighbour_sbtree(root->lchild, target, best, min_dist2);
         }
         if (best != old_best) {
@@ -324,11 +310,11 @@ Simplex * Cool::find_nearest_neighbour_sbtree(Simplex * root, const double * tar
                 min_dist2 += pow(target[i] - best->centroid[i], 2);
             }
         }
-        if (root->rchild != NULL) {
+        if (root->rchild != nullptr) {
             best = find_nearest_neighbour_sbtree(root->rchild, target, best, min_dist2);
         }
     } else {
-        if (root->rchild != NULL) {
+        if (root->rchild != nullptr) {
             best = find_nearest_neighbour_sbtree(root->rchild, target, best, min_dist2);
         }
         if (best != old_best) {
@@ -339,7 +325,7 @@ Simplex * Cool::find_nearest_neighbour_sbtree(Simplex * root, const double * tar
                 min_dist2 += pow(target[i] - best->centroid[i], 2);
             }
         }
-        if (root->lchild != NULL) {
+        if (root->lchild != nullptr) {
             best = find_nearest_neighbour_sbtree(root->lchild, target, best, min_dist2);
         }
     }
@@ -359,19 +345,20 @@ double Cool::interpolate(double * coords) {
      *                      of sampled area of parameter space.
      */
 
-#if COOL_CLAMP_COORDS==1
-    // Warning! Input coordinates are modified
-    for (int i = 0; i < D; i++) {
-        if (coords[i] > maxs[i]) {
-            coords[i] = maxs[i];
-        } else if (coords[i] < mins[i]) {
-            coords[i] = mins[i];
+    // TODO replace with flag
+    if (clamp_flag) {
+        // Warning! Input coordinates are modified
+        for (int i = 0; i < D; i++) {
+            if (coords[i] > maxs[i]) {
+                coords[i] = maxs[i];
+            } else if (coords[i] < mins[i]) {
+                coords[i] = mins[i];
+            }
         }
     }
-#endif
 
     // 1. Find closest simplex (by centroid) using the ball tree
-    Simplex * best = NULL;
+    Simplex * best = nullptr;
     Simplex * nn = find_nearest_neighbour_sbtree(btree, coords, best, DBL_MAX);
 
     // 2. Find simplex actually containing the target point using simplex flipping algorithm
@@ -380,7 +367,7 @@ double Cool::interpolate(double * coords) {
     int inside = nn->check_bary(bary);
     int n_flips = 0;
 
-    while (!inside) {
+    while (!inside and n_flips < MAX_FLIPS) {
         // Calculate difference vectors from coords to midpoints; normalize; figure out the one with largest scalar
         // product (= smallest angle) TODO try without normalisation
         double best_dir_dot = - DBL_MAX;
@@ -393,13 +380,13 @@ double Cool::interpolate(double * coords) {
                 diff_len += pow(diff_vec[j], 2);
             }
             diff_len = sqrt(diff_len);
-            for (int j = 0; j < D; j++) {
-                diff_vec[j] /= diff_len;
-            }
+//            for (int j = 0; j < D; j++) {
+//                diff_vec[j] /= diff_len;
+//            }
 
             double dot = 0;
             for (int j = 0; j < D; j++) {
-                dot += diff_vec[j] * nn->normals[i][j];
+                dot += diff_vec[j] * nn->normals[i][j] / diff_len;
             }
 
             if (dot > best_dir_dot) {
@@ -410,16 +397,11 @@ double Cool::interpolate(double * coords) {
 
         // Check if current nearest neighbor contains target point
         nn = nn->neighbour_pointers[best_dir];
+        delete[] bary;
         bary = nn->convert_to_bary(coords);
         inside = nn->check_bary(bary);
 
-
         n_flips++;
-        if (n_flips > MAX_FLIPS) {
-            std::cerr << "Error: More than " << MAX_FLIPS << " flips." << std::endl;
-            abort();
-        }
-
     }
 
     // The actual interpolation step
@@ -429,11 +411,12 @@ double Cool::interpolate(double * coords) {
     }
 
     delete[] bary;
-    delete best;
 
+#ifdef DIP_DIAGNOSTICS
     interpolate_calls++;
     flips += n_flips;
     avg_flips = flips / (float) interpolate_calls;
+#endif
 
     return val;
 }
@@ -463,21 +446,24 @@ int Cool::read_files(std::string cool_file, std::string tri_file, std::string ne
         std::cout << "Reading" << cool_file << std::endl;
     }
 
-    // Skip first line of points file - header! TODO: Add a flag for this
+#ifdef DIP_POINTS_HEADER_SKIP
     std::getline(file, line);
+#endif
 
     int n = 0;
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < N_MAX; i++) {
         std::getline(file, line);
         std::stringstream linestream(line);
-        for (int j = 0; j < D; j++) {     // D coordinates, 1 value
+        for (int j = 0; j < D; j++) {     // D coordinates
             std::getline(linestream, value, ',');
             points[i].coords[j] = std::stod(value);
         }
+        // value
         std::getline(linestream, value, ',');
         points[i].value = std::stod(value);
 
         // Update smallest/largest known values
+        // TODO Possibly replace with flags?
         for (int j = 0; j < D; j++) {
             if (points[i].coords[j] < mins[j]) {
                 mins[j] = points[i].coords[j];
@@ -508,7 +494,7 @@ int Cool::read_files(std::string cool_file, std::string tri_file, std::string ne
 
 
     int s = 0;
-    for (int i = 0; i < S; i++) {
+    for (int i = 0; i < S_MAX; i++) {
         std::getline(file, line);
         std::stringstream linestream(line);
 
@@ -576,17 +562,8 @@ int Cool::read_files(std::string cool_file, std::string tri_file, std::string ne
 
     // Construct matrices for each simplex
     // https://en.wikipedia.org/wiki/Barycentric_coordinate_system#Barycentric_coordinates_on_tetrahedra
-    // TODO Integrate into simplex class?
     for (int s = 0; s < S_LIM; s++) {   // for each simplex
-        for (int i = 0; i < D; i++) {   // for each point (except the last)
-            for (int j = 0; j < D; j++) {   // for each coordinate
-                // matrix[j][i], not matrix[i][j] - coordinates go down, points go right
-                simplices[s].T_inv[j][i] = simplices[s].points[i]->coords[j] - simplices[s].points[D]->coords[j];
-            }
-        }
-
-        // Right now its just T - now invert
-        simplices[s].invert_T();
+        simplices[s].construct_T_inv();
     }
 
 
@@ -598,7 +575,6 @@ int Cool::read_files(std::string cool_file, std::string tri_file, std::string ne
     } else {
         std::cout << "Reading" << neighbour_file << std::endl;
     }
-
 
     for (int i = 0; i < S_LIM; i++) {
         std::getline(file, line);
@@ -616,4 +592,19 @@ int Cool::read_files(std::string cool_file, std::string tri_file, std::string ne
     file.close();
 
     return 0;
+}
+
+
+void Cool::set_clamp_values(double * cmins, double * cmaxs) {
+    /**
+     * Set values of the clamps to use in interpolate(). Note that these will only be used if clamping is enabled
+     * with enable_clamping().
+     *
+     * double * cmins        Pointer to array of doubles. Min values for clamping.
+     * double * cmaxs        Pointer to array of doubles. Max values for clamping.
+     */
+    for (int i = 0; i < D; i++) {
+        CLAMP_MAX[i] = maxs[i];
+        CLAMP_MIN[i] = mins[i];
+    }
 }
