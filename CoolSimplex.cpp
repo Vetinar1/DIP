@@ -414,7 +414,7 @@ void Simplex::validate_normals() {
             }
             std::cerr << std::endl;
         }
-        abort();
+//        abort();
     }
 
     // b) Normal on hyperplanes
@@ -468,7 +468,7 @@ void Simplex::validate_normals() {
                     }
                     std::cerr << std::endl;
                 }
-                abort();
+//                abort();
             }
 
         }
@@ -527,7 +527,7 @@ void Simplex::validate_normals() {
             std::cerr << std::endl;
             std::cerr << "Dot product: " << dot << std::endl;
 
-            abort();
+//            abort();
         }
     }
 

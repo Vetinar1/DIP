@@ -6,7 +6,7 @@
 #define MASTER_PROJECT_C_PART_COOLCONST_H
 
 #define N_MAX 61000
-#define D 2
+#define D 4
 #define S_MAX 1822576
 
 //#define N_LIM 10000

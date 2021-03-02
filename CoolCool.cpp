@@ -345,21 +345,19 @@ double Cool::interpolate(double * coords) {
      *                      of sampled area of parameter space.
      */
 
-    // TODO replace with flag
-    if (clamp_flag) {
-        // Warning! Input coordinates are modified
-        for (int i = 0; i < D; i++) {
-            if (coords[i] > maxs[i]) {
-                coords[i] = maxs[i];
-            } else if (coords[i] < mins[i]) {
-                coords[i] = mins[i];
-            }
+    // Warning! Input coordinates are modified
+    for (int i = 0; i < D; i++) {
+        if (coords[i] > CLAMP_MAX[i]) {
+            coords[i] = CLAMP_MAX[i];
+        } else if (coords[i] < CLAMP_MIN[i]) {
+            coords[i] = CLAMP_MIN[i];
         }
     }
 
     // 1. Find closest simplex (by centroid) using the ball tree
     Simplex * best = nullptr;
     Simplex * nn = find_nearest_neighbour_sbtree(btree, coords, best, DBL_MAX);
+    assert(nn != nullptr);
 
     // 2. Find simplex actually containing the target point using simplex flipping algorithm
     // Check if current nearest neighbor contains point
@@ -395,6 +393,16 @@ double Cool::interpolate(double * coords) {
             }
         }
 
+        if (nn->neighbour_pointers[best_dir] == nullptr) {
+            std::cerr << "Warning: Encountered nullpointer in simplex traversal" << std::endl;
+            std::cerr << "Coordinates: ";
+            for (int i = 0; i < D; i++) {
+                std::cerr << coords[i] << " ";
+            }
+            std::cerr << std::endl;
+            std::cerr << "Simplex at address " << nn << ", neighbor " << best_dir << std::endl;
+            break;
+        }
         // Check if current nearest neighbor contains target point
         nn = nn->neighbour_pointers[best_dir];
         delete[] bary;
@@ -604,7 +612,7 @@ void Cool::set_clamp_values(double * cmins, double * cmaxs) {
      * double * cmaxs        Pointer to array of doubles. Max values for clamping.
      */
     for (int i = 0; i < D; i++) {
-        CLAMP_MAX[i] = maxs[i];
-        CLAMP_MIN[i] = mins[i];
+        CLAMP_MAX[i] = cmaxs[i];
+        CLAMP_MIN[i] = cmins[i];
     }
 }

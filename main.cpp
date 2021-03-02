@@ -17,7 +17,7 @@
 // TODO Important: Dont go all the way to core edges. -> add to coolmanager clamps
 
 int main() {
-    std::string mode = "multilinear";
+    std::string mode = "block";
     std::cout << mode << std::endl;
 
 //    if (mode == "slice3d") {
@@ -77,7 +77,7 @@ int main() {
 //        return 0;
 //    }
 
-    if (mode == "block2d") {
+    if (mode == "block") {
         std::cout << "Initializing cool object... " << std::endl;
         //    Cool<35731, 4, 1002570> cool;
 //        Cool<5994, 3, 38602> cool;
@@ -86,11 +86,17 @@ int main() {
         Cool * cool = new Cool;
 //        Cool<980, 2, 1940> cool;
 
+        double clamp_mins[D] = {2.1, -8.9, -1.9, 6.1};
+        double clamp_maxs[D] = {8.9, 3.9, -0.1, 11.9};
+        cool->set_clamp_values(clamp_mins, clamp_maxs);
+
         std::cout << "Reading files... ";
+
+
         cool->read_files(
-                "../complexity/mesh2/z3.0.points",
-                "../complexity/mesh2/z3.0.tris",
-                "../complexity/mesh2/z3.0.neighbors"
+                "../complexity/mesh4/experiment.points",
+                "../complexity/mesh4/experiment.tris",
+                "../complexity/mesh4/experiment.neighbors"
         );
 //        cool->read_files("../data2d/data.csv", "../data2d/dtri.csv", "../data2d/dneighbours.csv");
 //        cool.read_files("../slice3d/z3.9.points", "../slice3d/z3.9.tris", "../slice3d/z3.9.neighbors");
@@ -112,29 +118,31 @@ int main() {
 //        old:	[6, 12]		Margins: 0.1		Source file: spectra/old
         double coord[D];
         std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-        for (int i = 0; i < 100; i++) {
-            for (int j = 0; j < 100; j++) {
-//                for (int k = 0; k < 10; k++) {
-//                    for (int l = 0; l < 10; l++) {
+        for (int i = 0; i < 10; i++) {
+            for (int j = 0; j < 10; j++) {
+                for (int k = 0; k < 10; k++) {
+                    for (int l = 0; l < 10; l++) {
+//                        std::cout << i << " " << j << " " << k << " " << l << std::endl;
                         coord[0] = 2 + i * (9-2)/100.;
 //                        coord[1] = -9 + j * (4+9) / 10.;
                         coord[1] = -3 + j * (4+3) / 100.;
 //                        coord[2] = -5 + k * (8) / 10.;
-//                        coord[2] = -1.9 + k * (1.8) / 10.;
-//                        coord[3] = 6 + (12-6) / 10.;
-
+                        coord[2] = -1.9 + k * (1.8) / 10.;
+                        coord[3] = 6 + l * (12-6) / 10.;
+//                        std::cout << coord[0] << " " << coord[1] << " " << coord[2] << " " << coord[3] << std::endl;
                         double interp = cool->interpolate(coord);
 
 //                         outfile << coord[0] << " " << coord[1] << " " << interp << std::endl;
 //                         std::cout << std::endl;
 
-//                    }
-//                }
+                    }
+                }
             }
         }
         std::cout << "Done" << std::endl;
         std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-        std::cout << "Time to complete = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[us]" << std::endl;
+//        std::cout << "Time to complete = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[us]" << std::endl;
+        std::cout << "Time to complete = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
         std::cout << "Avg = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() / pow(100, D) << "[ms]" << std::endl;
         std::cout << "Avg flips: " << cool->avg_flips << std::endl;
         return 0;

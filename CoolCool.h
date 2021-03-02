@@ -70,8 +70,6 @@ public:
 
     void reset();
 
-    void enable_clamping() { clamp_flag = 1; };
-    void disable_clamping() { clamp_flag = 0; };
     void set_clamp_values(double * mins, double * maxs);
 
     int read_files(std::string, std::string, std::string);
