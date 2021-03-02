@@ -11,8 +11,10 @@
 
 
 double CoolManager::interpolate(double * args, double z) {
-#if AUTOMATIC_LOADING==1
-    autoload(z);
+#ifdef DIP_CM_AUTOLOAD
+    if (z <= z_high && z >= z_low) {
+        autoload(z);
+    }
 #endif
     // Interpolate inside slices
     double lambda_low = low->interpolate(args);
@@ -30,15 +32,15 @@ void CoolManager::autoload(double z) {
      * Note: Only updates one slice. This means it implicitly assumes we only ever move to adjacent slices, forwards
      * in time! This should be a reasonable assumption for a cosmological simulation.
      */
-    if (z <= z_high && z >= z_low) {
-        return;
-    }
 
     if (z > z_high) {
+        std::cerr << "DIP ERROR in CoolManager object " << this << " in function void CoolManager::autoload" << std::endl;
         std::cerr << "Moving backwards in time?" << std::endl;
         std::cerr << "Current z interval: [" << z_low << ", " << z_high << "]" << std::endl;
-        std::cerr << "Tried to move to z = " << z << std::endl; // TODO This will lead to rpoblems if one calculation is ahead of the others
-        assert(0);
+        std::cerr << "Tried to move to z = " << z << std::endl;
+#ifdef DIP_CM_ABORT_ON_ERROR
+        abort();
+#endif
     }
 
     std::string fname;

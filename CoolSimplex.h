@@ -39,6 +39,7 @@ public:
     double * find_normal(Point ** );
     void validate_simplex();
     void validate_normals();
+    void print_error_info();
 
     // Pointers to left and right children in ball tree
     Simplex * lchild;

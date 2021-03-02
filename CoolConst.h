@@ -9,10 +9,9 @@
 #define D 4
 #define S_MAX 1822576
 
-//#define N_LIM 10000
-//#define S_LIM 10000
 
-#define EPSILON 1e-6
+// The epsilon to use in DIP calculations
+#define DIP_EPSILON 1e-6
 #define AUTOMATIC_LOADING 1         // Whether to automatically load in new z slices in CoolManager. Warning: Assumes each call to interpolate has less or equal z than before
 #define MAX_FLIPS 5                 // Max number of flips in simplex flipping algorithm before extrapolating TODO log somehow?
 
@@ -24,5 +23,10 @@
 #define DIP_DIAGNOSTICS
 // Whether to skip the first line of the points file when reading files
 #define DIP_POINTS_HEADER_SKIP
+
+// Whether CoolManager objects should automatically load new z slices as required
+#define DIP_CM_AUTOLOAD
+// Whether CoolManager objects should quit the program upon encountering an error
+#define DIP_CM_ABORT_ON_ERROR
 
 #endif //MASTER_PROJECT_C_PART_COOLCONST_H

@@ -13,8 +13,8 @@
 
 class CoolManager {
     /**
-     * Class that manages Cool objects in order to do linear interpolation between z slices.
-     * TODO better description
+     * Class that manages two Cool objects ("slices"), which are used for interpolation in all dimensions except z. z is
+     * interpolated linearly between those.
      */
 private:
     Cool * low;
