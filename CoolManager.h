@@ -51,16 +51,24 @@ public:
         low  = new Cool;
         high = new Cool;
 
-        low->read_files(
+        int status = low->read_files(
                 filenames[z_low] + ".points",
                 filenames[z_low] + ".tris",
                 filenames[z_low] + ".neighbors"
         );
-        high->read_files(
+        if (status > 0) {
+            std::cerr << "Error reading cooling data in CoolManager::push_slice, files " << filenames[z_low] << std::endl;
+            abort();
+        }
+        status = high->read_files(
                 filenames[z_high] + ".points",
                 filenames[z_high] + ".tris",
                 filenames[z_high] + ".neighbors"
         );
+        if (status > 0) {
+            std::cerr << "Error reading cooling data in CoolManager::push_slice, files " << filenames[z_high] << std::endl;
+            abort();
+        }
 
         low->construct_btree();
         high->construct_btree();

@@ -40,12 +40,15 @@ void Simplex::calculate_midpoints() {
 }
 
 
-void Simplex::calculate_normals() {
+int Simplex::calculate_normals() {
     /**
      * Calculates the normals for the simplex. The ith normal is opposite the ith vertex. All normals face "outwards",
      * away from the centroid.
+     *
+     * return       Number of errors
      */
 
+    int errors = 0;
     for (int i = 0; i < D+1; i++) { // Each face/point opposite
         // Build face out of all points except the one opposite
         Point * face[D];
@@ -81,6 +84,10 @@ void Simplex::calculate_normals() {
         } else if (dot < -DIP_EPSILON) {
             // fine
         } else {
+            // Count multiple errors in this one simplex as one error
+            errors = 1;
+
+#ifndef DIP_SUPPRESS_SIMPLEX_ERRORS
             std::cerr << "DIP ERROR in Simplex object " << this << " in function calculate_normals()" << std::endl;
             std::cerr << "Problem in normal calculation: Normal vector perpendicular on centroid-midpoint connection" << std::endl;
             std::cerr << "This simplex is likely degenerate, or very close to it" << std::endl;
@@ -106,6 +113,7 @@ void Simplex::calculate_normals() {
             std::cerr << "Dot product between difference vector and normal vector: " << dot << std::endl;
 
             print_error_info();
+#endif
         }
 
         // Finally, write correct normal into normals array
@@ -115,6 +123,8 @@ void Simplex::calculate_normals() {
 
         delete[] norm;
     }
+
+    return errors;
 }
 
 
@@ -306,13 +316,15 @@ void Simplex::validate_simplex() {
 }
 
 
-void Simplex::validate_normals() {
+int Simplex::validate_normals() {
     /**
      * Check that all normals are
      * a) Normalized
      * b) Normal
      * c) Pointing away from the centroid
      * d) Pointing away from each other
+     *
+     * return       0 if no errors, 1 if errors
      */
 
     int error = 0;
@@ -332,8 +344,10 @@ void Simplex::validate_normals() {
         }
     }
     if (nf_flag) {
+#ifndef DIP_SUPPRESS_SIMPLEX_ERRORS
         std::cerr << "DIP ERROR in Simplex object " << this << " in function validate_normals()" << std::endl;
         std::cerr << "Error in normal validation: Normalisation of normals " << std::endl;
+#endif
         error = 1;
     }
 
@@ -366,6 +380,7 @@ void Simplex::validate_normals() {
             }
 
             if (fabs(dot) > DIP_EPSILON) {
+#ifndef DIP_SUPPRESS_SIMPLEX_ERRORS
                 std::cerr << "DIP ERROR in Simplex object " << this << " in function validate_normals()" << std::endl;
                 std::cerr << "Normal vector not normal: " << i << std::endl;
                 std::cerr << "Normal vector: " << std::endl;
@@ -389,6 +404,7 @@ void Simplex::validate_normals() {
                     }
                     std::cerr << std::endl;
                 }
+#endif
                 error = 1;
             }
 
@@ -412,6 +428,7 @@ void Simplex::validate_normals() {
             dot += normals[i][j] * (diff[j] / len);
         }
         if (dot > DIP_EPSILON) {
+#ifndef DIP_SUPPRESS_SIMPLEX_ERRORS
             std::cerr << "DIP ERROR in Simplex object " << this << " in function validate_normals()" << std::endl;
             std::cerr << "Normal vector not pointing away from centroid: " << i << std::endl;
             for (int j = 0; j < D; j++) {
@@ -434,7 +451,7 @@ void Simplex::validate_normals() {
             }
             std::cerr << std::endl;
             std::cerr << "Dot product: " << dot << std::endl;
-
+#endif
             error = 1;
         }
     }
@@ -466,16 +483,22 @@ void Simplex::validate_normals() {
 //    std::cout << std::endl;
 
     if (smallest_dot > -1./D) {
+#ifndef DIP_SUPPRESS_SIMPLEX_ERRORS
         std::cerr << "DIP ERROR in Simplex object " << this << " in function validate_normals()" << std::endl;
         std::cerr << "Error in normal validation: Scalar product of Normals "
                   << smallest_dot_idx1 << " and " << smallest_dot_idx2 << ": "
                   << smallest_dot << " > -1/" << D << " = " << -1./D << std::endl;
+#endif
         error = 1;
     }
 
+#ifndef DIP_SUPPRESS_SIMPLEX_ERRORS
     if (error == 1) {
         print_error_info();
     }
+#endif
+
+    return error;
 }
 
 

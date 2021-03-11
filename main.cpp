@@ -128,7 +128,7 @@ int main() {
                         coord[1] = -3 + j * (4+3) / 100.;
 //                        coord[2] = -5 + k * (8) / 10.;
                         coord[2] = -1.9 + k * (1.8) / 10.;
-                        coord[3] = 6 + l * (12-6) / 10.;
+                        coord[3] = 6.1 + l * (11.9-6.1) / 10.;
 //                        std::cout << coord[0] << " " << coord[1] << " " << coord[2] << " " << coord[3] << std::endl;
                         double interp = cool->interpolate(coord);
 

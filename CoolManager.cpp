@@ -67,11 +67,15 @@ void CoolManager::push_slice(std::string filename) {
     high = low;
     low = temp;
     low->reset();
-    low->read_files(
+    int status = low->read_files(
             filename + ".points",
             filename + ".tris",
             filename + ".neighbors"
     );
+    if (status > 0) {
+        std::cerr << "Error reading cooling data in CoolManager::push_slice, files " << filename << std::endl;
+        abort();
+    }
     low->construct_btree();
 }
 

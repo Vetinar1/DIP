@@ -60,7 +60,6 @@ int Cool::construct_btree() {
      * Returns 0 on success.
      */
     // Construct array of pointers; allocate on heap to avoid stack overflows
-    std::cout << "test" << std::endl;
     Simplex ** simps = new Simplex *[S_LIM];
     for (int i = 0; i < S_LIM; i++) {
         simps[i] = &(simplices[i]);
@@ -401,6 +400,7 @@ double Cool::interpolate(double * coords) {
             }
             std::cerr << std::endl;
             std::cerr << "Simplex at address " << nn << ", neighbor " << best_dir << std::endl;
+            nn->print_error_info();
             break;
         }
         // Check if current nearest neighbor contains target point
@@ -451,7 +451,7 @@ int Cool::read_files(std::string cool_file, std::string tri_file, std::string ne
         std::cerr << "Error reading " << cool_file << std::endl;
         return 1;
     } else {
-        std::cout << "Reading" << cool_file << std::endl;
+        std::cout << "Reading " << cool_file << std::endl;
     }
 
 #ifdef DIP_POINTS_HEADER_SKIP
@@ -497,11 +497,13 @@ int Cool::read_files(std::string cool_file, std::string tri_file, std::string ne
         std::cerr << "Error reading " << tri_file << std::endl;
         return 2;
     } else {
-        std::cout << "Reading" << tri_file << std::endl;
+        std::cout << "Reading " << tri_file << std::endl;
     }
 
 
-    int s = 0;
+    int s = 0;     // Counter to determine number of simplices
+    int s_err = 0; // Number of errors in simplex loading process
+
     for (int i = 0; i < S_MAX; i++) {
         std::getline(file, line);
         std::stringstream linestream(line);
@@ -553,10 +555,15 @@ int Cool::read_files(std::string cool_file, std::string tri_file, std::string ne
         simplices[i].calculate_midpoints();
 
         s++;
+        int errbool = 0;
         if (skip != 1) {
-            simplices[i].calculate_normals();
-            simplices[i].validate_normals();
+            errbool += simplices[i].calculate_normals();
+            errbool += simplices[i].validate_normals();
         }
+        if (errbool) {
+            s_err++;
+        }
+
         // TODO Reinstate validate simplex function
 //        simplices[i].validate_simplex();
         if (file.peek() == EOF) {
@@ -567,6 +574,8 @@ int Cool::read_files(std::string cool_file, std::string tri_file, std::string ne
 
 
     file.close();
+
+    std::cout << "DIP: " << s_err << " simplices out of " << S_LIM << " total had some kind of error. Does this match your expectations?" << std::endl;
 
     // Construct matrices for each simplex
     // https://en.wikipedia.org/wiki/Barycentric_coordinate_system#Barycentric_coordinates_on_tetrahedra
@@ -581,7 +590,7 @@ int Cool::read_files(std::string cool_file, std::string tri_file, std::string ne
         std::cerr << "Error reading " << neighbour_file << std::endl;
         return 3;
     } else {
-        std::cout << "Reading" << neighbour_file << std::endl;
+        std::cout << "Reading " << neighbour_file << std::endl;
     }
 
     for (int i = 0; i < S_LIM; i++) {

@@ -5,6 +5,7 @@
 #ifndef MASTER_PROJECT_C_PART_COOLCONST_H
 #define MASTER_PROJECT_C_PART_COOLCONST_H
 
+// TODO Rename these to avoid interferences
 #define N_MAX 61000
 #define D 4
 #define S_MAX 1822576
@@ -13,7 +14,7 @@
 // The epsilon to use in DIP calculations
 #define DIP_EPSILON 1e-6
 #define AUTOMATIC_LOADING 1         // Whether to automatically load in new z slices in CoolManager. Warning: Assumes each call to interpolate has less or equal z than before
-#define MAX_FLIPS 5                 // Max number of flips in simplex flipping algorithm before extrapolating TODO log somehow?
+#define MAX_FLIPS 10                 // Max number of flips in simplex flipping algorithm before extrapolating TODO log somehow?
 
 
 // Flag for asserts in ball tree generation code. Recommended to be kept on the first time a tree is built on a
@@ -28,5 +29,8 @@
 #define DIP_CM_AUTOLOAD
 // Whether CoolManager objects should quit the program upon encountering an error
 #define DIP_CM_ABORT_ON_ERROR
+
+// Whether simplex errors in the file reading process are output to stderr or not
+#define DIP_SUPPRESS_SIMPLEX_ERRORS
 
 #endif //MASTER_PROJECT_C_PART_COOLCONST_H

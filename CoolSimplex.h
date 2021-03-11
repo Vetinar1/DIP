@@ -30,7 +30,7 @@ private:
     void invert_T();
     double * convert_to_bary(const double *);
     int check_bary(const double *);
-    void calculate_normals();
+    int calculate_normals();
     void calculate_midpoints();
 
     template<int M, int N1, int N2> void gauss_elimination(double (&)[M][N1], double (&)[M][N2], int);
@@ -38,7 +38,7 @@ public:
     // TODO does this need to be public?
     double * find_normal(Point ** );
     void validate_simplex();
-    void validate_normals();
+    int validate_normals();
     void print_error_info();
 
     // Pointers to left and right children in ball tree

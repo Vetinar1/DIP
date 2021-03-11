@@ -5,6 +5,10 @@
 #ifndef MASTER_PROJECT_C_PART_COOLCINTERFACE_H
 #define MASTER_PROJECT_C_PART_COOLCINTERFACE_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 int Cool_new();
 void Cool_read_files(int, char *, char *, char *);
 void Cool_reset(int);
@@ -15,4 +19,9 @@ double Cool_interpolate(int, double *);
 int CoolManager_new(double, double, char *);
 double CoolManager_interpolate(int, double *, double);
 void CoolManager_save_trees(int, char *, char *);
+
+#ifdef __cplusplus
+};
+#endif
+
 #endif //MASTER_PROJECT_C_PART_COOLCINTERFACE_H
