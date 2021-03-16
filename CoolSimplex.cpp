@@ -92,6 +92,12 @@ int Simplex::calculate_normals() {
             std::cerr << "Problem in normal calculation: Normal vector perpendicular on centroid-midpoint connection" << std::endl;
             std::cerr << "This simplex is likely degenerate, or very close to it" << std::endl;
 
+            std::cerr << "Centroid:\t\t";
+            for (int k = 0; k < D; k++) {
+                std::cerr << centroid[k] << " ";
+            }
+            std::cerr << std::endl;
+
             std::cerr << "Face Midpoint:\t";
             for (int k = 0; k < D; k++) {
                 std::cerr << midpoints[i][k] << " ";

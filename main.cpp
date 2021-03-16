@@ -140,7 +140,9 @@ int main() {
             }
         }
         std::cout << "Done" << std::endl;
-        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+        std::cout << "Encountered " << cool->nullpointers_encountered << " Nullpointers in Simplex traversal while " <<
+                    " interpolating " << cool->interpolate_calls << " points" << std::endl;
+                  std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 //        std::cout << "Time to complete = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[us]" << std::endl;
         std::cout << "Time to complete = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
         std::cout << "Avg = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() / pow(100, D) << "[ms]" << std::endl;

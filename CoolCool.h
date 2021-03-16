@@ -45,12 +45,12 @@ private:
     Simplex * construct_simplex_btree_recursive(Simplex **, int);
     Simplex * find_nearest_neighbour_sbtree(Simplex *, const double *, Simplex *, double);
 
-    int flips, interpolate_calls;
     int N_LIM, S_LIM;
 public:
     Cool() {
         flips = 0;
         interpolate_calls = 0;
+        nullpointers_encountered = 0;
         avg_flips = 0;
         S_LIM = S_MAX;
         N_LIM = N_MAX;
@@ -60,6 +60,8 @@ public:
         }
     };
     double avg_flips;
+    int flips, interpolate_calls;
+    int nullpointers_encountered;
 
     // Minimum and maximum values in each dimension TODO private?
     double mins[D];

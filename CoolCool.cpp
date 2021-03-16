@@ -31,6 +31,7 @@ void Cool::reset() {
     flips = 0;
     interpolate_calls = 0;
     avg_flips = 0;
+    nullpointers_encountered = 0;
     for (int i = 0; i < D; i++) {
         mins[i] = DBL_MAX;
         maxs[i] = -1 * DBL_MAX;
@@ -393,6 +394,7 @@ double Cool::interpolate(double * coords) {
         }
 
         if (nn->neighbour_pointers[best_dir] == nullptr) {
+            nullpointers_encountered++;
             std::cerr << "Warning: Encountered nullpointer in simplex traversal" << std::endl;
             std::cerr << "Coordinates: ";
             for (int i = 0; i < D; i++) {

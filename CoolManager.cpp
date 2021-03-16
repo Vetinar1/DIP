@@ -32,6 +32,9 @@ void CoolManager::autoload(double z) {
      * Note: Only updates one slice. This means it implicitly assumes we only ever move to adjacent slices, forwards
      * in time! This should be a reasonable assumption for a cosmological simulation.
      */
+    if (z <= z_high && z >= z_low) {
+        return;
+    }
 
     if (z > z_high) {
         std::cerr << "DIP ERROR in CoolManager object " << this << " in function void CoolManager::autoload" << std::endl;
