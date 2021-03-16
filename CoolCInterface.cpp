@@ -99,7 +99,7 @@ extern "C" {
         CM[cm_idx]->set_clamp_values(mins, maxs);
     }
 
-//#ifdef __cplusplus
+#ifdef __cplusplus
 };
 #endif
 

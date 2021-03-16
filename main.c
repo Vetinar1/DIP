@@ -4,7 +4,7 @@
 #define CM
 int main() {
 #ifdef CM
-    int cm_idx = CoolManager_new(7.5, 8, "cooldata/mapfile");
+    int cm_idx = CoolManager_new(7.5, 8, "cooldata/mapfile", 0);
     double coord[2];
     coord[1] = 3;
     double z = 4;
