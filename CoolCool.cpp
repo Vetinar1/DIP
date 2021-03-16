@@ -616,8 +616,7 @@ int Cool::read_files(std::string cool_file, std::string tri_file, std::string ne
 
 void Cool::set_clamp_values(double * cmins, double * cmaxs) {
     /**
-     * Set values of the clamps to use in interpolate(). Note that these will only be used if clamping is enabled
-     * with enable_clamping().
+     * Set values of the clamps to use in interpolate().
      *
      * double * cmins        Pointer to array of doubles. Min values for clamping.
      * double * cmaxs        Pointer to array of doubles. Max values for clamping.

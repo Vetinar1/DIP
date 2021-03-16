@@ -12,7 +12,7 @@
 
 double CoolManager::interpolate(double * args, double z) {
 #ifdef DIP_CM_AUTOLOAD
-    if (z <= z_high && z >= z_low) {
+    if (z < z_low || z > z_high) {
         autoload(z);
     }
 #endif
@@ -61,6 +61,7 @@ void CoolManager::autoload(double z) {
     }
 
     push_slice(fname);
+    apply_clamps();
 }
 
 
@@ -86,4 +87,26 @@ void CoolManager::push_slice(std::string filename) {
 void CoolManager::save_trees(std::string fname_low, std::string fname_high) {
     low->save_btree(fname_low);
     high->save_btree(fname_high);
+}
+
+
+void CoolManager::set_clamp_values(double * cmins, double * cmaxs) {
+    /**
+     * Set values of the clamps to use in interpolate().
+     *
+     * double * cmins        Pointer to array of doubles. Min values for clamping.
+     * double * cmaxs        Pointer to array of doubles. Max values for clamping.
+     */
+    for (int i = 0; i < D; i++) {
+        CLAMP_MAX[i] = cmaxs[i];
+        CLAMP_MIN[i] = cmins[i];
+    }
+
+    apply_clamps();
+}
+
+
+void CoolManager::apply_clamps() {
+    low->set_clamp_values(&CLAMP_MIN[0], &CLAMP_MAX[0]);
+    high->set_clamp_values(&CLAMP_MIN[0], &CLAMP_MAX[0]);
 }

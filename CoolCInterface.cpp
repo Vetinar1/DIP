@@ -64,14 +64,27 @@ extern "C" {
 
 
     /* CoolManager<int N_LIM, int D, int S_LIM> */
-    int CoolManager_new(double init_z_low, double init_z_high, char * mapfile) {
+//    int CoolManager_new(double init_z_low, double init_z_high, char * mapfile) {
+//        if (coolmanager_counter >= COOLMANAGER_OBJ_COUNT) {
+//            std::cerr << "Tried to create too many CoolManager objects" << std::endl;
+//            return -1;
+//        }
+//        CM[coolmanager_counter] = new CoolManager(init_z_low, init_z_high, std::string(mapfile));
+//        coolmanager_counter++;
+//        return coolmanager_counter - 1;
+//    }
+
+    int CoolManager_new(double init_z_low, double init_z_high, char * mapfile, int index) {
+        /**
+         * Dont mix this one with the other one
+         */
         if (coolmanager_counter >= COOLMANAGER_OBJ_COUNT) {
             std::cerr << "Tried to create too many CoolManager objects" << std::endl;
             return -1;
         }
-        CM[coolmanager_counter] = new CoolManager(init_z_low, init_z_high, std::string(mapfile));
+        CM[index] = new CoolManager(init_z_low, init_z_high, std::string(mapfile));
         coolmanager_counter++;
-        return coolmanager_counter - 1;
+        return index;
     }
 
     double CoolManager_interpolate(int cm_indx, double * args, double z) {
@@ -82,7 +95,11 @@ extern "C" {
         CM[cm_indx]->save_trees(std::string(fname_low), std::string(fname_high));
     }
 
-#ifdef __cplusplus
+    void CoolManager_set_clamps(int cm_idx, double * mins, double * maxs) {
+        CM[cm_idx]->set_clamp_values(mins, maxs);
+    }
+
+//#ifdef __cplusplus
 };
 #endif
 

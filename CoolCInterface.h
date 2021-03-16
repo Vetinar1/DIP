@@ -16,9 +16,10 @@ void Cool_construct_tree(int);
 void Cool_save_tree(int, char *);
 double Cool_interpolate(int, double *);
 
-int CoolManager_new(double, double, char *);
+int CoolManager_new(double, double, char *, int);
 double CoolManager_interpolate(int, double *, double);
 void CoolManager_save_trees(int, char *, char *);
+void CoolManager_set_clamps(int, double *, double *);
 
 #ifdef __cplusplus
 };

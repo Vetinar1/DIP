@@ -21,10 +21,13 @@ private:
     Cool * high;
 
     double z_low, z_high, z_diff;
+    double CLAMP_MIN[D], CLAMP_MAX[D];
 
     std::map<double, std::string> filenames;    // Available files for each z. (endings: .points, .tris, .neighbors)
 
     void autoload(double z);
+
+    void apply_clamps();
 public:
     CoolManager(double init_z_low, double init_z_high, std::string fname) {
         std::ifstream mapfile;
@@ -80,6 +83,7 @@ public:
     double interpolate(double*, double);
     void save_trees(std::string fname_low, std::string fname_high);
     void push_slice(std::string);
+    void set_clamp_values(double * mins, double * maxs);
 };
 
 
