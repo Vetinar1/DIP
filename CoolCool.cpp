@@ -416,9 +416,12 @@ double Cool::interpolate(double * coords) {
 
     // The actual interpolation step
     double val = 0;
+//    std::cout << "Actual interp: " << std::endl;
     for (int i = 0; i < D+1; i++) {
         val += bary[i] * nn->points[i]->value;
+//        std::cout << bary[i] << " * " << nn->points[i]->value << " + ";
     }
+//    std::cout << std::endl;
 
     delete[] bary;
 
