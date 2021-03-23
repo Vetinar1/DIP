@@ -86,17 +86,20 @@ int main() {
         Cool * cool = new Cool;
 //        Cool<980, 2, 1940> cool;
 
-        double clamp_mins[D] = {2.1, -8.9, -1.9, 6.1};
-        double clamp_maxs[D] = {8.9, 3.9, -0.1, 11.9};
+        double clamp_mins[D] = {2.1, -8.9, -1.9};
+        double clamp_maxs[D] = {8.9, 3.9, -0.1};
         cool->set_clamp_values(clamp_mins, clamp_maxs);
 
         std::cout << "Reading files... ";
 
 
         cool->read_files(
-                "../complexity/mesh4/experiment.points",
-                "../complexity/mesh4/experiment.tris",
-                "../complexity/mesh4/experiment.neighbors"
+                "../heatdata2/z0.0.points",
+                "../heatdata2/z0.0.tris",
+                "../heatdata2/z0.0.neighbors"
+//                "../complexity/mesh4/experiment.points",
+//                "../complexity/mesh4/experiment.tris",
+//                "../complexity/mesh4/experiment.neighbors"
         );
 //        cool->read_files("../data2d/data.csv", "../data2d/dtri.csv", "../data2d/dneighbours.csv");
 //        cool.read_files("../slice3d/z3.9.points", "../slice3d/z3.9.tris", "../slice3d/z3.9.neighbors");
@@ -117,25 +120,26 @@ int main() {
 //        SFR:	[-5, 3]		Margins: 0.1		Source file: spectra/SFR
 //        old:	[6, 12]		Margins: 0.1		Source file: spectra/old
         double coord[D];
+
         std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 100; i++) {
             for (int j = 0; j < 10; j++) {
                 for (int k = 0; k < 10; k++) {
-                    for (int l = 0; l < 10; l++) {
+//                    for (int l = 0; l < 10; l++) {
 //                        std::cout << i << " " << j << " " << k << " " << l << std::endl;
                         coord[0] = 2 + i * (9-2)/100.;
 //                        coord[1] = -9 + j * (4+9) / 10.;
                         coord[1] = -3 + j * (4+3) / 100.;
 //                        coord[2] = -5 + k * (8) / 10.;
                         coord[2] = -1.9 + k * (1.8) / 10.;
-                        coord[3] = 6.1 + l * (11.9-6.1) / 10.;
-//                        std::cout << coord[0] << " " << coord[1] << " " << coord[2] << " " << coord[3] << std::endl;
+//                        coord[3] = 6.1 + l * (11.9-6.1) / 10.;
+//                        std::cout << coord[0] << " " << coord[1] << " " << coord[2] << std::endl;
                         double interp = cool->interpolate(coord);
 
 //                         outfile << coord[0] << " " << coord[1] << " " << interp << std::endl;
 //                         std::cout << std::endl;
 
-                    }
+//                    }
                 }
             }
         }
