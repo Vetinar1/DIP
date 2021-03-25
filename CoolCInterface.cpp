@@ -12,7 +12,7 @@
 //#include "CoolCInterface.h"
 
 #define COOL_OBJ_COUNT 10
-#define COOLMANAGER_OBJ_COUNT 10
+#define COOLMANAGER_OBJ_COUNT 85
 
 // TODO Find a good solution for these
 
@@ -24,6 +24,10 @@
 //Cool<N, D, S> * C;
 Cool * C[COOL_OBJ_COUNT];
 CoolManager * CM[COOLMANAGER_OBJ_COUNT];
+for (int i = 0; i < COOLMANAGER_OBJ_COUNT) {
+    CM[i] = nullptr;
+}
+
 int cool_counter = 0;
 int coolmanager_counter = 0;
 

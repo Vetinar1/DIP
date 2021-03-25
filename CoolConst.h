@@ -5,9 +5,9 @@
 #ifndef MASTER_PROJECT_C_PART_COOLCONST_H
 #define MASTER_PROJECT_C_PART_COOLCONST_H
 
-#define N_MAX 16000
-#define D 3
-#define S_MAX 105000
+#define N_MAX 14000
+#define D 4
+#define S_MAX 410000
 
 
 // The epsilon to use in DIP calculations
