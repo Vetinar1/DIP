@@ -24,9 +24,6 @@
 //Cool<N, D, S> * C;
 Cool * C[COOL_OBJ_COUNT];
 CoolManager * CM[COOLMANAGER_OBJ_COUNT];
-for (int i = 0; i < COOLMANAGER_OBJ_COUNT; i++) {
-    CM[i] = nullptr;
-}
 
 int cool_counter = 0;
 int coolmanager_counter = 0;
