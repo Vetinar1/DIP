@@ -42,6 +42,7 @@ void CoolManager::autoload(double z) {
         std::cerr << "Current z interval: [" << z_low << ", " << z_high << "]" << std::endl;
         std::cerr << "Tried to move to z = " << z << std::endl;
 #ifdef DIP_CM_ABORT_ON_ERROR
+        std::cerr << "Aborting..." << std::endl;
         abort();
 #endif
     }
