@@ -357,6 +357,11 @@ double Cool::interpolate(double * coords) {
     // 1. Find closest simplex (by centroid) using the ball tree
     Simplex * best = nullptr;
     Simplex * nn = find_nearest_neighbour_sbtree(btree, coords, best, DBL_MAX);
+    if (nn == nullptr) {
+        std::cerr << "DIP Important WARNING: Nullpointer returned from ball tree! Returning default value!" << std::endl;
+        std::cerr << "This should NEVER happen, are you SURE everything is working fine?" << std::endl;
+        return -30; // basically 0
+    }
     assert(nn != nullptr);
 
     // 2. Find simplex actually containing the target point using simplex flipping algorithm
@@ -395,10 +400,16 @@ double Cool::interpolate(double * coords) {
 
         if (nn->neighbour_pointers[best_dir] == nullptr) {
             nullpointers_encountered++;
-            std::cerr << "Warning: Encountered nullpointer in simplex traversal" << std::endl;
+            std::cerr << "Warning: Encountered nullpointer in simplex traversal (flip " << n_flips << ")" << std::endl;
+            std::cerr << "So far this happened " << nullpointers_encountered << " times" << std::endl;
             std::cerr << "Coordinates: ";
             for (int i = 0; i < D; i++) {
                 std::cerr << coords[i] << " ";
+            }
+            std::cerr << std::endl;
+            std::cerr << "Bary Coordinates: ";
+            for (int i = 0; i < D; i++) {
+                std::cerr << bary[i] << " ";
             }
             std::cerr << std::endl;
             std::cerr << "Simplex at address " << nn << ", neighbor " << best_dir << std::endl;
@@ -558,6 +569,7 @@ int Cool::read_files(std::string cool_file, std::string tri_file, std::string ne
 
         simplices[i].calculate_centroid();
         simplices[i].calculate_midpoints();
+        simplices[i].index = i;
 
         s++;
         int errbool = 0;

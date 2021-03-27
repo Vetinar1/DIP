@@ -25,6 +25,7 @@ private:
     int neighbour_indices[D+1];         // One neighbour opposite every point
     Simplex * neighbour_pointers[D+1];
     double sbtree_radius_sq;            // Squared radius of ball in ball tree
+    int index;
 
     void construct_T_inv();
     void calculate_T();

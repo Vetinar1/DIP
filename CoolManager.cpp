@@ -27,6 +27,7 @@ double CoolManager::interpolate(double * args, double z) {
         }
 #endif
     }
+    std::cout << args[0] << " " << args[1] << std::endl;
     // Interpolate inside slices
     double lambda_low = low->interpolate(args);
 //    std::cout << "Low: " << lambda_low << std::endl;

@@ -731,7 +731,7 @@ void Simplex::print_error_info() {
      * Print general information about this simplex to std::cerr.
      */
     std::cerr << "======================" << std::endl;
-    std::cerr << "Error Info of Simplex at address " << this << ":" << std::endl;
+    std::cerr << "Error Info of Simplex " << index << " at address " << this << ":" << std::endl;
     std::cerr << "Centroid:" << std::endl;
     for (int i = 0; i < D; i++) {
         std::cerr << centroid[i] << " ";

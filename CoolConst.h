@@ -35,6 +35,6 @@
 #define DIP_CM_ABORT_ON_ERROR
 
 // Whether simplex errors in the file reading process are output to stderr or not
-#define DIP_SUPPRESS_SIMPLEX_ERRORS
+//#define DIP_SUPPRESS_SIMPLEX_ERRORS
 
 #endif //MASTER_PROJECT_C_PART_COOLCONST_H
