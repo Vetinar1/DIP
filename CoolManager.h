@@ -20,8 +20,10 @@ private:
     Cool * low;
     Cool * high;
 
-    double z_low, z_high, z_diff;
+    double z_low, z_high, z_diff, z_highest;
     double CLAMP_MIN[D], CLAMP_MAX[D];
+
+    int highest_z_warn_flag = 0;
 
     std::map<double, std::string> filenames;    // Available files for each z. (endings: .points, .tris, .neighbors)
 
@@ -50,6 +52,7 @@ public:
         z_low = init_z_low;
         z_high = init_z_high;
         z_diff = init_z_high - init_z_low;
+        z_highest = z_high; // Since z can only ever go lower TODO this will require some thorough documentation...
 
         low  = new Cool;
         high = new Cool;

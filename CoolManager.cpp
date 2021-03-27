@@ -11,11 +11,22 @@
 
 
 double CoolManager::interpolate(double * args, double z) {
-#ifdef DIP_CM_AUTOLOAD
     if (z < z_low || z > z_high) {
-        autoload(z);
-    }
+        if (z > z_high && z_high == z_highest) {
+            if (highest_z_warn_flag != 1) {
+                std::cerr << "DIP Warning! Input z greater than largest z (" << z_highest << ")." << std::endl;
+                std::cerr << "Assuming that data at z = " << z_high << " generalizes to " << z << std::endl;
+                std::cerr << "This warning will only be output once" << std::endl;
+                highest_z_warn_flag = 1;
+            }
+            return high->interpolate(args);
+        }
+#ifdef DIP_CM_AUTOLOAD
+        else {
+            autoload(z);
+        }
 #endif
+    }
     // Interpolate inside slices
     double lambda_low = low->interpolate(args);
 //    std::cout << "Low: " << lambda_low << std::endl;
