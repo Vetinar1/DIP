@@ -49,14 +49,19 @@ void CoolManager::autoload(double z) {
     }
 
     if (z > z_high) {
-        std::cerr << "DIP ERROR in CoolManager object " << this << " in function void CoolManager::autoload" << std::endl;
-        std::cerr << "Moving backwards in time?" << std::endl;
-        std::cerr << "Current z interval: [" << z_low << ", " << z_high << "]" << std::endl;
-        std::cerr << "Tried to move to z = " << z << std::endl;
+        if (z_high < z_high_warning_val) {
+            z_high_warning_val = z_high;
+            std::cerr << "DIP WARNING in CoolManager object " << this << " in function void CoolManager::autoload" << std::endl;
+            std::cerr << "Moving backwards in time?" << std::endl;
+            std::cerr << "Current z interval: [" << z_low << ", " << z_high << "]" << std::endl;
+            std::cerr << "Tried to move to z = " << z << std::endl;
+            std::cerr << "This warning will only be output once per z" << std::endl;
 #ifdef DIP_CM_ABORT_ON_ERROR
-        std::cerr << "Aborting..." << std::endl;
-        abort();
+            std::cerr << "Aborting..." << std::endl;
+            abort();
 #endif
+        }
+        return;
     }
 
     std::string fname;

@@ -32,7 +32,7 @@
 // Whether CoolManager objects should automatically load new z slices as required
 #define DIP_CM_AUTOLOAD
 // Whether CoolManager objects should quit the program upon encountering an error
-#define DIP_CM_ABORT_ON_ERROR
+//#define DIP_CM_ABORT_ON_ERROR
 
 // Whether simplex errors in the file reading process are output to stderr or not
 //#define DIP_SUPPRESS_SIMPLEX_ERRORS

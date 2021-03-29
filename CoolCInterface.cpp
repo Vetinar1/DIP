@@ -12,7 +12,7 @@
 //#include "CoolCInterface.h"
 
 #define COOL_OBJ_COUNT 10
-#define COOLMANAGER_OBJ_COUNT 85
+#define COOLMANAGER_OBJ_COUNT 161
 
 // TODO Find a good solution for these
 

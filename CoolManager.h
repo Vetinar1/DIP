@@ -24,6 +24,7 @@ private:
     double CLAMP_MIN[D], CLAMP_MAX[D];
 
     int highest_z_warn_flag = 0;
+    int z_high_warning_val = 9999999;
 
     std::map<double, std::string> filenames;    // Available files for each z. (endings: .points, .tris, .neighbors)
 
