@@ -78,8 +78,6 @@ public:
     void save_btree(std::string filename);
     int construct_btree();
     double interpolate(double * coords);
-    void set_N_MAX(int n) { N_LIM = n; };
-    void set_S_MAX(int s) { S_LIM = s; };
 };
 
 

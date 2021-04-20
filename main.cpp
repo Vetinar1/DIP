@@ -20,10 +20,10 @@
 // TODO Important: Dont go all the way to core edges. -> add to coolmanager clamps
 
 int main() {
-    std::string mode = "slice3d";
+    std::string mode = "multilinear";
 //    std::cout << mode << std::endl;
 //    std::cout << std::setprecision( std::numeric_limits<double>::digits10+2);
-
+/*
     if (mode == "slice3d") {
         CoolManager * CM = new CoolManager(7.5, 8, "../cooldata3/mapfile");
 
@@ -50,7 +50,7 @@ int main() {
         std::cout << "Time to complete = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
         outfile.close();
         return 0;
-    }
+    }*/
 
 //    if (mode == "block") {
 //        std::cout << "Initializing cool object... " << std::endl;
@@ -142,7 +142,8 @@ int main() {
 //    }
 
    if (mode == "multilinear") {
-       int dims[D] = {71, 14};
+//       int dims[D] = {71, 14, 3};
+       int dims[D] = {71, 9, 4, 7};
        int n_points = 1;
        for (int i = 0; i < D; i++) {
            n_points *= dims[i];
@@ -157,18 +158,21 @@ int main() {
        // T, nH, old, SFR
        double minmax[D][2] = {
                {2, 9},
-               {-9, 4}
+               {-4, 4},
+               {-1.5, 0},
+               {6, 12}
        };
 
        std::ifstream file;
        std::string line;
        std::string value;
-       file.open("../complexity/grids/grid2.csv");
+       file.open("../complexity/grids/grid4_fixed.csv");
        if (!file.is_open()) {
            std::cerr << "Error reading grid file" << std::endl;
            return 2;
        }
-       for (int i = 0; i < 995; i++) {
+       for (int i = 0; i < 17893; i++) {
+           std::cout << i << std::endl;
            std::getline(file, line);
            if (i == 0) {
                continue;
@@ -222,24 +226,24 @@ int main() {
 //               std::cout << std::endl;
 //           }
 //       }
-       for (int i = 0; i < 100; i++) {
-           for (int j = 0; j < 100; j++) {
-//               for (int k = 0; k < 10; k++) {
-//                   for (int l = 0; l < 10; l++) {
+       for (int i = 0; i < 10; i++) {
+           for (int j = 0; j < 10; j++) {
+               for (int k = 0; k < 10; k++) {
+                   for (int l = 0; l < 10; l++) {
 //                         std::cout << i << " " << j << std::endl;
-                       coord[0] = 2 + i * (9-2)/100.;
+                       coord[0] = 2 + i * (9-2)/10.;
 //                        coord[1] = -9 + j * (4+9) / 10.;
-                       coord[1] = -3 + j * (4+3) / 100.;
-//                       coord[2] = -5 + k * (8) / 10.;
-//                       coord[3] = 6 + (12-6) / 10.;
+                       coord[1] = -3 + j * (4+3) / 10.;
+                       coord[2] = -1.5 + k * (1.5) / 10.;
+                       coord[3] = 6 + (12-6) / 10.;
 
                        double interp = MLI.interpolate(coord);
 
 //                         outfile << coord[0] << " " << coord[1] << " " << interp << std::endl;
 //                         std::cout << std::endl;
 
-//                   }
-//               }
+                   }
+               }
            }
        }
        std::cout << "Done" << std::endl;
