@@ -15,6 +15,7 @@ void Cool_reset(int);
 void Cool_construct_tree(int);
 void Cool_save_tree(int, char *);
 double Cool_interpolate(int, double *);
+void Cool_set_clamps(int, double * mins, double * maxs);
 
 int CoolManager_new(double, double, char *, int);
 double CoolManager_interpolate(int, double *, double);

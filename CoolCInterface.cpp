@@ -63,6 +63,10 @@ extern "C" {
         return C[c_indx]->interpolate(coords);
     }
 
+    void Cool_set_clamps(int c_indx, double * mins, double * maxs) {
+        C[c_indx]->set_clamp_values(mins, maxs);
+    }
+
 
     /* CoolManager<int N_LIM, int D, int S_LIM> */
 //    int CoolManager_new(double init_z_low, double init_z_high, char * mapfile) {

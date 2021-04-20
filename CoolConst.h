@@ -6,7 +6,7 @@
 #define MASTER_PROJECT_C_PART_COOLCONST_H
 
 #define N_MAX 14000     // maximum number of points
-#define D 4             // dimensions
+#define D 3             // dimensions
 #define S_MAX 410000    // maximum number of simplices
 
 
