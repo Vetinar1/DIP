@@ -16,7 +16,7 @@ As a library (recommended if you are integrating it into a C project) or directl
 
 ### As a library
 
-Download the source and compile it using the provided makefile. (Simply run `make`.)
+Download the source and compile it using the provided makefile. You can do this by imply running `make so`.
 This will create two shared objects libraries (*.so).
 Copy the files CoolCInterface.h and CoolConst.h into your project.
 Include the *.h files in your source code and use the provided functions as necessary.
@@ -131,4 +131,11 @@ It contains functions that enable you to use the objects described above.
 Several objects can be created (how many is limited by a constant), and they can be accessed via an index that is
 returned on their creation.
 
-I recommend you take a look at CoolCInterface.cpp, it should be self-explanatory.
+I recommend you take a look at CoolCInterface.cpp and example1.c to see it in practice, it is very simple.
+
+
+## The example files
+
+The files example1.c and example2.cpp each contain an example on how to use `Cool` and `CoolManager`.
+You can compile these with `make c` and `make cpp`. Make sure to set the LD_LIBRARY_PATH variable if you want to 
+run example1!

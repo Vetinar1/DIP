@@ -9,6 +9,7 @@ cpp : example2.cpp
 	g++ -c example2.cpp CoolCool.cpp CoolManager.cpp CoolSimplex.cpp
 	g++ -o example2 example2.o CoolCool.o CoolManager.o CoolSimplex.o
 	
+so : libraries
 
 libraries : libcoolc.so libcoolcpp.so
 	g++ -fpic -shared CoolCInterface.cpp -L. -I. -lcoolcpp -o libcoolc.so
