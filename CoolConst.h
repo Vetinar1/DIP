@@ -2,8 +2,8 @@
 // Created by vetinari on 01.12.20.
 //
 
-#ifndef MASTER_PROJECT_C_PART_COOLCONST_H
-#define MASTER_PROJECT_C_PART_COOLCONST_H
+#ifndef DIP_COOLCONST_H
+#define DIP_COOLCONST_H
 
 #define N_MAX 14000     // maximum number of points
 #define D 3             // dimensions
@@ -15,6 +15,8 @@
 #define AUTOMATIC_LOADING 1         // Whether to automatically load in new z slices in CoolManager. Warning: Assumes each call to interpolate has less or equal z than before
 #define MAX_FLIPS 10                 // Max number of flips in simplex flipping algorithm before extrapolating
 
+// The default value returned by interpolate if the ball tree fails
+#define DIP_INTERP_DEFAULT (-40)
 
 // Flag for asserts in ball tree generation code. Recommended to be kept on the first time a tree is built on a
 // data set, can be switched off otherwise if desired
@@ -24,11 +26,6 @@
 // Whether to skip the first line of the points file when reading files
 #define DIP_POINTS_HEADER_SKIP
 
-// Starting values for CoolManager
-#define DIP_CM_INIT_Z_LOW 8.5
-#define DIP_CM_INIT_Z_HIGH 9.
-#define DIP_CM_MAPFILE "cooldata/mapfile"
-
 // Whether CoolManager objects should automatically load new z slices as required
 #define DIP_CM_AUTOLOAD
 // Whether CoolManager objects should quit the program upon encountering an error
@@ -37,4 +34,4 @@
 // Whether simplex errors in the file reading process are output to stderr or not
 //#define DIP_SUPPRESS_SIMPLEX_ERRORS
 
-#endif //MASTER_PROJECT_C_PART_COOLCONST_H
+#endif //DIP_COOLCONST_H

@@ -541,12 +541,6 @@ void Simplex::invert_T() {
     }
 
     gauss_elimination<D, D, D>(T_inv, unit, 1);
-//    for (int i = 0; i < D; i++) {   // for each point (except the last)
-//        for (int j = 0; j < D; j++) {   // for each coordinate
-//             matrix[j][i], not matrix[i][j] - coordinates go down, points go right
-//            T[i][j] = T_inv[i][j];
-//        }
-//    }
 
     for (int i = 0; i < D; i++) {
         for (int j = 0; j < D; j++) {
@@ -659,21 +653,9 @@ double * Simplex::convert_to_bary(const double * coords) {
      */
     // 1. Obtain p - v_n+1
     double vec[D];
-//    std::cout << "T: " << std::endl;
-//    for (int i = 0; i < D; i++) {
-//        for (int j = 0; j < D; j++) {
-//            std::cout << T[i][j] << " ";
-//        }
-//        std::cout << std::endl;
-//    }
-//    std::cout << "coord: " << coords[0] << " " << coords[1] << " " << coords[2] << std::endl;
-//    std::cout << "p: " << points[D]->coords[0] << " " << points[D]->coords[1] << " " << points[D]->coords[2] << std::endl;
-//    std::cout << "coord - p: ";
     for (int i = 0; i < D; i++) {
         vec[i] = coords[i] - points[D]->coords[i];
-//        std::cout << vec[i] << " ";
     }
-//    std::cout << std::endl;
 
     // 2. Multiply T_inv * (p - v_n+1) to get lambda
     double * bary = new double[D+1];
@@ -681,9 +663,7 @@ double * Simplex::convert_to_bary(const double * coords) {
         bary[i] = 0;
         for (int j = 0; j < D; j++) {
             bary[i] += T_inv[i][j] * vec[j];
-//            std::cout << T_inv[i][j] << " * " << vec[j] << " + ";
         }
-//        std::cout << " = " << bary[i] << std::endl;
     }
 
     // dependent coordinate lambda_n+1

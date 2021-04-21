@@ -72,6 +72,7 @@ The Cool object is now ready for interpolations.
 You can interpolate on the mesh by using the `double interpolate(double *)` method.
 It takes a pointer to an array as argument. This array must contain the coordinates of the point you want to interpolate.
 Make sure the coordinates are in the correct order - the same order that they appear in in the .points file.
+Note that if the clamping limits the input values, the original array is modified!
 
 If you wish to reuse the Cool object, you can reset it using the `void reset()` method.
 

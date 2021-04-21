@@ -2,8 +2,8 @@
 // Created by vetinari on 26.11.20.
 //
 
-#ifndef MASTER_PROJECT_C_PART_COOLMANAGER_H
-#define MASTER_PROJECT_C_PART_COOLMANAGER_H
+#ifndef DIP_COOLMANAGER_H
+#define DIP_COOLMANAGER_H
 
 #include "CoolCool.h"
 #include <map>
@@ -53,7 +53,7 @@ public:
         z_low = init_z_low;
         z_high = init_z_high;
         z_diff = init_z_high - init_z_low;
-        z_highest = z_high; // Since z can only ever go lower TODO this will require some thorough documentation...
+        z_highest = z_high;
 
         low  = new Cool;
         high = new Cool;
@@ -91,4 +91,4 @@ public:
 };
 
 
-#endif // MASTER_PROJECT_C_PART_COOLMANAGER_H
+#endif // DIP_COOLMANAGER_H

@@ -2,9 +2,6 @@
 // Created by vetinari on 14.12.20.
 //
 
-// TODO: Flag for diagnostics
-// TODO: Flag for warnings
-
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -25,7 +22,7 @@
 
 void Cool::reset() {
     /**
-     * Resets all properties of the cool object (and associates simplex objects) so it can be reused. Intended
+     * Resets all properties of the cool object (and associated simplex objects) so it can be reused. Intended
      * to be a preparation for read_files()
      */
     flips = 0;
@@ -56,7 +53,7 @@ void Cool::reset() {
 int Cool::construct_btree() {
     /**
      * This function serves as a public "adapter" to the actual ball tree construction function,
-     * construct_point_btree_recursive().
+     * construct_simplex_btree_recursive().
      *
      * Returns 0 on success.
      */
@@ -178,7 +175,6 @@ Simplex * Cool::construct_simplex_btree_recursive(Simplex ** simps, int n) {
     assert(pivot_addr != nullptr);
     assert(rcount != 0 || lcount != 0);
     assert(min_dist < DBL_MAX);
-    // TODO Take these out?
     for (int i = 0; i < lcount; i++) {
         assert(L[i] != pivot_addr);
     }
@@ -230,7 +226,7 @@ void Cool::save_btree(std::string filename) {
     /**
      * Saves the Ball tree. Format: [Index of simplex] [Index of left child] [Index of right child] [pbtree_radius_sq]
      *
-     * TODO: Verify it works correctly, current version is untested
+     * Warning, this function was only used for debug purposes and may not work fast or correctly.
      *
      * std::string filename     Filename.
      */
@@ -253,9 +249,6 @@ Simplex * Cool::find_nearest_neighbour_sbtree(Simplex * root, const double * tar
     /**
      * Recursive function to find the nearest neighbor of point target in tree root.
      * Adapted from https://en.wikipedia.org/wiki/Ball_tree#Pseudocode_2
-     *
-     * TODO I think this algorithm can be optimized to reduce the number of distance calculations
-     *  -> talk to Klaus
      *
      * root             Root of subtree to search in
      * target           Coordinates of input point
@@ -359,8 +352,8 @@ double Cool::interpolate(double * coords) {
     Simplex * nn = find_nearest_neighbour_sbtree(btree, coords, best, DBL_MAX);
     if (nn == nullptr) {
         std::cerr << "DIP Important WARNING: Nullpointer returned from ball tree! Returning default value!" << std::endl;
-        std::cerr << "This should NEVER happen, are you SURE everything is working fine?" << std::endl;
-        return -30; // basically 0
+//        std::cerr << "This should NEVER happen, are you SURE everything is working fine?" << std::endl;
+        return DIP_INTERP_DEFAULT;
     }
     assert(nn != nullptr);
 
@@ -372,7 +365,7 @@ double Cool::interpolate(double * coords) {
 
     while (!inside and n_flips < MAX_FLIPS) {
         // Calculate difference vectors from coords to midpoints; normalize; figure out the one with largest scalar
-        // product (= smallest angle) TODO try without normalisation
+        // product (= smallest angle)
         double best_dir_dot = - DBL_MAX;
         int best_dir;
         for (int i = 0; i < D+1; i++) {
@@ -383,9 +376,6 @@ double Cool::interpolate(double * coords) {
                 diff_len += pow(diff_vec[j], 2);
             }
             diff_len = sqrt(diff_len);
-//            for (int j = 0; j < D; j++) {
-//                diff_vec[j] /= diff_len;
-//            }
 
             double dot = 0;
             for (int j = 0; j < D; j++) {
@@ -427,12 +417,9 @@ double Cool::interpolate(double * coords) {
 
     // The actual interpolation step
     double val = 0;
-//    std::cout << "Actual interp: " << std::endl;
     for (int i = 0; i < D+1; i++) {
         val += bary[i] * nn->points[i]->value;
-//        std::cout << bary[i] << " * " << nn->points[i]->value << " + ";
     }
-//    std::cout << std::endl;
 
     delete[] bary;
 

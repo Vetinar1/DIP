@@ -3,8 +3,8 @@
 //
 
 
-#ifndef MASTER_PROJECT_C_PART_COOLCOOL_H
-#define MASTER_PROJECT_C_PART_COOLCOOL_H
+#ifndef DIP_COOLCOOL_H
+#define DIP_COOLCOOL_H
 
 #include <iostream>
 #include <fstream>
@@ -82,4 +82,4 @@ public:
 
 
 
-#endif //MASTER_PROJECT_C_PART_COOLCOOL_H
+#endif //DIP_COOLCOOL_H

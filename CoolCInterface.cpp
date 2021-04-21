@@ -2,26 +2,18 @@
 // Created by vetinari on 09.12.20.
 //
 
-#ifndef MASTER_PROJECT_C_PART_COOLCINTERFACE_CPP
-#define MASTER_PROJECT_C_PART_COOLCINTERFACE_CPP
+#ifndef DIP_COOLCINTERFACE_CPP
+#define DIP_COOLCINTERFACE_CPP
 
 #include "CoolCool.h"
 #include "CoolManager.h"
 #include <stdio.h>
 #include <string>
-//#include "CoolCInterface.h"
+#include "CoolCInterface.h"
 
 #define COOL_OBJ_COUNT 10
 #define COOLMANAGER_OBJ_COUNT 161
 
-// TODO Find a good solution for these
-
-// Wrapper to be understood by C
-// 1. Create or destroy Cool Objects
-// 2. Handling of multiple objects?
-// 3. Interface for member functions
-
-//Cool<N, D, S> * C;
 Cool * C[COOL_OBJ_COUNT];
 CoolManager * CM[COOLMANAGER_OBJ_COUNT];
 
@@ -32,15 +24,14 @@ int coolmanager_counter = 0;
 extern "C" {
 #endif
 
-    int Cool_new() {
-//        C = new Cool<N, D, S>;
+    int Cool_new(int c_indx) {
         if (cool_counter >= COOL_OBJ_COUNT) {
             std::cerr << "Tried to create too many Cool objects" << std::endl;
             return -1;
         }
-        C[cool_counter] = new Cool;
+        C[c_indx] = new Cool;
         cool_counter++;
-        return cool_counter - 1;    // Less pretty but also less ambiguous
+        return cool_counter - 1;
     }
 
     int Cool_read_files(int c_indx, char * cool_file, char * tri_file, char * neighbour_file) {
@@ -68,21 +59,7 @@ extern "C" {
     }
 
 
-    /* CoolManager<int N_LIM, int D, int S_LIM> */
-//    int CoolManager_new(double init_z_low, double init_z_high, char * mapfile) {
-//        if (coolmanager_counter >= COOLMANAGER_OBJ_COUNT) {
-//            std::cerr << "Tried to create too many CoolManager objects" << std::endl;
-//            return -1;
-//        }
-//        CM[coolmanager_counter] = new CoolManager(init_z_low, init_z_high, std::string(mapfile));
-//        coolmanager_counter++;
-//        return coolmanager_counter - 1;
-//    }
-
     int CoolManager_new(double init_z_low, double init_z_high, char * mapfile, int index) {
-        /**
-         * Dont mix this one with the other one
-         */
         if (coolmanager_counter >= COOLMANAGER_OBJ_COUNT) {
             std::cerr << "Tried to create too many CoolManager objects" << std::endl;
             return -1;
@@ -109,4 +86,4 @@ extern "C" {
 #endif
 
 
-#endif //MASTER_PROJECT_C_PART_COOLCINTERFACE_CPP
+#endif //DIP_COOLCINTERFACE_CPP

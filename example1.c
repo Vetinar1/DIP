@@ -25,7 +25,7 @@ int main() {
 
 
     printf("\n\n\n\n\n\nInterpolating using Cool object:\n\n\n\n");
-    int c_idx = Cool_new();
+    int c_idx = Cool_new(0);
     Cool_read_files(c_idx, "example_data/z3.0.points", "example_data/z3.0.tris", "example_data/z3.0.neighbors");
     Cool_construct_tree(c_idx);
     Cool_set_clamps(c_idx, clamp_mins, clamp_maxs);

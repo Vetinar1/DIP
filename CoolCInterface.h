@@ -2,8 +2,8 @@
 // Created by vetinari on 14.12.20.
 //
 
-#ifndef MASTER_PROJECT_C_PART_COOLCINTERFACE_H
-#define MASTER_PROJECT_C_PART_COOLCINTERFACE_H
+#ifndef DIP_COOLCINTERFACE_H
+#define DIP_COOLCINTERFACE_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -26,4 +26,4 @@ void CoolManager_set_clamps(int, double *, double *);
 };
 #endif
 
-#endif //MASTER_PROJECT_C_PART_COOLCINTERFACE_H
+#endif //DIP_COOLCINTERFACE_H

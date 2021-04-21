@@ -2,8 +2,8 @@
 // Created by vetinari on 01.12.20.
 //
 
-#ifndef MASTER_PROJECT_C_PART_COOLSIMPLEX_H
-#define MASTER_PROJECT_C_PART_COOLSIMPLEX_H
+#ifndef DIP_COOLSIMPLEX_H
+#define DIP_COOLSIMPLEX_H
 
 #include "CoolPoint.h"
 #include "CoolConst.h"
@@ -37,7 +37,6 @@ private:
 
     template<int M, int N1, int N2> void gauss_elimination(double (&)[M][N1], double (&)[M][N2], int);
 public:
-    // TODO does this need to be public?
     double * find_normal(Point ** );
     void validate_simplex();
     int validate_normals();
@@ -65,4 +64,4 @@ public:
     }
 };
 
-#endif //MASTER_PROJECT_C_PART_COOLSIMPLEX_H
+#endif //DIP_COOLSIMPLEX_H

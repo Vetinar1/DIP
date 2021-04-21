@@ -27,11 +27,11 @@ double CoolManager::interpolate(double * args, double z) {
         }
 #endif
     }
+
     // Interpolate inside slices
     double lambda_low = low->interpolate(args);
-//    std::cout << "Low: " << lambda_low << std::endl;
     double lambda_high = high->interpolate(args);
-//    std::cout << "High: " << lambda_high << std::endl;
+
     // Simple linear interpolation in between slices
     return (lambda_low * (z_high - z) + lambda_high * (z - z_low)) / z_diff;
 }
@@ -83,7 +83,11 @@ void CoolManager::autoload(double z) {
 
 
 void CoolManager::push_slice(std::string filename) {
-    // TODO Manual usage of this function needs to update z_low, z_high and z_diff
+    /**
+     * Unload upper slice, push lower to upper slice, add new lower slice
+     *
+     * Manual usage of this function needs to update z_low, z_high and z_diff
+     */
     Cool * temp = high;
     high = low;
     low = temp;
