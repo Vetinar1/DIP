@@ -44,7 +44,7 @@ The files CoolCInterface.* provide an adapter in case you wish to use DIP in pur
 
 The Cool class, defined in CoolCool.h and CoolCool.cpp are the main class of DIP.
 This class provides functions for reading DIP data, building a ball tree on that data, and running interpolation
-(for more information, see thesis LINK).
+(for more information, see thesis in the DIP repository).
 
 Before using this class, make sure to include the CoolConst.h header file, and set the `N_MAX`, `D` and `S_MAX` constants.
 `D` should be equal to the number of dimensions in your parameter space.
