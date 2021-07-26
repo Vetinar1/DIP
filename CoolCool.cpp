@@ -263,7 +263,7 @@ Simplex * Cool::find_nearest_neighbour_sbtree(Simplex * root, const double * tar
 
     // Recursion exit condition - target point is further outside the current node's ball than the distance
     // to the current closest neighbor -> there can't be a closer neighbor in this ball/subtree
-    if (dist2 - root->sbtree_radius_sq >= min_dist2) {
+    if (sqrt(dist2) - sqrt(root->sbtree_radius_sq) >= sqrt(min_dist2)) {
         return best;
     }
 
