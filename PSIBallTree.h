@@ -10,7 +10,10 @@ public:
     int pivot; // index in coords/vals arrays
     PSIBallTree * lchild;
     PSIBallTree * rchild;
-    double radius_sq;
+    
+    PSIBallTree * closechild;
+    PSIBallTree * farchild;
+    double radius;
     
 //    void free();
 };

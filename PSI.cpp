@@ -87,7 +87,7 @@ PSIBallTree * psi_construct_btree_recursive(int * indices, int n) {
     leaf->pivot  = indices[0];
     leaf->lchild = nullptr;
     leaf->rchild = nullptr;
-    leaf->radius_sq = 0;
+    leaf->radius = 0;
     
     return leaf;
   }
@@ -207,17 +207,42 @@ PSIBallTree * psi_construct_btree_recursive(int * indices, int n) {
   
   // 5. Determine ball radius
   // squared distance to farthest element in subtree
-  node->radius_sq = 0;
+  node->radius = 0;
   for (int i = 0; i < n; i++) {   // n elements of input array
     double dist = 0;
     // distance calculation
     for (int j = 0; j < DIP_DIMS; j++) {   // D coordinates
       dist += pow(coords[indices[i]][j] - coords[node->pivot][j], 2);
     }
+    dist = sqrt(dist);
     
-    if (dist > node->radius_sq) {
-      node->radius_sq = dist;
+    if (dist > node->radius) {
+      node->radius = dist;
     }
+  }
+  
+  // 6. Bonus: Determine which child is closer
+  if (node->lchild != nullptr && node->rchild != nullptr) {
+    
+    double lchild_dist2 = 0;
+    double rchild_dist2 = 0;
+    for (int i = 0; i < DIP_DIMS; i++) {
+      lchild_dist2 += pow(coords[node->pivot][i] - coords[node->lchild->pivot][i], 2);
+      rchild_dist2 += pow(coords[node->pivot][i] - coords[node->rchild->pivot][i], 2);
+    }
+  
+    if (lchild_dist2 < rchild_dist2) {
+      node->closechild = node->lchild;
+      node->farchild = node->rchild;
+    } else {
+      node->closechild = node->rchild;
+      node->farchild = node->lchild;
+    }
+    
+  } else {
+    // If one or both are nullpointers order doesnt matter
+    node->closechild = node->lchild;
+    node->farchild = node->rchild;
   }
   
   delete[] L;
@@ -248,10 +273,11 @@ PSIBallTree * psi_find_nearest_neighbour_recursive(PSIBallTree * root, const dou
   for (int i = 0; i < DIP_DIMS; i++) {
     dist2 += pow(target[i] - coords[root->pivot][i], 2);
   }
+  dist2 = sqrt(dist2);
   
   // Recursion exit condition - target point is further outside the current node's ball than the distance
   // to the current closest neighbor -> there can't be a closer neighbor in this ball/subtree
-  if (sqrt(dist2) - sqrt(root->radius_sq) >= sqrt(*min_dist2)) {
+  if (dist2 - root->radius >= sqrt(*min_dist2)) {
     return best;
   }
   
@@ -297,63 +323,40 @@ PSIBallTree * psi_find_nearest_neighbour_recursive(PSIBallTree * root, const dou
 }
 
 
-//std::priority_queue psi_find_nearest_neighbour_recursive(PSIBallTree * root, const double * target,
-//                                                         std::priority_queue Q, int k) {
-//  /**
-//   * This function may look a bit odd because it was originally only supposed to find *one* nearest neighbour.
-//   */
-//  // Distance to current node and distance to farthest node in Q
-//  double root_dist2 = 0;
-//  double Q_dist2 = 0;
-//  for (int i = 0; i < DIP_DIMS; i++) {
-//    root_dist2 += pow(target[i] - coords[root->pivot][i], 2);
-//    Q_dist2 += pow(target[i] - coords[Q.top()][i], 2)
-//  }
-//
-//  // Recursion exit condition - target point is further outside the current node's ball than the distance
-//  // to the current farthest nearest neighbor -> there can't be a closer neighbor in this ball/subtree
-//  if (root_dist2 - root->radius_sq >= Q_dist2) {
-//    return Q;
-//  }
-//
-//  // Perhaps the current point is the new closest?
-//  if (dist2 < *min_dist2) {
-//    *min_dist2 = dist2;
-//    Q.push(root->pivot);
-//  }
-//
-//  // Find closest child
-//  double ldist2 = 0;
-//  double rdist2 = 0;
-//
-//  if (root->lchild != nullptr) {
-//    for (int i = 0; i < DIP_DIMS; i++) {
-//      ldist2 += pow(target[i] - coords[root->lchild->pivot][i], 2);
-//    }
-//  }
-//  if (root->rchild != nullptr) {
-//    for (int i = 0; i < DIP_DIMS; i++) {
-//      rdist2 += pow(target[i] - coords[root->rchild->pivot][i], 2);
-//    }
-//  }
-//
-//  // Recurse into closest child first
-//  if (ldist2 <= rdist2) {
-//    if (root->lchild != nullptr) {
-//      best = psi_find_nearest_neighbour_recursive(root->lchild, target, best, min_dist2);
-//    }
-//    if (root->rchild != nullptr) {
-//      best = psi_find_nearest_neighbour_recursive(root->rchild, target, best, min_dist2);
-//    }
-//  } else {
-//    if (root->rchild != nullptr) {
-//      best = psi_find_nearest_neighbour_recursive(root->rchild, target, best, min_dist2);
-//    }
-//    if (root->lchild != nullptr) {
-//      best = psi_find_nearest_neighbour_recursive(root->lchild, target, best, min_dist2);
-//    }
-//  }
-//}
+void psi_find_nearest_neighbour_recursive(PSIBallTree * root, const double * target,
+                                          std::priority_queue<int> * Q, int k) {
+  /**
+   * This function may look a bit odd because it was originally only supposed to find *one* nearest neighbour.
+   */
+  // Distance to current node and distance to farthest node in Q
+  double root_dist = 0;
+  double Q_dist = 0;
+  for (int i = 0; i < DIP_DIMS; i++) {
+    root_dist += pow(target[i] - coords[root->pivot][i], 2);
+    Q_dist += pow(target[i] - coords[Q->top()][i], 2);
+  }
+  root_dist = sqrt(root_dist);
+  Q_dist = sqrt(Q_dist);
+
+  // Recursion exit condition - target point is further outside the current node's ball than the distance
+  // to the current farthest nearest neighbor -> there can't be a closer neighbor in this ball/subtree
+  if (root_dist - root->radius >= Q_dist) {
+    return;
+  }
+
+  // The current node is closer than at least one node from the queue. Add it, keep queue length <= k
+  Q->push(root->pivot);
+  if (Q->size() > k) {
+    Q->pop();
+  }
+  
+  if (root->closechild != nullptr) {
+    psi_find_nearest_neighbour_recursive(root->closechild, target, Q, k);
+  }
+  if (root->farchild != nullptr) {
+    psi_find_nearest_neighbour_recursive(root->farchild, target, Q, k);
+  }
+}
 
 
 int psi_find_nearest_neighbour(double * target) {
@@ -365,14 +368,24 @@ int psi_find_nearest_neighbour(double * target) {
 }
 
 
-//int * psi_find_nearest_neighbour(double * target, k) {
-//  std::priority_queue<int> Q;
-//  double min_dist2 = DBL_MAX;
-//  PSIBallTree * best = nullptr;
-//  PSIBallTree * node = psi_find_nearest_neighbour_recursive(btree, target, best, &min_dist2, Q);
-//
-//  return Q;
-//}
+int * psi_find_nearest_neighbour(double * target, int k) {
+  std::priority_queue<int> * Q;
+  double min_dist2 = DBL_MAX;
+  PSIBallTree * best = nullptr;
+  psi_find_nearest_neighbour_recursive(btree, target, Q, k);
+  
+  assert(Q->size() == k);
+  
+  int * out = new int[k];
+  for (int i = k-1; i > 0; i--) {
+    out[i] = Q->top();
+    Q->pop();
+  }
+  
+  assert(Q->size() == 0);
+
+  return out;
+}
 
 
 int psi_find_nearest_neighbour_bruteforce(double * target) {

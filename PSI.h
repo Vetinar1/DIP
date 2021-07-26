@@ -7,6 +7,7 @@
 
 #include <string>
 #include "PSIBallTree.h"
+#include <queue>
 
 void psi_init();
 int psi_read_points(std::string cool_file);
@@ -14,7 +15,8 @@ int psi_construct_btree();
 PSIBallTree * psi_construct_btree_recursive(int * indices, int n);
 PSIBallTree * psi_find_nearest_neighbour_recursive(PSIBallTree * root, const double * target,
                                                    PSIBallTree * best, double * min_dist2);
-void psi_find_nearest_neighbour_recursive(PSIBallTree * root, const double * target, double * min_dist2);
+void psi_find_nearest_neighbour_recursive(PSIBallTree * root, const double * target,
+                                          std::priority_queue<int> * Q, int k);
 int psi_find_nearest_neighbour(double * target);
 int * psi_find_nearest_neighbour(double * target, int k);
 int psi_find_nearest_neighbour_bruteforce(double * target);
