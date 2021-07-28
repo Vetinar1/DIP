@@ -479,12 +479,16 @@ int * psi_projective_simplex_algorithm(int * neighbours, double * target, int k)
   // Use this array as a mask to keep track of which neighbours are still in play
   int * neigh_mask = new int[k];
   for (int i = 0; i < k; i++) {
-    neigh_mask = i;
+    neigh_mask[i] = 1;
   }
   
   int * simplex = new int[DIP_DIMS+1];  // The indices of the points that are going to form the simplex
   double diff[DIP_DIMS];                // difference vector target -> nn; defines projection plane
   double ptarget[DIP_DIMS];             // Projected target vector
+  
+  for (int i = 0; i < DIP_DIMS; i++) {
+    ptarget[i] = target[i];
+  }
   
   
   int d = DIP_DIMS;
@@ -493,18 +497,18 @@ int * psi_projective_simplex_algorithm(int * neighbours, double * target, int k)
     // Find nearest neighbor. In the first iteration this is always the first neighbour in the list, otherwise
     // do a brute force search
     int nn;
-    if (d == DIP_DIMS) {
+    if (d == DIP_DIMS && 0) {
       nn = 0;
     } else {
       double min_dist2 = DBL_MAX;
       for (int i = 0; i < k; i++) {
-        if (neigh_mask[i] != 1) {
+        if (neigh_mask[i] == 0) {
           continue;
         }
         
         double dist2 = 0;
         for (int j = 0; j < DIP_DIMS; j++) {
-          dist2 += pow(ptarget[i] - neigh_coords[i][j], 2)
+          dist2 += pow(ptarget[j] - neigh_coords[i][j], 2);
         }
         
         if (dist2 < min_dist2) {
@@ -527,37 +531,42 @@ int * psi_projective_simplex_algorithm(int * neighbours, double * target, int k)
     
     // project and filter
     for (int i = 0; i < k; i++) {
-      if (neigh_mask[i] != 1) {
+      if (neigh_mask[i] == 0) {
         continue;
       }
       
       // 1. project on normal
       double pn[DIP_DIMS];        // projection on normal
       double pn_shift[DIP_DIMS];  // projection on normal, shifted to ptarget
-      double pn_factor = dot(neigh_coords[i], diff, d) / difflen2;
-      for (int i = 0; i < DIP_DIMS; i++) {
-        pn[i]    = pn_factor * diff[i];
-        pn_shift = pn[i] - ptarget[i];
+      double pn_factor = dot(neigh_coords[i], diff) / difflen2;
+      for (int j = 0; j < DIP_DIMS; j++) {
+        pn[j]       = pn_factor * diff[j];
+        pn_shift[j] = pn[j] - ptarget[j];
+//        std::cout << pn[j] << "\t" << pn_shift[j] << "\t" << diff[j] << std::endl;
       }
       
       // 2. Filter (only keep neighbours on "negative" side of the plane
       if (dot(pn_shift, diff) > 0) {
+//        std::cout << "d = " << d << ": setting " << i << " to 0" << std::endl;
+//        std::cout << (dot(pn_shift, diff) > 0) << std::endl;
         neigh_mask[i] = 0;
         continue;
       }
       
       // 3. Finish projection on to plane
-      for (int i = 0; i < DIP_DIMS; i++) {
-        neigh_coords[i] = neigh_coords[i] - pn[i];
+      for (int j = 0; j < DIP_DIMS; j++) {
+        neigh_coords[i][j] = neigh_coords[i][j] - pn[j];
       }
     }
     
-    // Verify we still have enough neighbours to continue next iteration
+    // Verify we still have enough neighbours to continue next iteration. We need at least 2 at the end (on the line)
     int n_count = 0;
     for (int i = 0; i < k; i++) {
-      n_count += nn_mask[i];
+      n_count += neigh_mask[i];
     }
     if (n_count < 2) {
+      std::cout << "n_count is " << n_count << " at d = " << d << std::endl;
+      std::cout << std::endl;
       failflag = 1;
       delete[] simplex;
       simplex = nullptr;
@@ -574,19 +583,19 @@ int * psi_projective_simplex_algorithm(int * neighbours, double * target, int k)
   }
   
   if (!failflag) {
-    // Now that the iteration is complete, all points are projected onto a line. Find the closest point in either
-    // direction on that line.
+    // Now that the iteration is complete, all points are projected onto a line. Find the closest point in both
+    // directions on that line.
     // 1. Find nearest neighbor
     int nn;
     double min_dist2 = DBL_MAX;
     for (int i = 0; i < k; i++) {
-      if (neigh_mask[i] != 1) {
+      if (neigh_mask[i] == 0) {
         continue;
       }
     
       double dist2 = 0;
       for (int j = 0; j < DIP_DIMS; j++) {
-        dist2 += pow(ptarget[i] - neigh_coords[i][j], 2)
+        dist2 += pow(ptarget[i] - neigh_coords[i][j], 2);
       }
     
       if (dist2 < min_dist2) {
@@ -599,31 +608,39 @@ int * psi_projective_simplex_algorithm(int * neighbours, double * target, int k)
     simplex[1] = neighbours[nn];
     neigh_mask[nn] = 0;
     
+    std::cout << "simplex so far" << std::endl;
+    for (int i = DIP_DIMS; i >= 0; i--) {
+      std::cout << simplex[i] << std::endl;
+    }
+    
     // 2. Difference vector
     double diff[DIP_DIMS];
     for (int i = 0; i < DIP_DIMS; i++) {
-      diff[i] = neigh_coords[nn][i] - target[i];
+      diff[i] = neigh_coords[nn][i] - ptarget[i];
     }
     
     // 3. Find nearest neighbor again, but only consider those pointing in the opposite direction of diff
     min_dist2 = DBL_MAX;
     for (int i = 0; i < k; i++) {
-      if (neigh_mask[i] != 1) {
+      if (neigh_mask[i] == 0) {
         continue;
       }
+//      std::cout << "i: " << i << std::endl;
       
       double finaldiff[DIP_DIMS];
       for (int j = 0; j < DIP_DIMS; j++) {
-        finaldiff[j] = neigh_coords[nn][j] - target[j];
+        finaldiff[j] = neigh_coords[i][j] - ptarget[j];
+//        std::cout << diff[j] << " " << finaldiff[j] << std::endl;
       }
       
       if (dot(diff, finaldiff) > 0) { // same direction
+//        std::cout << "wrong direction" << std::endl;
         continue;
       }
     
       double dist2 = 0;
       for (int j = 0; j < DIP_DIMS; j++) {
-        dist2 += pow(finaldiff[j], 2)
+        dist2 += pow(finaldiff[j], 2);
       }
     
       if (dist2 < min_dist2) {
@@ -633,6 +650,7 @@ int * psi_projective_simplex_algorithm(int * neighbours, double * target, int k)
     }
     
     if (min_dist2 == DBL_MAX) {
+      std::cout << "couldnt find two points on line" << std::endl;
       delete[] simplex;
       simplex = nullptr;
     } else {
