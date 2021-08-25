@@ -2,6 +2,8 @@
 // Created by Stefan Lüders on 26/07/2021.
 //
 
+#include "CoolSimplex.h"
+#include "CoolPoint.h"
 #include "CoolConst.h"
 #include "PSIBallTree.h"
 #include "PSI.h"
@@ -16,12 +18,18 @@
 #include <queue>
 #include <vector>
 
+
 static double ** coords;
 static double ** vals;
 
 static int N_LIM;
 
 static PSIBallTree * btree; // root node
+
+
+int get_nlim() {
+  return N_LIM;
+}
 
 void psi_init() {
   coords = new double * [DIP_NMAX];
@@ -497,7 +505,7 @@ int * psi_projective_simplex_algorithm(int * neighbours, double * target, int k)
     // Find nearest neighbor. In the first iteration this is always the first neighbour in the list, otherwise
     // do a brute force search
     int nn;
-    if (d == DIP_DIMS && 0) {
+    if (d == DIP_DIMS) {
       nn = 0;
     } else {
       double min_dist2 = DBL_MAX;
@@ -518,16 +526,18 @@ int * psi_projective_simplex_algorithm(int * neighbours, double * target, int k)
       }
     }
     
-    // Add the nearest neighbor to the solution; calculate difference vector (and its squared length);
-    // Remove it from further considerations
+    // Add the nearest neighbor to the solution
     simplex[d] = neighbours[nn];
+    // Remove it from further considerations
     neigh_mask[nn] = 0;
     
+    // calculate difference vector (and its squared length);
     double difflen2 = 0;
     for (int i = 0; i < DIP_DIMS; i++) {
-      diff[i] = neigh_coords[nn][i] - target[i];
+      diff[i] = neigh_coords[nn][i] - ptarget[i];
       difflen2 += diff[i] * diff[i];
     }
+    
     
     // project and filter
     for (int i = 0; i < k; i++) {
@@ -545,7 +555,7 @@ int * psi_projective_simplex_algorithm(int * neighbours, double * target, int k)
 //        std::cout << pn[j] << "\t" << pn_shift[j] << "\t" << diff[j] << std::endl;
       }
       
-      // 2. Filter (only keep neighbours on "negative" side of the plane
+      // 2. Filter (only keep neighbours on "negative" side of the plane)
       if (dot(pn_shift, diff) > 0) {
 //        std::cout << "d = " << d << ": setting " << i << " to 0" << std::endl;
 //        std::cout << (dot(pn_shift, diff) > 0) << std::endl;
@@ -573,7 +583,7 @@ int * psi_projective_simplex_algorithm(int * neighbours, double * target, int k)
       break;
     }
     
-    // Update ptarget (= project ptarget)
+    // Update ptarget (= project ptarget onto plane)
     double pt_factor = dot(ptarget, diff) / difflen2;
     for (int i = 0; i < DIP_DIMS; i++) {
       ptarget[i] = ptarget[i] - pt_factor * diff[i];
@@ -592,6 +602,11 @@ int * psi_projective_simplex_algorithm(int * neighbours, double * target, int k)
       if (neigh_mask[i] == 0) {
         continue;
       }
+      
+      for (int j = 0; j < DIP_DIMS; j++) {
+        std::cout << neigh_coords[i][j] << " ";
+      }
+      std::cout << std::endl;
     
       double dist2 = 0;
       for (int j = 0; j < DIP_DIMS; j++) {
@@ -603,15 +618,16 @@ int * psi_projective_simplex_algorithm(int * neighbours, double * target, int k)
         nn = i;
       }
     }
+    std::cout << "ptarget: " << ptarget[0] << " " << ptarget[1] << " " << ptarget[2] << std::endl;
   
     // simplex was filled backwards, so the second to last element to fill is 1
     simplex[1] = neighbours[nn];
     neigh_mask[nn] = 0;
     
-    std::cout << "simplex so far" << std::endl;
-    for (int i = DIP_DIMS; i >= 0; i--) {
-      std::cout << simplex[i] << std::endl;
-    }
+//    std::cout << "simplex so far" << std::endl;
+//    for (int i = DIP_DIMS; i >= 0; i--) {
+//      std::cout << simplex[i] << std::endl;
+//    }
     
     // 2. Difference vector
     double diff[DIP_DIMS];
@@ -650,7 +666,12 @@ int * psi_projective_simplex_algorithm(int * neighbours, double * target, int k)
     }
     
     if (min_dist2 == DBL_MAX) {
-      std::cout << "couldnt find two points on line" << std::endl;
+      std::cout << "couldnt find two points on line out of ";
+      int sum = 0;
+      for (int i = 0; i < k; i++) {
+        sum += neigh_mask[i];
+      }
+      std::cout << sum << std::endl;
       delete[] simplex;
       simplex = nullptr;
     } else {
@@ -666,7 +687,33 @@ int * psi_projective_simplex_algorithm(int * neighbours, double * target, int k)
   delete[] neigh_coords;
   delete[] neigh_mask;
   
+  
   return simplex;
+}
+
+
+int * psi_adaptive_projective_simplex_algorithm(double * target, int k, double factor, int max_steps) {
+  int * neighbours = psi_find_k_nearest_neighbor(target, k);
+  int * simplex = psi_projective_simplex_algorithm(neighbours, target, k);
+  
+  int iterations = 0;
+  while (simplex == nullptr && iterations < max_steps) {
+    k = (int) k * factor;
+    neighbours = psi_find_k_nearest_neighbor(target, k);
+    simplex = psi_projective_simplex_algorithm(neighbours, target, k);
+    iterations++;
+  }
+  
+  if (iterations) {
+    std::cout << "Extra iterations: " << iterations << std::endl;
+  }
+
+  return simplex;
+}
+
+
+double get_coord(int i, int j) {
+  return coords[i][j];
 }
 
 

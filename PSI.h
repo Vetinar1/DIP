@@ -33,4 +33,7 @@ int * psi_find_k_nearest_neighbour_bruteforce(double * target, int k);
 double get_dist(double * target, int index);
 double dot(double * v, double * w);
 int * psi_projective_simplex_algorithm(int * neighbors, double * target, int k);
+double get_coord(int i, int j);
+int * psi_adaptive_projective_simplex_algorithm(double * target, int k, double factor, int max_steps);
+int get_nlim();
 #endif //DIP_PSI_H

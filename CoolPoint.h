@@ -17,7 +17,7 @@ private:
     double value;
 
 public:
-    double coords[D];
+    double coords[DIP_DIMS];
 };
 
 #endif //DIP_COOLPOINT_H
