@@ -99,16 +99,15 @@ void test_projective_simplex(int adaptive) {
   
   int count = 0;
   int iterations = 1000;
-  int k = 100;
+  int k = 30;
   double factor = 1.5;
   double max_steps = 5;
   
   
   // for testing projective simplex algorithm
   for (int i = 0; i < iterations; i++) {
-    std::cout << i << std::endl;
     double target[3];
-    target[0] = 3 + float(rand()) / RAND_MAX * 5;
+    target[0] = 2 + float(rand()) / RAND_MAX * 5;
     target[1] = -3 + float(rand()) / RAND_MAX * 5;
     target[2] = -2 + float(rand()) / RAND_MAX * 2;
 
@@ -121,7 +120,7 @@ void test_projective_simplex(int adaptive) {
       simplex = psi_adaptive_projective_simplex_algorithm(target, k, factor, max_steps);
     } else {
       int * neighbours = psi_find_k_nearest_neighbor(target, k);
-      simplex = psi_projective_simplex_algorithm(neighbours, target, k, 4);
+      simplex = psi_projective_simplex_algorithm(neighbours, target, k);
     }
 //    std::cout << target[0] << " " << target[1] << " " << target[2] << ":\t";
 //    for (int i = 0; i < k; i++) {
@@ -155,11 +154,12 @@ void test_projective_simplex(int adaptive) {
         int inside = sobj.check_bary(bary);
         
         if (!inside) {
-          std::cout << i << " !!! NOT INSIDE !!!" << std::endl;
-          for (int j = 0; j < DIP_DIMS + 1; j++) {
-            std::cout << bary[j] << " ";
-          }
-          std::cout << std::endl;
+          std::cout << i << "not inside" << std::endl;
+        } else {
+//          for (int j = 0; j < DIP_DIMS+1; j++ ) {
+//            std::cout << bary[j] << " ";
+//          }
+//          std::cout << std::endl;
         }
       }
 //      for (int j = 0; j < DIP_DIMS+1; j++) {
@@ -191,7 +191,7 @@ int main() {
   
 //  test_snn();
 //  test_knn();
-  test_projective_simplex(0);
+  test_projective_simplex(1);
   
   
   
