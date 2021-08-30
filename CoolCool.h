@@ -38,7 +38,7 @@ class Cool {
      * lead to a stack overflow.
      */
 private:
-    Point points[N_MAX];
+    Point points[DIP_NMAX];
     Simplex simplices[S_MAX];
     Simplex * btree;         // Points to the root of the simplex ball tree
 
@@ -53,7 +53,7 @@ public:
         nullpointers_encountered = 0;
         avg_flips = 0;
         S_LIM = S_MAX;
-        N_LIM = N_MAX;
+        N_LIM = DIP_NMAX;
         for (int i = 0; i < D; i++) {
             mins[i] = DBL_MAX;
             maxs[i] = -1 * DBL_MAX;

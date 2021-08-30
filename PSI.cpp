@@ -26,6 +26,9 @@ static int N_LIM;
 
 static PSIBallTree * btree; // root node
 
+static int adaptive_calls = 0;
+static int adaptive_executions = 0;
+
 
 int get_nlim() {
   return N_LIM;
@@ -37,7 +40,7 @@ void psi_init() {
   
   for (int i = 0; i < DIP_NMAX; i++) {
     coords[i] = new double[DIP_DIMS];
-    vals[i]   = new double[DIP_DIMS];
+    vals[i]   = new double[DIP_VARNR];
   }
 }
 
@@ -54,7 +57,7 @@ int psi_read_points(std::string cool_file) {
     std::cerr << "Error reading " << cool_file << std::endl;
     return 1;
   } else {
-    std::cout << "Reading " << cool_file << std::endl;
+    std::cout << "Reading " << cool_file << " (max " << DIP_NMAX << " lines)" << std::endl;
   }
 
 #ifdef DIP_POINTS_HEADER_SKIP
@@ -574,9 +577,11 @@ int * psi_projective_simplex_algorithm(int * neighbours, double * target, int k)
     for (int i = 0; i < k; i++) {
       n_count += neigh_mask[i];
     }
-    if (n_count < 2) {
+    if (n_count < 1 + d) {
+#ifdef PSI_SHOW_DIAGNOSTICS
       std::cout << "n_count is " << n_count << " at d = " << d << std::endl;
       std::cout << std::endl;
+#endif
       failflag = 1;
       delete[] simplex;
       simplex = nullptr;
@@ -595,88 +600,64 @@ int * psi_projective_simplex_algorithm(int * neighbours, double * target, int k)
   if (!failflag) {
     // Now that the iteration is complete, all points are projected onto a line. Find the closest point in both
     // directions on that line.
-    // 1. Find nearest neighbor
-    int nn;
-    double min_dist2 = DBL_MAX;
-    for (int i = 0; i < k; i++) {
-      if (neigh_mask[i] == 0) {
-        continue;
-      }
-      
-      for (int j = 0; j < DIP_DIMS; j++) {
-        std::cout << neigh_coords[i][j] << " ";
-      }
-      std::cout << std::endl;
+    double linevec[DIP_DIMS];
+    double * proj1d = new double[k];
+    int linevecflag = 0;
     
-      double dist2 = 0;
-      for (int j = 0; j < DIP_DIMS; j++) {
-        dist2 += pow(ptarget[i] - neigh_coords[i][j], 2);
-      }
-    
-      if (dist2 < min_dist2) {
-        min_dist2 = dist2;
-        nn = i;
-      }
-    }
-    std::cout << "ptarget: " << ptarget[0] << " " << ptarget[1] << " " << ptarget[2] << std::endl;
+    double posmin =  DBL_MAX;
+    double negmax = -DBL_MAX;
+    int posind = -1;
+    int negind = -1;
   
-    // simplex was filled backwards, so the second to last element to fill is 1
-    simplex[1] = neighbours[nn];
-    neigh_mask[nn] = 0;
-    
-//    std::cout << "simplex so far" << std::endl;
-//    for (int i = DIP_DIMS; i >= 0; i--) {
-//      std::cout << simplex[i] << std::endl;
-//    }
-    
-    // 2. Difference vector
-    double diff[DIP_DIMS];
-    for (int i = 0; i < DIP_DIMS; i++) {
-      diff[i] = neigh_coords[nn][i] - ptarget[i];
-    }
-    
-    // 3. Find nearest neighbor again, but only consider those pointing in the opposite direction of diff
-    min_dist2 = DBL_MAX;
     for (int i = 0; i < k; i++) {
       if (neigh_mask[i] == 0) {
         continue;
       }
-//      std::cout << "i: " << i << std::endl;
+    
+      if (!linevecflag) {
+        // Calculate vector parallel to line
+        for (int j = 0; j < DIP_DIMS; j++) {
+          linevec[j] = neigh_coords[i][j] - ptarget[j];
+        }
       
-      double finaldiff[DIP_DIMS];
-      for (int j = 0; j < DIP_DIMS; j++) {
-        finaldiff[j] = neigh_coords[i][j] - ptarget[j];
-//        std::cout << diff[j] << " " << finaldiff[j] << std::endl;
-      }
-      
-      if (dot(diff, finaldiff) > 0) { // same direction
-//        std::cout << "wrong direction" << std::endl;
-        continue;
+        linevecflag = 1;
       }
     
-      double dist2 = 0;
+      // Project difference vectors between other points and ptarget on linevec
+      double tempvec[DIP_DIMS];
       for (int j = 0; j < DIP_DIMS; j++) {
-        dist2 += pow(finaldiff[j], 2);
+        tempvec[j] = neigh_coords[i][j] - ptarget[j];
       }
     
-      if (dist2 < min_dist2) {
-        min_dist2 = dist2;
-        nn = i;
+      proj1d[i] = dot(linevec, tempvec);
+  
+      if (proj1d[i] > 0 && proj1d[i] < posmin) {
+        posmin = proj1d[i];
+        posind = i;
+      } else if (proj1d[i] < 0 && proj1d[i] > negmax) {
+        negmax = proj1d[i];
+        negind = i;
       }
     }
-    
-    if (min_dist2 == DBL_MAX) {
-      std::cout << "couldnt find two points on line out of ";
+  
+    // If all scalar products were positive or negative, ptarget is an "endpoint" on the line and there is no solution
+    if (posind == -1 || negind == -1) {
+#ifdef PSI_SHOW_ERRORS
+      std::cout << "Couldn't find two points on line; posind " << posind << " - negind " << negind << std::endl;
       int sum = 0;
       for (int i = 0; i < k; i++) {
         sum += neigh_mask[i];
       }
-      std::cout << sum << std::endl;
+      std::cout << sum << " points were left" << std::endl;
+#endif
       delete[] simplex;
       simplex = nullptr;
     } else {
-      simplex[0] = neighbours[nn];
+      simplex[1] = neighbours[negind];
+      simplex[0] = neighbours[posind];
     }
+  
+    delete[] proj1d;
   }
   
   
@@ -693,6 +674,8 @@ int * psi_projective_simplex_algorithm(int * neighbours, double * target, int k)
 
 
 int * psi_adaptive_projective_simplex_algorithm(double * target, int k, double factor, int max_steps) {
+  adaptive_calls++;
+  adaptive_executions++;
   int * neighbours = psi_find_k_nearest_neighbor(target, k);
   int * simplex = psi_projective_simplex_algorithm(neighbours, target, k);
   
@@ -702,18 +685,26 @@ int * psi_adaptive_projective_simplex_algorithm(double * target, int k, double f
     neighbours = psi_find_k_nearest_neighbor(target, k);
     simplex = psi_projective_simplex_algorithm(neighbours, target, k);
     iterations++;
+    adaptive_executions++;
   }
-  
+
+#ifdef PSI_SHOW_DIAGNOSTICS
   if (iterations) {
     std::cout << "Extra iterations: " << iterations << std::endl;
   }
-
+#endif
+  
   return simplex;
 }
 
 
 double get_coord(int i, int j) {
   return coords[i][j];
+}
+
+
+double get_average_executions() {
+  return (double) adaptive_executions / (double) adaptive_calls;
 }
 
 

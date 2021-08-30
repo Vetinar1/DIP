@@ -44,7 +44,7 @@ void Cool::reset() {
     btree = nullptr;
 
     S_LIM = S_MAX;
-    N_LIM = N_MAX;
+    N_LIM = DIP_NMAX;
 
     // Points[N] will be overwritten on next call to read_files()
 }
@@ -462,7 +462,7 @@ int Cool::read_files(std::string cool_file, std::string tri_file, std::string ne
 #endif
 
     int n = 0;
-    for (int i = 0; i < N_MAX; i++) {
+    for (int i = 0; i < DIP_NMAX; i++) {
         std::getline(file, line);
         std::stringstream linestream(line);
         for (int j = 0; j < D; j++) {     // D coordinates

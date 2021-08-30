@@ -4,6 +4,7 @@
 
 #include "PSI.h"
 #include "CoolConst.h"
+#include "CoolCool.h"
 #include "CoolSimplex.h"
 #include <string>
 #include <iostream>
@@ -13,6 +14,7 @@
 #include <cassert>
 #include <math.h>
 #include <time.h>
+#include <chrono>
 
 
 void test_knn() {
@@ -89,35 +91,86 @@ void test_snn() {
 }
 
 
+void test_dip() {
+  // for comparison
+  
+  srand (time(NULL));
+  
+  double clamp_mins[DIP_DIMS] = {4, -2, -1, -4, 7, 18.5};
+  double clamp_maxs[DIP_DIMS] = {6, 2, 0, 2, 9, 22.5};
+  
+  std::cout << "Creating Cool object... " << std::endl;
+  Cool * cool = new Cool;
+  
+  cool->set_clamp_values(clamp_mins, clamp_maxs);
+  
+  std::cout << "Reading files... ";
+  
+  
+  cool->read_files(
+      "synthetic/synthetic_6d.csv",
+      "synthetic/synthetic_6d.tris",
+      "synthetic/synthetic_6d.neighbors"
+  );
+  
+  std::cout << "Done" << std::endl << "Constructing ball tree... " << std::flush;
+  cool->construct_btree();
+  
+  std::cout << "Done" << std::endl << "Beginning interpolation... " << std::endl;
+  
+  const int iterations = 1000;
+  double interps[iterations];
+  
+  std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+  for (int i = 0; i < 1000; i++) {
+    double target[DIP_DIMS];
+    target[0] = 4 + float(rand()) / RAND_MAX * 2;
+    target[1] = -2 + float(rand()) / RAND_MAX * 4;
+    target[2] = -1 + float(rand()) / RAND_MAX * 1;
+    target[3] = -4 + float(rand()) / RAND_MAX * 6;
+    target[4] = 7 + float(rand()) / RAND_MAX * 2;
+    target[5] = 18.5 + float(rand()) / RAND_MAX * 4;
+    interps[i] = cool->interpolate(target);
+  }
+  std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+  std::cout << "Done" << std::endl;
+  std::cout << "Time to complete = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
+  std::cout << "Avg = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() / pow(100, D) << "[ms]" << std::endl;
+  std::cout << "Avg flips: " << cool->avg_flips << std::endl;
+  std::cout << interps[0] << std::endl;
+}
+
+
 void test_projective_simplex(int adaptive) {
   
   srand (time(NULL));
   
   psi_init();
-  psi_read_points("fulldata2.csv");
+  psi_read_points("synthetic/synthetic_6d.csv");
   psi_construct_btree();
   
   int count = 0;
   int iterations = 1000;
-  int k = 30;
-  double factor = 1.5;
-  double max_steps = 5;
+  int k = 250;
+  double factor = 2;
+  double max_repetitions = 4;
   
   
   // for testing projective simplex algorithm
+  
+  std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
   for (int i = 0; i < iterations; i++) {
-    double target[3];
-    target[0] = 2 + float(rand()) / RAND_MAX * 5;
-    target[1] = -3 + float(rand()) / RAND_MAX * 5;
-    target[2] = -2 + float(rand()) / RAND_MAX * 2;
-
-//    target[0] = 5;
-//    target[1] = 0;
-//    target[2] = -1;
+    double target[DIP_DIMS];
+    target[0] = 4 + float(rand()) / RAND_MAX * 2;
+    target[1] = -2 + float(rand()) / RAND_MAX * 4;
+    target[2] = -1 + float(rand()) / RAND_MAX * 1;
+    target[3] = -4 + float(rand()) / RAND_MAX * 6;
+    target[4] = 7 + float(rand()) / RAND_MAX * 2;
+    target[5] = 18.5 + float(rand()) / RAND_MAX * 4;
     
     int * simplex;
     if (adaptive) {
-      simplex = psi_adaptive_projective_simplex_algorithm(target, k, factor, max_steps);
+      simplex = psi_adaptive_projective_simplex_algorithm(target, k, factor, max_repetitions);
     } else {
       int * neighbours = psi_find_k_nearest_neighbor(target, k);
       simplex = psi_projective_simplex_algorithm(neighbours, target, k);
@@ -133,7 +186,7 @@ void test_projective_simplex(int adaptive) {
 //      std::cout << "nullptr" << std::endl;
       count++;
     } else {
-      
+//      continue;
       
       // Verify
       if (simplex != nullptr) {
@@ -168,13 +221,15 @@ void test_projective_simplex(int adaptive) {
 //      std::cout << std::endl;
     }
   }
-  std::cout << "Loaded points: " << get_nlim() << std::endl;
+  std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+  std::cout << "Loaded " << get_nlim() << " points in " << DIP_DIMS << " dimensions" << std::endl;;
+  std::cout << "Built " << iterations << " simplices in " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
   std::cout << "k = " << k << std::endl;
   if (adaptive) {
-    std::cout << "factor: " << factor << std::endl;
-    std::cout << "max_steps = " << max_steps << std::endl;
+    std::cout << "adaptive factor: " << factor << std::endl;
+    std::cout << "max_repetitions = " << max_repetitions << std::endl;
+    std::cout << "average executions: " << get_average_executions() << std::endl;
   }
-  std::cout << iterations << " iterations" << std::endl;
   std::cout << "# of no solutions: " << count << std::endl;
 }
 
@@ -191,8 +246,9 @@ int main() {
   
 //  test_snn();
 //  test_knn();
-  test_projective_simplex(1);
+//  test_projective_simplex(1);
   
+  test_dip();
   
   
   return 0;

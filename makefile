@@ -16,7 +16,7 @@ libraries : libcoolc.so libcoolcpp.so
 	g++ -fpic -shared CoolSimplex.cpp CoolCool.cpp CoolManager.cpp -o libcoolcpp.so -I.
 
 PSI :
-	g++ -o psi PSImain.cpp PSI.cpp CoolSimplex.cpp
+	g++ -o psi PSImain.cpp PSI.cpp CoolSimplex.cpp CoolCool.cpp
 
 clean :
 	rm *.so *.o

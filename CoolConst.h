@@ -5,9 +5,9 @@
 #ifndef DIP_COOLCONST_H
 #define DIP_COOLCONST_H
 
-#define DIP_NMAX 5000     // maximum number of points
+#define DIP_NMAX 50000     // maximum number of points
 //#define D 3             // dimensions
-#define S_MAX 410000    // maximum number of simplices
+#define S_MAX 30000000    // maximum number of simplices
 
 
 // The epsilon to use in DIP calculations
@@ -34,10 +34,13 @@
 // Whether simplex errors in the file reading process are output to stderr or not
 //#define DIP_SUPPRESS_SIMPLEX_ERRORS
 
-#define DIP_DIMS 3
+#define DIP_DIMS 6
 #define D DIP_DIMS
 // The number of variables to be read/interpolated by DIP
 // In order: Ctot, Htot, ne, H2, HI, HII, HeI, HeII, HeIII
-#define DIP_VARNR 9
+#define DIP_VARNR 1
+
+// #define PSI_SHOW_ERRORS
+// #define PSI_SHOW_DIAGNOSTICS
 
 #endif //DIP_COOLCONST_H
