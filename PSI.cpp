@@ -34,7 +34,45 @@ int get_nlim() {
   return N_LIM;
 }
 
+
+double get_coord(int i, int j) {
+  return coords[i][j];
+}
+
+
+double get_average_executions() {
+  return (double) adaptive_executions / (double) adaptive_calls;
+}
+
+
+double dot(double * v, double * w) {
+  /**
+   * Simple dot product between two vectors.
+   */
+  double out = 0;
+  for (int i = 0; i < DIP_DIMS; i++) {
+    out += v[i] * w[i];
+  }
+  return out;
+}
+
+
+
+double get_dist(double * target, int index) {
+  /**
+   * Helper function. Get distance from target to point with given index.
+   */
+  double dist2 = 0;
+  for (int i = 0; i < DIP_DIMS; i++) {
+    dist2 += pow(target[i] - coords[index][i], 2);
+  }
+  return dist2;
+}
+
 void psi_init() {
+  /**
+   * Set up global arrays for interpolation
+   */
   coords = new double * [DIP_NMAX];
   vals   = new double * [DIP_NMAX];
   
@@ -46,6 +84,11 @@ void psi_init() {
 
 
 int psi_read_points(std::string cool_file) {
+  /**
+   * Read data from file, see also equivalent in CoolCool.cpp
+   *
+   * @param cool_file   .points file returned from CHIPS
+   */
   std::ifstream file;
   std::string line;
   std::string value;
@@ -91,6 +134,15 @@ int psi_read_points(std::string cool_file) {
 
 
 PSIBallTree * psi_construct_btree_recursive(int * indices, int n) {
+  /**
+   * Recursively construct btree, TODO generalize
+   *
+   * Do not call this function directly. Use construct_btree() instead.
+   *
+   * @param indices     Pointer to array of indices of coords; these will be split into two sub trees
+   * @param n           Size of array indices
+   * @return            Ball tree node that contains all the points in indices
+   */
   // Input validation + what if theres only one element left?
   if (n < 0) {
     std::cerr << "Illegal argument in construct_btree: n = " << n << std::endl;
@@ -267,6 +319,10 @@ PSIBallTree * psi_construct_btree_recursive(int * indices, int n) {
 
 
 int psi_construct_btree() {
+  /**
+   * Builds a ball tree for quick nearest neighbour finding. Public adapter for
+   * construct_btree_recursive.
+   */
   // Construct array of indices
   int * indices = new int[N_LIM];
   for (int i = 0; i < N_LIM; i++) {
@@ -282,6 +338,16 @@ int psi_construct_btree() {
 
 PSIBallTree * psi_find_nearest_neighbour_recursive(PSIBallTree * root, const double * target,
                                                    PSIBallTree * best, double * min_dist2) {
+  /**
+   * Function to find the nearest neighbour in the given ball tree. Do not use this function directly,
+   * use psi_find_nearest_neighbour() instead.
+   *
+   * @param root        Tree to search in
+   * @param target      Pointer to coordinates of target
+   * @param best        Currently closest found tree node to target
+   * @param min_dist2   Square distance of best to target
+   * @return            Currently closest found tree node to target, after evaluating current node (i.e. new best)
+   */
   // Distance to current node
   double dist2 = 0;
   for (int i = 0; i < DIP_DIMS; i++) {
@@ -338,6 +404,12 @@ PSIBallTree * psi_find_nearest_neighbour_recursive(PSIBallTree * root, const dou
 
 
 int psi_find_nearest_neighbour(double * target) {
+  /**
+   * Efficiently find the nearest neighbour of target in coords.
+   *
+   * @params target     Pointer to coordinates of target
+   * @return            Index of nearest neighbour in coords
+   */
   double min_dist2 = DBL_MAX;
   PSIBallTree * best = nullptr;
   PSIBallTree * node = psi_find_nearest_neighbour_recursive(btree, target, best, &min_dist2);
@@ -347,6 +419,13 @@ int psi_find_nearest_neighbour(double * target) {
 
 
 int psi_find_nearest_neighbour_bruteforce(double * target) {
+  /**
+   * Find the nearest neighbour of target in coords, using a simple brute force approach.
+   * Used to test functionality of psi_find_nearest_neighbour_recursive().
+   *
+   * @param target      Pointer to coordinates of target
+   * @return            Index of nearest neighbour in coords
+   */
   double min_dist2 = DBL_MAX;
   int min_index;
   
@@ -369,7 +448,16 @@ int psi_find_nearest_neighbour_bruteforce(double * target) {
 void psi_find_k_nearest_neighbour_recursive(PSIBallTree * root, const double * target,
                                             std::priority_queue<distpoint> * Q, int k) {
   /**
+   * Efficiently find the k nearest neighbours of target in coords.
    * This function may look a bit odd because it was originally only supposed to find *one* nearest neighbour.
+   * Do not use this function directly, use psi_find_k_nearest_neighbour() instead.
+   *
+   * @param root        Ball tree to search in
+   * @param target      Pointer to coordinates of target
+   * @param Q           Priority queue containing the currently known k nearest neighbours
+   * @param k           How many nearest neighbours to find
+   *
+   * Returns nothing, the output is the priority queue, which is modified in-place.
    */
   double root_dist = 0;
   double Q_dist = 0;
@@ -411,6 +499,14 @@ void psi_find_k_nearest_neighbour_recursive(PSIBallTree * root, const double * t
 
 
 int * psi_find_k_nearest_neighbor(double * target, int k) {
+  /**
+   * Public adapter for psi_find_k_nearest_neighbour_recursive(). Efficently finds the k nearest neighbours of
+   * target in coords.
+   *
+   * @param target  Pointer to the target coordinates
+   * @param k       How many nearest neighbours to find
+   * @return        Pointer to array of indices of k nearest neighbours in coords
+   */
   std::priority_queue<distpoint> * Q = new std::priority_queue<distpoint>;
   psi_find_k_nearest_neighbour_recursive(btree, target, Q, k);
   
@@ -431,6 +527,14 @@ int * psi_find_k_nearest_neighbor(double * target, int k) {
 
 
 int * psi_find_k_nearest_neighbour_bruteforce(double * target, int k) {
+  /**
+   * Find k nearest neighbours of target in coords using simple brute force algorithm. Used to test functionality
+   * of psi_find_k_nearest_neighbour_recursive().
+   *
+   * @param target      Pointer to coordinates of target
+   * @param k           Number of nearest neighbours to find
+   * @return            Pointer to array of indices of k nearest neighbours in coords
+   */
   std::priority_queue<distpoint> Q;
   for (int i = 0; i < N_LIM; i++) {
     double dist2 = get_dist(target, i);
@@ -455,24 +559,6 @@ int * psi_find_k_nearest_neighbour_bruteforce(double * target, int k) {
   
   return out;
 }
-
-
-double get_dist(double * target, int index) {
-  double dist2 = 0;
-  for (int i = 0; i < DIP_DIMS; i++) {
-    dist2 += pow(target[i] - coords[index][i], 2);
-  }
-  return dist2;
-}
-
-double dot(double * v, double * w) {
-  double out = 0;
-  for (int i = 0; i < DIP_DIMS; i++) {
-    out += v[i] * w[i];
-  }
-  return out;
-}
-
 
 int * psi_projective_simplex_algorithm(int * neighbours, double * target, int k) {
   // Copy relevant neighbours into separate array of dimensions k x DIP_DIMS
@@ -698,26 +784,3 @@ int * psi_adaptive_projective_simplex_algorithm(double * target, int k, double f
   return simplex;
 }
 
-
-double get_coord(int i, int j) {
-  return coords[i][j];
-}
-
-
-double get_average_executions() {
-  return (double) adaptive_executions / (double) adaptive_calls;
-}
-
-
-//void Cool::set_clamp_values(double * cmins, double * cmaxs) {
-//  /**
-//   * Set values of the clamps to use in interpolate().
-//   *
-//   * double * cmins        Pointer to array of doubles. Min values for clamping.
-//   * double * cmaxs        Pointer to array of doubles. Max values for clamping.
-//   */
-//  for (int i = 0; i < D; i++) {
-//    CLAMP_MAX[i] = cmaxs[i];
-//    CLAMP_MIN[i] = cmins[i];
-//  }
-//}
