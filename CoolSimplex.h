@@ -42,6 +42,8 @@ public:
     void validate_simplex();
     int validate_normals();
     void print_error_info();
+    
+    double get_quality();
 
     // Pointers to left and right children in ball tree
     Simplex * lchild;

@@ -91,13 +91,44 @@ void test_snn() {
 }
 
 
+void test_quality() {
+  // Verify that the regular n-simplex has quality 1
+  Simplex simplex;
+  
+  // Construct regular simplex out of basis vector + 1 additional vector, see wikipedia
+  for (int i = 0; i < DIP_DIMS; i++) {
+    simplex.points[i] = new Point;
+    
+    for (int j = 0; j < DIP_DIMS; j++) {
+      simplex.points[i]->coords[j] = 0;
+      
+      if (i == j) {
+        simplex.points[i]->coords[j] = 1 / sqrt(2);
+      }
+    }
+  }
+  
+  // Remaining point
+  simplex.points[DIP_DIMS] = new Point;
+  for (int i = 0; i < DIP_DIMS; i++) {
+    simplex.points[DIP_DIMS]->coords[i] = (1 + sqrt(DIP_DIMS+1)) / (DIP_DIMS * sqrt(2));
+  }
+  
+  simplex.construct_T_inv();
+  double quality = simplex.get_quality();
+  std::cout << "Simplex has quality: " << quality << std::endl;
+}
+
+
 void test_dip() {
   // for comparison
   
   srand (time(NULL));
   
-  double clamp_mins[DIP_DIMS] = {4, -2, -1, -4, 7, 18.5};
-  double clamp_maxs[DIP_DIMS] = {6, 2, 0, 2, 9, 22.5};
+//  double clamp_mins[DIP_DIMS];
+//  double clamp_maxs[DIP_DIMS];
+  double clamp_mins[DIP_DIMS] = {4, -2, -1, -4, 7};//, 18.5};
+  double clamp_maxs[DIP_DIMS] = {6, 2, 0, 2, 9};//, 22.5};
   
   std::cout << "Creating Cool object... " << std::endl;
   Cool * cool = new Cool;
@@ -108,9 +139,9 @@ void test_dip() {
   
   
   cool->read_files(
-      "synthetic/synthetic_6d.csv",
-      "synthetic/synthetic_6d.tris",
-      "synthetic/synthetic_6d.neighbors"
+      "synthetic/synthetic_5d.csv",
+      "synthetic/synthetic_5d.tris",
+      "synthetic/synthetic_5d.neighbors"
   );
   
   std::cout << "Done" << std::endl << "Constructing ball tree... " << std::flush;
@@ -129,7 +160,7 @@ void test_dip() {
     target[2] = -1 + float(rand()) / RAND_MAX * 1;
     target[3] = -4 + float(rand()) / RAND_MAX * 6;
     target[4] = 7 + float(rand()) / RAND_MAX * 2;
-    target[5] = 18.5 + float(rand()) / RAND_MAX * 4;
+//    target[5] = 18.5 + float(rand()) / RAND_MAX * 4;
     interps[i] = cool->interpolate(target);
   }
   std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
@@ -137,6 +168,7 @@ void test_dip() {
   std::cout << "Time to complete = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
   std::cout << "Avg = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() / pow(100, D) << "[ms]" << std::endl;
   std::cout << "Avg flips: " << cool->avg_flips << std::endl;
+  std::cout << "Avg quality (+- stdev): " << cool->quality_avg << "+-" << cool->quality_stdev << std::endl;
   std::cout << interps[0] << std::endl;
 }
 
@@ -146,14 +178,16 @@ void test_projective_simplex(int adaptive) {
   srand (time(NULL));
   
   psi_init();
-  psi_read_points("synthetic/synthetic_6d.csv");
+  psi_read_points("psi_01/z0.0.points");
   psi_construct_btree();
   
   int count = 0;
-  int iterations = 1000;
-  int k = 250;
+  const int iterations = 1000;
+  int k = 100;
   double factor = 2;
   double max_repetitions = 4;
+  
+  double qualities[iterations];
   
   
   // for testing projective simplex algorithm
@@ -166,7 +200,7 @@ void test_projective_simplex(int adaptive) {
     target[2] = -1 + float(rand()) / RAND_MAX * 1;
     target[3] = -4 + float(rand()) / RAND_MAX * 6;
     target[4] = 7 + float(rand()) / RAND_MAX * 2;
-    target[5] = 18.5 + float(rand()) / RAND_MAX * 4;
+//    target[5] = 18.5 + float(rand()) / RAND_MAX * 4;
     
     int * simplex;
     if (adaptive) {
@@ -214,6 +248,8 @@ void test_projective_simplex(int adaptive) {
 //          }
 //          std::cout << std::endl;
         }
+        
+        qualities[i] = sobj.get_quality();
       }
 //      for (int j = 0; j < DIP_DIMS+1; j++) {
 //        std::cout << simplex[j] << " ";
@@ -231,6 +267,18 @@ void test_projective_simplex(int adaptive) {
     std::cout << "average executions: " << get_average_executions() << std::endl;
   }
   std::cout << "# of no solutions: " << count << std::endl;
+  
+  double mean = 0;
+  double M2 = 0;
+  double stdev = 0;
+  
+  for (int i = 0; i < iterations; i++) {
+    double delta = qualities[i] - mean;
+    mean += delta/(i+1);
+    M2 += delta * (qualities[i] - mean);
+  }
+  stdev = M2 / (iterations - 1);
+  std::cout << "Simplex quality: " << mean << "+-" << stdev << std::endl;
 }
 
 
@@ -246,9 +294,9 @@ int main() {
   
 //  test_snn();
 //  test_knn();
-//  test_projective_simplex(1);
+  test_projective_simplex(1);
   
-  test_dip();
+//  test_dip();
   
   
   return 0;

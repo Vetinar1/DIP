@@ -60,6 +60,9 @@ public:
         }
     };
     double avg_flips;
+    double quality_avg = 0;
+    double quality_stdev = 0;
+    double M2_quality = 0;
     int flips, interpolate_calls;
     int nullpointers_encountered;
 

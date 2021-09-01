@@ -507,6 +507,7 @@ int * psi_projective_simplex_algorithm(int * neighbours, double * target, int k)
   while (d > 1) {
     // Find nearest neighbor. In the first iteration this is always the first neighbour in the list, otherwise
     // do a brute force search
+    // TODO try using kd tree after all...
     int nn;
     if (d == DIP_DIMS) {
       nn = 0;

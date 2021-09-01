@@ -34,7 +34,7 @@
 // Whether simplex errors in the file reading process are output to stderr or not
 //#define DIP_SUPPRESS_SIMPLEX_ERRORS
 
-#define DIP_DIMS 6
+#define DIP_DIMS 5
 #define D DIP_DIMS
 // The number of variables to be read/interpolated by DIP
 // In order: Ctot, Htot, ne, H2, HI, HII, HeI, HeII, HeIII

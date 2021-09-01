@@ -427,6 +427,16 @@ double Cool::interpolate(double * coords) {
     interpolate_calls++;
     flips += n_flips;
     avg_flips = flips / (float) interpolate_calls;
+    
+    // Welford's algorithm for calculating rolling mean and standard deviation
+    double q = nn->get_quality();
+    double delta = q - quality_avg;
+    quality_avg += delta / interpolate_calls;
+    M2_quality += delta * (q - quality_avg);
+    
+    if (interpolate_calls >= 2) {
+      quality_stdev = M2_quality / (interpolate_calls - 1);
+    }
 #endif
 
     return val;
