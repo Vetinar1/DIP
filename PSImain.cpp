@@ -23,7 +23,6 @@ void test_knn() {
   
   psi_init();
   psi_read_points("fulldata2.csv");
-  psi_construct_btree();
   
   int count = 0;
   
@@ -60,13 +59,13 @@ void test_knn() {
 }
 
 
+#if 0
 void test_snn() {
   
   srand (time(NULL));
   
   psi_init();
   psi_read_points("fulldata2.csv");
-  psi_construct_btree();
   
   int count = 0;
   
@@ -89,6 +88,7 @@ void test_snn() {
   }
   std::cout << count << std::endl;
 }
+#endif
 
 
 void test_quality() {
@@ -125,10 +125,10 @@ void test_dip() {
   
   srand (time(NULL));
   
-//  double clamp_mins[DIP_DIMS];
-//  double clamp_maxs[DIP_DIMS];
-  double clamp_mins[DIP_DIMS] = {4, -2, -1, -4, 7};//, 18.5};
-  double clamp_maxs[DIP_DIMS] = {6, 2, 0, 2, 9};//, 22.5};
+  double clamp_mins[DIP_DIMS];
+  double clamp_maxs[DIP_DIMS];
+//  double clamp_mins[DIP_DIMS] = {4, -2, -1, -4, 7};//, 18.5};
+//  double clamp_maxs[DIP_DIMS] = {6, 2, 0, 2, 9};//, 22.5};
   
   std::cout << "Creating Cool object... " << std::endl;
   Cool * cool = new Cool;
@@ -178,12 +178,12 @@ void test_projective_simplex(int adaptive) {
   srand (time(NULL));
   
   psi_init();
-  psi_read_points("psi_01/z0.0.points");
-  psi_construct_btree();
+  psi_read_points("psi_02/z0.0.points");
+//  psi_read_points("synthetic/synthetic_3d.csv");
   
   int count = 0;
   const int iterations = 1000;
-  int k = 100;
+  int k = 30;
   double factor = 2;
   double max_repetitions = 4;
   
@@ -198,8 +198,8 @@ void test_projective_simplex(int adaptive) {
     target[0] = 4 + float(rand()) / RAND_MAX * 2;
     target[1] = -2 + float(rand()) / RAND_MAX * 4;
     target[2] = -1 + float(rand()) / RAND_MAX * 1;
-    target[3] = -4 + float(rand()) / RAND_MAX * 6;
-    target[4] = 7 + float(rand()) / RAND_MAX * 2;
+//    target[3] = -4 + float(rand()) / RAND_MAX * 6;
+//    target[4] = 7 + float(rand()) / RAND_MAX * 2;
 //    target[5] = 18.5 + float(rand()) / RAND_MAX * 4;
     
     int * simplex;
@@ -271,14 +271,21 @@ void test_projective_simplex(int adaptive) {
   double mean = 0;
   double M2 = 0;
   double stdev = 0;
+  double q_min = DBL_MAX;
+  double q_max = 0;
   
   for (int i = 0; i < iterations; i++) {
+    if (qualities[i] < q_min) {
+      q_min = qualities[i];
+    } else if (qualities[i] > q_max) {
+      q_max = qualities[i];
+    }
     double delta = qualities[i] - mean;
     mean += delta/(i+1);
     M2 += delta * (qualities[i] - mean);
   }
   stdev = M2 / (iterations - 1);
-  std::cout << "Simplex quality: " << mean << "+-" << stdev << std::endl;
+  std::cout << "Simplex quality: " << mean << "+-" << stdev << " (in [" << q_min << ", " << q_max << "])" << std::endl;
 }
 
 

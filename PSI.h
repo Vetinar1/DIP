@@ -20,8 +20,8 @@ struct distpoint {
 
 void psi_init();
 int psi_read_points(std::string cool_file);
-int psi_construct_btree();
-PSIBallTree * psi_construct_btree_recursive(int * indices, int n);
+int psi_construct_btree(double ** points);
+PSIBallTree * psi_construct_btree_recursive(double ** base, int * indices, int n);
 PSIBallTree * psi_find_nearest_neighbour_recursive(PSIBallTree * root, const double * target,
                                                    PSIBallTree * best, double * min_dist2);
 void psi_find_nearest_neighbour_recursive(PSIBallTree * root, const double * target,
@@ -29,6 +29,7 @@ void psi_find_nearest_neighbour_recursive(PSIBallTree * root, const double * tar
 int psi_find_nearest_neighbour(double * target);
 int psi_find_nearest_neighbour_bruteforce(double * target);
 int * psi_find_k_nearest_neighbor(double * target, int k);
+int * psi_find_k_nearest_neighbor(double * target, double ** points, PSIBallTree * btree, int k);
 int * psi_find_k_nearest_neighbour_bruteforce(double * target, int k);
 double get_dist(double * target, int index);
 double dot(double * v, double * w);

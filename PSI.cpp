@@ -129,17 +129,20 @@ int psi_read_points(std::string cool_file) {
   
   file.close();
   
+  psi_construct_btree(coords);
+  
   return 0;
 }
 
 
-PSIBallTree * psi_construct_btree_recursive(int * indices, int n) {
+PSIBallTree * psi_construct_btree_recursive(double ** base, int * indices, int n) {
   /**
-   * Recursively construct btree, TODO generalize
+   * Recursively construct btree
    *
    * Do not call this function directly. Use construct_btree() instead.
    *
-   * @param indices     Pointer to array of indices of coords; these will be split into two sub trees
+   * @param base        The array containing *all* points that the tree is being built on. Actual coordinate values
+   * @param indices     The array containing the points that the *current subtree* is being built on. Indices of base
    * @param n           Size of array indices
    * @return            Ball tree node that contains all the points in indices
    */
@@ -168,7 +171,7 @@ PSIBallTree * psi_construct_btree_recursive(int * indices, int n) {
     double * coord_i = new double[n];
     
     for (int j = 0; j < n; j++) {
-      coord_i[j] = coords[indices[j]][i];
+      coord_i[j] = base[indices[j]][i];
     }
     
     // sort values to determine spread and median
@@ -194,7 +197,7 @@ PSIBallTree * psi_construct_btree_recursive(int * indices, int n) {
     }
     delete[] coord_i;
   }
-
+  
 #ifdef DIP_BALLTREE_CHECKS
   assert(largest_spread != -1 && lspread_dim != -1);
 #endif
@@ -212,13 +215,13 @@ PSIBallTree * psi_construct_btree_recursive(int * indices, int n) {
   node->pivot = -1;
   
   for (int i = 0; i < n; i++) {
-    double val = coords[indices[i]][lspread_dim];
+    double val = base[indices[i]][lspread_dim];
     double dist = fabs(median - val);
     
     if (dist < min_dist) {
       // Add old pivot to L or R
       if (node->pivot != -1) {
-        if (coords[node->pivot][lspread_dim] <= median) {
+        if (base[node->pivot][lspread_dim] <= median) {
           L[lcount] = node->pivot;
           lcount++;
         } else {
@@ -256,12 +259,12 @@ PSIBallTree * psi_construct_btree_recursive(int * indices, int n) {
   
   // 4. Recurse on L and R
   if (lcount > 0) {
-    node->lchild = psi_construct_btree_recursive(L, lcount);
+    node->lchild = psi_construct_btree_recursive(base, L, lcount);
   } else {
     node->lchild = nullptr;
   }
   if (rcount > 0) {
-    node->rchild = psi_construct_btree_recursive(R, rcount);
+    node->rchild = psi_construct_btree_recursive(base, R, rcount);
   } else {
     node->rchild = nullptr;
   }
@@ -278,7 +281,7 @@ PSIBallTree * psi_construct_btree_recursive(int * indices, int n) {
     double dist = 0;
     // distance calculation
     for (int j = 0; j < DIP_DIMS; j++) {   // D coordinates
-      dist += pow(coords[indices[i]][j] - coords[node->pivot][j], 2);
+      dist += pow(base[indices[i]][j] - base[node->pivot][j], 2);
     }
     dist = sqrt(dist);
     
@@ -293,8 +296,8 @@ PSIBallTree * psi_construct_btree_recursive(int * indices, int n) {
     double lchild_dist2 = 0;
     double rchild_dist2 = 0;
     for (int i = 0; i < DIP_DIMS; i++) {
-      lchild_dist2 += pow(coords[node->pivot][i] - coords[node->lchild->pivot][i], 2);
-      rchild_dist2 += pow(coords[node->pivot][i] - coords[node->rchild->pivot][i], 2);
+      lchild_dist2 += pow(base[node->pivot][i] - base[node->lchild->pivot][i], 2);
+      rchild_dist2 += pow(base[node->pivot][i] - base[node->rchild->pivot][i], 2);
     }
   
     if (lchild_dist2 < rchild_dist2) {
@@ -318,10 +321,12 @@ PSIBallTree * psi_construct_btree_recursive(int * indices, int n) {
 }
 
 
-int psi_construct_btree() {
+int psi_construct_btree(double ** points) {
   /**
    * Builds a ball tree for quick nearest neighbour finding. Public adapter for
    * construct_btree_recursive.
+   *
+   * @param points      Array of points to build balltree on
    */
   // Construct array of indices
   int * indices = new int[N_LIM];
@@ -329,14 +334,14 @@ int psi_construct_btree() {
     indices[i] = i;
   }
   
-  btree = psi_construct_btree_recursive(indices, N_LIM);
+  btree = psi_construct_btree_recursive(points, indices, N_LIM);
   delete[] indices;
   
   return 0;
 }
 
 
-PSIBallTree * psi_find_nearest_neighbour_recursive(PSIBallTree * root, const double * target,
+PSIBallTree * psi_find_nearest_neighbour_recursive(PSIBallTree * root, const double * target, double ** base,
                                                    PSIBallTree * best, double * min_dist2) {
   /**
    * Function to find the nearest neighbour in the given ball tree. Do not use this function directly,
@@ -344,6 +349,7 @@ PSIBallTree * psi_find_nearest_neighbour_recursive(PSIBallTree * root, const dou
    *
    * @param root        Tree to search in
    * @param target      Pointer to coordinates of target
+   * @param base        Array of coordinates that the indices in the ball tree refer to
    * @param best        Currently closest found tree node to target
    * @param min_dist2   Square distance of best to target
    * @return            Currently closest found tree node to target, after evaluating current node (i.e. new best)
@@ -351,7 +357,7 @@ PSIBallTree * psi_find_nearest_neighbour_recursive(PSIBallTree * root, const dou
   // Distance to current node
   double dist2 = 0;
   for (int i = 0; i < DIP_DIMS; i++) {
-    dist2 += pow(target[i] - coords[root->pivot][i], 2);
+    dist2 += pow(target[i] - base[root->pivot][i], 2);
   }
   dist2 = sqrt(dist2);
   
@@ -373,29 +379,29 @@ PSIBallTree * psi_find_nearest_neighbour_recursive(PSIBallTree * root, const dou
   
   if (root->lchild != nullptr) {
     for (int i = 0; i < DIP_DIMS; i++) {
-      ldist2 += pow(target[i] - coords[root->lchild->pivot][i], 2);
+      ldist2 += pow(target[i] - base[root->lchild->pivot][i], 2);
     }
   }
   if (root->rchild != nullptr) {
     for (int i = 0; i < DIP_DIMS; i++) {
-      rdist2 += pow(target[i] - coords[root->rchild->pivot][i], 2);
+      rdist2 += pow(target[i] - base[root->rchild->pivot][i], 2);
     }
   }
   
   // Recurse into closest child first
   if (ldist2 <= rdist2) {
     if (root->lchild != nullptr) {
-      best = psi_find_nearest_neighbour_recursive(root->lchild, target, best, min_dist2);
+      best = psi_find_nearest_neighbour_recursive(root->lchild, target, base, best, min_dist2);
     }
     if (root->rchild != nullptr) {
-      best = psi_find_nearest_neighbour_recursive(root->rchild, target, best, min_dist2);
+      best = psi_find_nearest_neighbour_recursive(root->rchild, target, base, best, min_dist2);
     }
   } else {
     if (root->rchild != nullptr) {
-      best = psi_find_nearest_neighbour_recursive(root->rchild, target, best, min_dist2);
+      best = psi_find_nearest_neighbour_recursive(root->rchild, target, base, best, min_dist2);
     }
     if (root->lchild != nullptr) {
-      best = psi_find_nearest_neighbour_recursive(root->lchild, target, best, min_dist2);
+      best = psi_find_nearest_neighbour_recursive(root->lchild, target, base, best, min_dist2);
     }
   }
   
@@ -403,16 +409,18 @@ PSIBallTree * psi_find_nearest_neighbour_recursive(PSIBallTree * root, const dou
 }
 
 
-int psi_find_nearest_neighbour(double * target) {
+int psi_find_nearest_neighbour(double * target, double ** points, PSIBallTree * btree) {
   /**
    * Efficiently find the nearest neighbour of target in coords.
    *
-   * @params target     Pointer to coordinates of target
+   * @param target      Pointer to coordinates of target
+   * @param points      Array containing the coordinates of the points to search in
+   * @param btree       Balltree on those points
    * @return            Index of nearest neighbour in coords
    */
   double min_dist2 = DBL_MAX;
   PSIBallTree * best = nullptr;
-  PSIBallTree * node = psi_find_nearest_neighbour_recursive(btree, target, best, &min_dist2);
+  PSIBallTree * node = psi_find_nearest_neighbour_recursive(btree, target, points, best, &min_dist2);
   
   return node->pivot;
 }
@@ -445,7 +453,7 @@ int psi_find_nearest_neighbour_bruteforce(double * target) {
 }
 
 
-void psi_find_k_nearest_neighbour_recursive(PSIBallTree * root, const double * target,
+void psi_find_k_nearest_neighbour_recursive(PSIBallTree * root, const double * target, double ** base,
                                             std::priority_queue<distpoint> * Q, int k) {
   /**
    * Efficiently find the k nearest neighbours of target in coords.
@@ -454,6 +462,7 @@ void psi_find_k_nearest_neighbour_recursive(PSIBallTree * root, const double * t
    *
    * @param root        Ball tree to search in
    * @param target      Pointer to coordinates of target
+   * @param base        Array of coordinates that the ball tree was built on
    * @param Q           Priority queue containing the currently known k nearest neighbours
    * @param k           How many nearest neighbours to find
    *
@@ -463,7 +472,7 @@ void psi_find_k_nearest_neighbour_recursive(PSIBallTree * root, const double * t
   double Q_dist = 0;
 
   for (int i = 0; i < DIP_DIMS; i++) {
-    root_dist += pow(target[i] - coords[root->pivot][i], 2);
+    root_dist += pow(target[i] - base[root->pivot][i], 2);
   }
   root_dist = sqrt(root_dist);
   
@@ -472,7 +481,7 @@ void psi_find_k_nearest_neighbour_recursive(PSIBallTree * root, const double * t
     distpoint dp = Q->top();
   
     for (int i = 0; i < DIP_DIMS; i++) {
-      Q_dist += pow(target[i] - coords[dp.index][i], 2);
+      Q_dist += pow(target[i] - base[dp.index][i], 2);
     }
     Q_dist = sqrt(Q_dist);
   
@@ -490,25 +499,27 @@ void psi_find_k_nearest_neighbour_recursive(PSIBallTree * root, const double * t
   }
   
   if (root->closechild != nullptr) {
-    psi_find_k_nearest_neighbour_recursive(root->closechild, target, Q, k);
+    psi_find_k_nearest_neighbour_recursive(root->closechild, target, base, Q, k);
   }
   if (root->farchild != nullptr) {
-    psi_find_k_nearest_neighbour_recursive(root->farchild, target, Q, k);
+    psi_find_k_nearest_neighbour_recursive(root->farchild, target, base, Q, k);
   }
 }
 
 
-int * psi_find_k_nearest_neighbor(double * target, int k) {
+int * psi_find_k_nearest_neighbor(double * target, double ** points, PSIBallTree * btree, int k) {
   /**
    * Public adapter for psi_find_k_nearest_neighbour_recursive(). Efficently finds the k nearest neighbours of
-   * target in coords.
+   * target in points.
    *
    * @param target  Pointer to the target coordinates
+   * @param points  Array of points to find nearest neighbour in
+   * @param btree   Balltree built on points
    * @param k       How many nearest neighbours to find
    * @return        Pointer to array of indices of k nearest neighbours in coords
    */
   std::priority_queue<distpoint> * Q = new std::priority_queue<distpoint>;
-  psi_find_k_nearest_neighbour_recursive(btree, target, Q, k);
+  psi_find_k_nearest_neighbour_recursive(btree, target, points, Q, k);
   
   assert(Q->size() == k);
   
@@ -523,6 +534,14 @@ int * psi_find_k_nearest_neighbor(double * target, int k) {
   delete Q;
 
   return out;
+}
+
+
+int * psi_find_k_nearest_neighbor(double * target, int k) {
+  /**
+   * Find k nearest neighbours in coords
+   */
+  return psi_find_k_nearest_neighbor(target, coords, btree, k);
 }
 
 
@@ -598,6 +617,22 @@ int * psi_projective_simplex_algorithm(int * neighbours, double * target, int k)
     if (d == DIP_DIMS) {
       nn = 0;
     } else {
+#if 1
+      int * indices = new int[k];
+      int n = 0;
+      for (int i = 0; i < k; i++) {
+        if (neigh_mask[i]) {
+          indices[n] = i;
+          n++;
+        }
+      }
+      double min_dist2 = DBL_MAX;
+      PSIBallTree * best = nullptr;
+      PSIBallTree * temptree = psi_construct_btree_recursive(neigh_coords, indices, n);
+      PSIBallTree * result = psi_find_nearest_neighbour_recursive(temptree, ptarget, neigh_coords, best, &min_dist2);
+      nn = result->pivot;
+#endif
+#if 0
       double min_dist2 = DBL_MAX;
       for (int i = 0; i < k; i++) {
         if (neigh_mask[i] == 0) {
@@ -614,6 +649,7 @@ int * psi_projective_simplex_algorithm(int * neighbours, double * target, int k)
           nn = i;
         }
       }
+#endif
     }
     
     // Add the nearest neighbor to the solution
