@@ -15,6 +15,9 @@
 #include <math.h>
 #include <time.h>
 #include <chrono>
+#include <fstream>
+
+const int N_EVAL = 1000;
 
 
 void test_knn() {
@@ -22,7 +25,7 @@ void test_knn() {
   srand (time(NULL));
   
   psi_init();
-  psi_read_points("fulldata2.csv");
+  psi_read_points("fulldata2.csv", 0);
   
   int count = 0;
   
@@ -125,10 +128,10 @@ void test_dip() {
   
   srand (time(NULL));
   
-  double clamp_mins[DIP_DIMS];
-  double clamp_maxs[DIP_DIMS];
-//  double clamp_mins[DIP_DIMS] = {4, -2, -1, -4, 7};//, 18.5};
-//  double clamp_maxs[DIP_DIMS] = {6, 2, 0, 2, 9};//, 22.5};
+//  double clamp_mins[DIP_DIMS];
+//  double clamp_maxs[DIP_DIMS];
+  double clamp_mins[DIP_DIMS] = {4, -2};//, -1, -4, 7};//, 18.5};
+  double clamp_maxs[DIP_DIMS] = {6, 2};//, 0, 2, 9};//, 22.5};
   
   std::cout << "Creating Cool object... " << std::endl;
   Cool * cool = new Cool;
@@ -137,12 +140,22 @@ void test_dip() {
   
   std::cout << "Reading files... ";
   
+  std::chrono::steady_clock::time_point time1 = std::chrono::steady_clock::now();
   
   cool->read_files(
-      "synthetic/synthetic_5d.csv",
-      "synthetic/synthetic_5d.tris",
-      "synthetic/synthetic_5d.neighbors"
+//      "synthetic/synthetic_5d.csv",
+//      "synthetic/synthetic_5d.tris",
+//      "synthetic/synthetic_5d.neighbors"
+        "psi_02/z0.0.points",
+        "psi_02/z0.0.tris",
+        "psi_02/z0.0.neighbors"
+//          "psi_11/tempdata.csv",
+//          "psi_11/tempdata.tris",
+//          "psi_11/tempdata.neighbors"
   );
+  
+  std::chrono::steady_clock::time_point time2 = std::chrono::steady_clock::now();
+  std::cout << "Time to read files = " << std::chrono::duration_cast<std::chrono::milliseconds>(time2 - time1).count() << "[ms]" << std::endl;
   
   std::cout << "Done" << std::endl << "Constructing ball tree... " << std::flush;
   cool->construct_btree();
@@ -153,13 +166,15 @@ void test_dip() {
   double interps[iterations];
   
   std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+  std::cout << "Time to build tree = " << std::chrono::duration_cast<std::chrono::milliseconds>(begin - time2).count() << "[ms]" << std::endl;
+  
   for (int i = 0; i < 1000; i++) {
     double target[DIP_DIMS];
     target[0] = 4 + float(rand()) / RAND_MAX * 2;
     target[1] = -2 + float(rand()) / RAND_MAX * 4;
     target[2] = -1 + float(rand()) / RAND_MAX * 1;
-    target[3] = -4 + float(rand()) / RAND_MAX * 6;
-    target[4] = 7 + float(rand()) / RAND_MAX * 2;
+//    target[3] = -4 + float(rand()) / RAND_MAX * 6;
+//    target[4] = 7 + float(rand()) / RAND_MAX * 2;
 //    target[5] = 18.5 + float(rand()) / RAND_MAX * 4;
     interps[i] = cool->interpolate(target);
   }
@@ -173,31 +188,102 @@ void test_dip() {
 }
 
 
+void read_eval(std::string cool_file, double ** coords, double ** vals, int apply_log_to_vals) {
+  std::ifstream file;
+  std::string line;
+  std::string value;
+  
+  
+  /* Read points */
+  file.open(cool_file);
+  if (!file.is_open()) {
+    std::cerr << "Error reading " << cool_file << std::endl;
+    abort();
+  } else {
+    std::cout << "Reading " << cool_file << " (max " << DIP_NMAX << " lines)" << std::endl;
+  }
+
+#ifdef DIP_POINTS_HEADER_SKIP
+  std::getline(file, line);
+#endif
+  
+  int n = 0;
+  for (int i = 0; i < N_EVAL; i++) {
+    std::getline(file, line);
+    std::stringstream linestream(line);
+    for (int j = 0; j < DIP_DIMS; j++) {     // DIP_DIMS coordinates
+      std::getline(linestream, value, ',');
+      coords[i][j] = std::stod(value);
+    }
+    for (int j = 0; j < 2; j++) {   // Htot, Ctot
+      std::getline(linestream, value, ',');
+      if (apply_log_to_vals) {
+        vals[i][j] = log10(std::stod(value));
+      } else {
+        vals[i][j] = std::stod(value);}
+    }
+    
+    n++;
+    if (file.peek() == EOF) {
+      break;
+    }
+  }
+//  N_LIM = n;
+  
+  file.close();
+}
+
+
 void test_projective_simplex(int adaptive) {
+  
+  double ** evalcoords = new double * [N_EVAL];
+  double ** evalvals   = new double * [N_EVAL];
+  
+  for (int i = 0; i < N_EVAL; i++) {
+    evalcoords[i] = new double[DIP_DIMS];
+    evalvals[i]   = new double[2]; // Htot, Ctot
+  }
+  std::string evalfiles[5] = {
+      "eval_01/tempdata.csv",
+      "eval_02/tempdata.csv",
+      "eval_03/tempdata.csv",
+      "eval_04/tempdata.csv",
+      "eval_05/tempdata.csv"
+  };
+  
+  read_eval(evalfiles[DIP_DIMS-2], evalcoords, evalvals, 1);
   
   srand (time(NULL));
   
   psi_init();
-  psi_read_points("psi_02/z0.0.points");
-//  psi_read_points("synthetic/synthetic_3d.csv");
+  
+  std::string folder = "psi_01/";
+  std::string fname = "z0.0.points";
+//  psi_read_points("psi_13/tempdata.csv");
+  psi_read_points(folder.append(fname), 0);
+//  psi_read_points("synthetic/synthetic_6d.csv");
   
   int count = 0;
+  int count2 = 0;
   const int iterations = 1000;
-  int k = 30;
+  int k = 20;
   double factor = 2;
   double max_repetitions = 4;
   
   double qualities[iterations];
+  double interpolations[iterations];
   
   
   // for testing projective simplex algorithm
   
   std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
   for (int i = 0; i < iterations; i++) {
-    double target[DIP_DIMS];
-    target[0] = 4 + float(rand()) / RAND_MAX * 2;
-    target[1] = -2 + float(rand()) / RAND_MAX * 4;
-    target[2] = -1 + float(rand()) / RAND_MAX * 1;
+//    double target[DIP_DIMS];
+    
+    double * target = evalcoords[i];
+//    target[0] = 4 + float(rand()) / RAND_MAX * 2;
+//    target[1] = -2 + float(rand()) / RAND_MAX * 4;
+//    target[2] = -1 + float(rand()) / RAND_MAX * 1;
 //    target[3] = -4 + float(rand()) / RAND_MAX * 6;
 //    target[4] = 7 + float(rand()) / RAND_MAX * 2;
 //    target[5] = 18.5 + float(rand()) / RAND_MAX * 4;
@@ -209,18 +295,10 @@ void test_projective_simplex(int adaptive) {
       int * neighbours = psi_find_k_nearest_neighbor(target, k);
       simplex = psi_projective_simplex_algorithm(neighbours, target, k);
     }
-//    std::cout << target[0] << " " << target[1] << " " << target[2] << ":\t";
-//    for (int i = 0; i < k; i++) {
-//      std::cout << neighbours[i] << " ";
-//    }
-//    std::cout << std::endl;
     
-//    std::cout << i << ": ";
     if (simplex == nullptr) {
-//      std::cout << "nullptr" << std::endl;
       count++;
     } else {
-//      continue;
       
       // Verify
       if (simplex != nullptr) {
@@ -232,6 +310,7 @@ void test_projective_simplex(int adaptive) {
             points[j].coords[k] = get_coord(simplex[j], k);
           }
           
+          points[j].value = get_val(simplex[j], 0);
           sobj.points[j] = &points[j];
         }
         
@@ -242,19 +321,16 @@ void test_projective_simplex(int adaptive) {
         
         if (!inside) {
           std::cout << i << "not inside" << std::endl;
-        } else {
-//          for (int j = 0; j < DIP_DIMS+1; j++ ) {
-//            std::cout << bary[j] << " ";
-//          }
-//          std::cout << std::endl;
+          count2++;
         }
         
         qualities[i] = sobj.get_quality();
+        interpolations[i] = 0;
+        for (int j = 0; j < DIP_DIMS+1; j++) {
+//          std::cout << interpolations[i] << "+=" << bary[j] << " * " << sobj.points[j]->value << std::endl;
+          interpolations[i] += bary[j] * sobj.points[j]->value;
+        }
       }
-//      for (int j = 0; j < DIP_DIMS+1; j++) {
-//        std::cout << simplex[j] << " ";
-//      }
-//      std::cout << std::endl;
     }
   }
   std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
@@ -267,25 +343,44 @@ void test_projective_simplex(int adaptive) {
     std::cout << "average executions: " << get_average_executions() << std::endl;
   }
   std::cout << "# of no solutions: " << count << std::endl;
+  std::cout << "# of wrong solutions: " << count2 << std::endl;
   
-  double mean = 0;
-  double M2 = 0;
-  double stdev = 0;
+  double q_mean = 0;
+  double i_mean = 0;
+  double q_M2 = 0;
+  double i_M2 = 0;
+  double q_stdev = 0;
+  double i_stdev = 0;
   double q_min = DBL_MAX;
+  double i_min = DBL_MAX;
   double q_max = 0;
+  double i_max = 0;
+  std::ofstream q_file;
+  q_file.open(folder.append("psi_qualities.csv"));
+  q_file << "simplex quality,interpolation,actual value\n";
   
   for (int i = 0; i < iterations; i++) {
+//    std::cout << evalvals[i][1] << " " << interpolations[i] << std::endl;
+    double i_diff_abs = fabs(evalvals[i][1] - interpolations[i]);
+    q_file << qualities[i] << "," << interpolations[i] << "," << evalvals[i][1] << "\n";
+    
     if (qualities[i] < q_min) {
       q_min = qualities[i];
     } else if (qualities[i] > q_max) {
       q_max = qualities[i];
     }
-    double delta = qualities[i] - mean;
-    mean += delta/(i+1);
-    M2 += delta * (qualities[i] - mean);
+    double q_delta = qualities[i] - q_mean;
+    double i_delta = i_diff_abs - i_mean;
+    q_mean += q_delta/(i+1);
+    i_mean += i_delta/(i+1);
+    q_M2 += q_delta * (qualities[i] - q_mean);
+    i_M2 += i_delta * (i_diff_abs - i_mean);
   }
-  stdev = M2 / (iterations - 1);
-  std::cout << "Simplex quality: " << mean << "+-" << stdev << " (in [" << q_min << ", " << q_max << "])" << std::endl;
+  q_stdev = q_M2 / (iterations - 1);
+  i_stdev = i_M2 / (iterations - 1);
+  std::cout << "Simplex quality: " << q_mean << "+-" << q_stdev << " (in [" << q_min << ", " << q_max << "])" << std::endl;
+  std::cout << "Avg. abs. error: " << i_mean << "+-" << i_stdev << std::endl;
+  q_file.close();
 }
 
 

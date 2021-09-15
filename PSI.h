@@ -19,7 +19,7 @@ struct distpoint {
 };
 
 void psi_init();
-int psi_read_points(std::string cool_file);
+int psi_read_points(std::string cool_file, int apply_log_to_vals);
 int psi_construct_btree(double ** points);
 PSIBallTree * psi_construct_btree_recursive(double ** base, int * indices, int n);
 PSIBallTree * psi_find_nearest_neighbour_recursive(PSIBallTree * root, const double * target,
@@ -35,6 +35,7 @@ double get_dist(double * target, int index);
 double dot(double * v, double * w);
 int * psi_projective_simplex_algorithm(int * neighbors, double * target, int k);
 double get_coord(int i, int j);
+double get_val(int i, int j);
 int * psi_adaptive_projective_simplex_algorithm(double * target, int k, double factor, int max_steps);
 int get_nlim();
 double get_average_executions();

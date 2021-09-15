@@ -40,6 +40,11 @@ double get_coord(int i, int j) {
 }
 
 
+double get_val(int i, int j) {
+  return vals[i][j];
+}
+
+
 double get_average_executions() {
   return (double) adaptive_executions / (double) adaptive_calls;
 }
@@ -83,7 +88,7 @@ void psi_init() {
 }
 
 
-int psi_read_points(std::string cool_file) {
+int psi_read_points(std::string cool_file, int apply_log_to_vals) {
   /**
    * Read data from file, see also equivalent in CoolCool.cpp
    *
@@ -117,7 +122,10 @@ int psi_read_points(std::string cool_file) {
     }
     for (int j = 0; j < DIP_VARNR; j++) {   // DIP_VARNR values
       std::getline(linestream, value, ',');
-      vals[i][j] = std::stod(value);
+      if (apply_log_to_vals) {
+        vals[i][j] = log10(std::stod(value));
+      } else {
+        vals[i][j] = std::stod(value);}
     }
     
     n++;
@@ -617,7 +625,7 @@ int * psi_projective_simplex_algorithm(int * neighbours, double * target, int k)
     if (d == DIP_DIMS) {
       nn = 0;
     } else {
-#if 1
+#if 0
       int * indices = new int[k];
       int n = 0;
       for (int i = 0; i < k; i++) {
@@ -631,8 +639,7 @@ int * psi_projective_simplex_algorithm(int * neighbours, double * target, int k)
       PSIBallTree * temptree = psi_construct_btree_recursive(neigh_coords, indices, n);
       PSIBallTree * result = psi_find_nearest_neighbour_recursive(temptree, ptarget, neigh_coords, best, &min_dist2);
       nn = result->pivot;
-#endif
-#if 0
+#else
       double min_dist2 = DBL_MAX;
       for (int i = 0; i < k; i++) {
         if (neigh_mask[i] == 0) {
