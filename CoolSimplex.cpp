@@ -762,7 +762,7 @@ void Simplex::print_error_info() {
 double Simplex::get_quality() {
   /**
    * Returns the quality of the simplex. There are a variety of simplex quality measurements, the one used here is
-   * Q = alpha * h_max / rho
+   * Q = alpha * rho / h_max
    *
    * Where h_max is the longest edge of the simplex, rho is the radius of the insphere and alpha is a dimension
    * dependent normalisation factor.
@@ -773,7 +773,7 @@ double Simplex::get_quality() {
    * https://www.parabola.unsw.edu.au/files/articles/2010-2019/volume-54-2018/issue-2/vol54_no2_2.pdf
    * ("The radii of Hpyer Circumsphere and Insphere through Equidistant Points", Parabola Volume 54, Issue 2 (2018)
    * Sin Keong Tong)
-   * For n+1 points: rho_n = 1 / sqrt(2n(n+1)) = alpha_n
+   * For n+1 points: rho_n = 1 / sqrt(2n(n+1)) = 1 / alpha_n
    *
    * For the calculation of rho see:
    * https://math.stackexchange.com/a/2204047/962961 (see also comments, note that M = T)
@@ -825,7 +825,6 @@ double Simplex::get_quality() {
   rho = 1 / rho;
   
   // Calculate alpha
-//  double alpha = 1 / sqrt(2 * (DIP_DIMS) * (DIP_DIMS+1));
   double alpha = sqrt(2 * (DIP_DIMS) * (DIP_DIMS+1));
   
 //  return alpha * h_max / rho;

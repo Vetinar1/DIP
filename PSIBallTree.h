@@ -19,15 +19,4 @@ public:
 };
 
 
-//void PSIBallTree::free() {
-//  if (lchild != nullptr) {
-//    lchild->free();
-//    delete lchild;
-//  }
-//
-//  if (rchild != nullptr) {
-//    rchild->free();
-//    delete rchild;
-//  }
-//}
 #endif //DIP_PSIBALLTREE_H

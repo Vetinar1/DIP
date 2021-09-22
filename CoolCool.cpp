@@ -437,7 +437,6 @@ double Cool::interpolate(double * coords) {
     if (interpolate_calls >= 2) {
       quality_stdev = M2_quality / (interpolate_calls - 1);
     }
-    qualities[q_count] = q;
     q_count++;
 #endif
     

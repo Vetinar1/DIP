@@ -63,7 +63,6 @@ public:
     double quality_avg = 0;
     double quality_stdev = 0;
     double M2_quality = 0;
-    double qualities[1000]; // TODO Remove
     int q_count = 0;
     int flips, interpolate_calls;
     int nullpointers_encountered;

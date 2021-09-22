@@ -26,9 +26,6 @@ static int N_LIM;
 
 static PSIBallTree * btree; // root node
 
-static int adaptive_calls = 0;
-static int adaptive_executions = 0;
-
 
 int get_nlim() {
   return N_LIM;
@@ -42,11 +39,6 @@ double get_coord(int i, int j) {
 
 double get_val(int i, int j) {
   return vals[i][j];
-}
-
-
-double get_average_executions() {
-  return (double) adaptive_executions / (double) adaptive_calls;
 }
 
 
@@ -74,6 +66,7 @@ double get_dist(double * target, int index) {
   return dist2;
 }
 
+
 void psi_init() {
   /**
    * Set up global arrays for interpolation
@@ -88,7 +81,7 @@ void psi_init() {
 }
 
 
-int psi_read_points(std::string cool_file, int apply_log_to_vals) {
+int psi_read_points(std::string cool_file) {
   /**
    * Read data from file, see also equivalent in CoolCool.cpp
    *
@@ -122,10 +115,7 @@ int psi_read_points(std::string cool_file, int apply_log_to_vals) {
     }
     for (int j = 0; j < DIP_VARNR; j++) {   // DIP_VARNR values
       std::getline(linestream, value, ',');
-      if (apply_log_to_vals) {
-        vals[i][j] = log10(std::stod(value));
-      } else {
-        vals[i][j] = std::stod(value);}
+      vals[i][j] = std::stod(value);
     }
     
     n++;
@@ -349,118 +339,6 @@ int psi_construct_btree(double ** points) {
 }
 
 
-PSIBallTree * psi_find_nearest_neighbour_recursive(PSIBallTree * root, const double * target, double ** base,
-                                                   PSIBallTree * best, double * min_dist2) {
-  /**
-   * Function to find the nearest neighbour in the given ball tree. Do not use this function directly,
-   * use psi_find_nearest_neighbour() instead.
-   *
-   * @param root        Tree to search in
-   * @param target      Pointer to coordinates of target
-   * @param base        Array of coordinates that the indices in the ball tree refer to
-   * @param best        Currently closest found tree node to target
-   * @param min_dist2   Square distance of best to target
-   * @return            Currently closest found tree node to target, after evaluating current node (i.e. new best)
-   */
-  // Distance to current node
-  double dist2 = 0;
-  for (int i = 0; i < DIP_DIMS; i++) {
-    dist2 += pow(target[i] - base[root->pivot][i], 2);
-  }
-  dist2 = sqrt(dist2);
-  
-  // Recursion exit condition - target point is further outside the current node's ball than the distance
-  // to the current closest neighbor -> there can't be a closer neighbor in this ball/subtree
-  if (dist2 - root->radius >= sqrt(*min_dist2)) {
-    return best;
-  }
-  
-  // Perhaps the current point is the new closest?
-  if (dist2 < *min_dist2) {
-    *min_dist2 = dist2;
-    best = root;
-  }
-  
-  // Find closest child
-  double ldist2 = 0;
-  double rdist2 = 0;
-  
-  if (root->lchild != nullptr) {
-    for (int i = 0; i < DIP_DIMS; i++) {
-      ldist2 += pow(target[i] - base[root->lchild->pivot][i], 2);
-    }
-  }
-  if (root->rchild != nullptr) {
-    for (int i = 0; i < DIP_DIMS; i++) {
-      rdist2 += pow(target[i] - base[root->rchild->pivot][i], 2);
-    }
-  }
-  
-  // Recurse into closest child first
-  if (ldist2 <= rdist2) {
-    if (root->lchild != nullptr) {
-      best = psi_find_nearest_neighbour_recursive(root->lchild, target, base, best, min_dist2);
-    }
-    if (root->rchild != nullptr) {
-      best = psi_find_nearest_neighbour_recursive(root->rchild, target, base, best, min_dist2);
-    }
-  } else {
-    if (root->rchild != nullptr) {
-      best = psi_find_nearest_neighbour_recursive(root->rchild, target, base, best, min_dist2);
-    }
-    if (root->lchild != nullptr) {
-      best = psi_find_nearest_neighbour_recursive(root->lchild, target, base, best, min_dist2);
-    }
-  }
-  
-  return best;
-}
-
-
-int psi_find_nearest_neighbour(double * target, double ** points, PSIBallTree * btree) {
-  /**
-   * Efficiently find the nearest neighbour of target in coords.
-   *
-   * @param target      Pointer to coordinates of target
-   * @param points      Array containing the coordinates of the points to search in
-   * @param btree       Balltree on those points
-   * @return            Index of nearest neighbour in coords
-   */
-  double min_dist2 = DBL_MAX;
-  PSIBallTree * best = nullptr;
-  PSIBallTree * node = psi_find_nearest_neighbour_recursive(btree, target, points, best, &min_dist2);
-  
-  return node->pivot;
-}
-
-
-int psi_find_nearest_neighbour_bruteforce(double * target) {
-  /**
-   * Find the nearest neighbour of target in coords, using a simple brute force approach.
-   * Used to test functionality of psi_find_nearest_neighbour_recursive().
-   *
-   * @param target      Pointer to coordinates of target
-   * @return            Index of nearest neighbour in coords
-   */
-  double min_dist2 = DBL_MAX;
-  int min_index;
-  
-  for (int i = 0; i < N_LIM; i++) {
-    double dist2 = 0;
-    for (int j = 0; j < DIP_DIMS; j++) {
-      dist2 += pow(target[j] - coords[i][j], 2);
-    }
-    
-    if (dist2 < min_dist2) {
-      min_dist2 = dist2;
-      min_index = i;
-    }
-  }
-  
-  return min_index;
-}
-
-
 void psi_find_k_nearest_neighbour_recursive(PSIBallTree * root, const double * target, double ** base,
                                             std::priority_queue<distpoint> * Q, int k) {
   /**
@@ -552,40 +430,6 @@ int * psi_find_k_nearest_neighbor(double * target, int k) {
   return psi_find_k_nearest_neighbor(target, coords, btree, k);
 }
 
-
-int * psi_find_k_nearest_neighbour_bruteforce(double * target, int k) {
-  /**
-   * Find k nearest neighbours of target in coords using simple brute force algorithm. Used to test functionality
-   * of psi_find_k_nearest_neighbour_recursive().
-   *
-   * @param target      Pointer to coordinates of target
-   * @param k           Number of nearest neighbours to find
-   * @return            Pointer to array of indices of k nearest neighbours in coords
-   */
-  std::priority_queue<distpoint> Q;
-  for (int i = 0; i < N_LIM; i++) {
-    double dist2 = get_dist(target, i);
-    if (dist2 < DIP_EPSILON) {
-      continue;
-    }
-    Q.push(distpoint{i, dist2});
-    
-    if (Q.size() > k) {
-      Q.pop();
-    }
-  }
-  
-  int * out = new int[k];
-  for (int i = k-1; i >= 0; i--) {
-    distpoint temp = Q.top();
-    out[i] = temp.index;
-    Q.pop();
-  }
-  
-  assert(Q.empty());
-  
-  return out;
-}
 
 int * psi_projective_simplex_algorithm(int * neighbours, double * target, int k) {
   // Copy relevant neighbours into separate array of dimensions k x DIP_DIMS
