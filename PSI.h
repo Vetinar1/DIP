@@ -14,7 +14,7 @@ struct distpoint {
     int index;
     double dist;
     bool operator<(const distpoint& rhs) const {
-      return dist < rhs.dist;
+        return dist < rhs.dist;
     }
 };
 
