@@ -825,9 +825,11 @@ double Simplex::get_quality() {
   rho = 1 / rho;
   
   // Calculate alpha
-  double alpha = 1 / sqrt(2 * (DIP_DIMS) * (DIP_DIMS+1));
+//  double alpha = 1 / sqrt(2 * (DIP_DIMS) * (DIP_DIMS+1));
+  double alpha = sqrt(2 * (DIP_DIMS) * (DIP_DIMS+1));
   
-  return alpha * h_max / rho;
+//  return alpha * h_max / rho;
+  return alpha * rho / h_max;
 }
 
 
