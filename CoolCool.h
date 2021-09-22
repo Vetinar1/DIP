@@ -38,7 +38,7 @@ class Cool {
      * lead to a stack overflow.
      */
 private:
-    Point points[N_MAX];
+    Point points[DIP_NMAX];
     Simplex simplices[S_MAX];
     Simplex * btree;         // Points to the root of the simplex ball tree
 
@@ -53,13 +53,18 @@ public:
         nullpointers_encountered = 0;
         avg_flips = 0;
         S_LIM = S_MAX;
-        N_LIM = N_MAX;
+        N_LIM = DIP_NMAX;
         for (int i = 0; i < D; i++) {
             mins[i] = DBL_MAX;
             maxs[i] = -1 * DBL_MAX;
         }
     };
     double avg_flips;
+    double quality_avg = 0;
+    double quality_stdev = 0;
+    double M2_quality = 0;
+    double qualities[1000]; // TODO Remove
+    int q_count = 0;
     int flips, interpolate_calls;
     int nullpointers_encountered;
 
@@ -74,7 +79,7 @@ public:
 
     void set_clamp_values(double * mins, double * maxs);
 
-    int read_files(std::string, std::string, std::string);
+    int read_files(std::string, std::string, std::string, int);
     void save_btree(std::string filename);
     int construct_btree();
     double interpolate(double * coords);

@@ -13,11 +13,10 @@ class Point {
      */
     friend class Cool;
     friend class Simplex;
-private:
-    double value;
 
 public:
-    double coords[D];
+    double coords[DIP_DIMS];
+    double value;
 };
 
 #endif //DIP_COOLPOINT_H

@@ -757,3 +757,102 @@ void Simplex::print_error_info() {
     }
     std::cerr << "======================" << std::endl << std::endl;
 }
+
+
+double Simplex::get_quality() {
+  /**
+   * Returns the quality of the simplex. There are a variety of simplex quality measurements, the one used here is
+   * Q = alpha * h_max / rho
+   *
+   * Where h_max is the longest edge of the simplex, rho is the radius of the insphere and alpha is a dimension
+   * dependent normalisation factor.
+   * See: "Delaunay Triangulation and Meshing - Application to Finite Elements", George & Borouchaki
+   *
+   * Alpha normalizes Q to 1 for the regular n-simplex. For h_max = 1 it is equal to the inscribed sphere's
+   * radius, which can be found e.g. here:
+   * https://www.parabola.unsw.edu.au/files/articles/2010-2019/volume-54-2018/issue-2/vol54_no2_2.pdf
+   * ("The radii of Hpyer Circumsphere and Insphere through Equidistant Points", Parabola Volume 54, Issue 2 (2018)
+   * Sin Keong Tong)
+   * For n+1 points: rho_n = 1 / sqrt(2n(n+1)) = alpha_n
+   *
+   * For the calculation of rho see:
+   * https://math.stackexchange.com/a/2204047/962961 (see also comments, note that M = T)
+   */
+  
+  // Calculate h_max
+  double h_max2 = 0;
+  for (int i = 1; i < DIP_DIMS+1; i++) {      // First vertex in vertex pair
+    for (int j = 0; j < i; j++) {             // Second vertex in vertex pair
+      double h2 = 0;
+      for (int k = 0; k < DIP_DIMS; k++) {
+        h2 += pow(points[i]->coords[k] - points[j]->coords[k], 2);
+      }
+      
+      if (h2 > h_max2) {
+        h_max2 = h2;
+      }
+    }
+  }
+  
+  double h_max = sqrt(h_max2);
+  
+  // Calculate rho
+  double rho = 0;
+  double w_D[DIP_DIMS] = {0}; // Array of 0s
+  for (int i = 0; i < DIP_DIMS; i++) {
+    // Calculate the euclidean norm of vector w_i = ith row of T_inv
+    double rho_i2 = 0;
+    for (int j = 0; j < DIP_DIMS; j++) {
+      rho_i2 += T_inv[i][j] * T_inv[i][j];
+    }
+    
+    rho += sqrt(rho_i2);
+    
+    // Calculate the "missing matrix element" w_D (sum of all row vectors)
+    for (int j = 0; j < DIP_DIMS; j++) {
+      w_D[j] += T_inv[i][j];
+    }
+  }
+  
+  // Calculate euclidean norm of w_D and add to rho
+  double rho_n2 = 0;
+  for (int i = 0; i < DIP_DIMS; i++) {
+    rho_n2 += w_D[i] * w_D[i];
+  }
+  
+  rho += sqrt(rho_n2);
+  
+  rho = 1 / rho;
+  
+  // Calculate alpha
+//  double alpha = 1 / sqrt(2 * (DIP_DIMS) * (DIP_DIMS+1));
+  double alpha = sqrt(2 * (DIP_DIMS) * (DIP_DIMS+1));
+  
+//  return alpha * h_max / rho;
+  return alpha * rho / h_max;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
