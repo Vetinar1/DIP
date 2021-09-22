@@ -43,4 +43,14 @@
 // #define PSI_SHOW_ERRORS
 // #define PSI_SHOW_DIAGNOSTICS
 
+
+
+// Constants specifically for PSI
+// Number of nearest neighbours to use in PSI algorithm
+#define PSI_K 50
+// If simplex construction fails, multiply PSI_K by this and try again
+#define PSI_KFACTOR 2
+// Maximum number of failed simplex constructions before using default value (DIP_INTERP_DEFAULT)
+#define PSI_MAXREP 4
+
 #endif //DIP_COOLCONST_H

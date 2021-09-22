@@ -670,3 +670,51 @@ int * psi_adaptive_projective_simplex_algorithm(double * target, int k, double f
     return simplex;
 }
 
+
+double * psi_interpolate(double * target) {
+    int k = PSI_K;
+    int * simplex = nullptr;
+    int reps = 0;
+    
+    while (simplex == nullptr && reps < PSI_MAXREP) {
+        simplex = psi_adaptive_projective_simplex_algorithm(target, k, PSI_KFACTOR, PSI_MAXREP);
+        reps++;
+    }
+    
+    if (simplex == nullptr) {
+        return nullptr;
+    }
+    
+    Point points[DIP_DIMS+1];
+    Simplex sobj;
+
+    for (int j = 0; j < DIP_DIMS+1; j++) {
+        for (int k = 0; k < DIP_DIMS; k++) {
+            points[j].coords[k] = coords[simplex[j]][k];
+        }
+    
+//        points[j].value = get_val(simplex[j], 0);
+        sobj.points[j] = &points[j];
+    }
+
+    sobj.construct_T_inv();
+
+    double * bary = sobj.convert_to_bary(target);
+    int inside = sobj.check_bary(bary);
+
+    if (!inside) {
+        std::cerr << "Constructed simplex using PSI, but did not contain target point. Returning default." << std::endl;
+        sobj.print_error_info();
+        return nullptr;
+    }
+
+    double * interp_vals = new double[DIP_VARNR];
+    for (int i = 0; i < DIP_VARNR; i++) {
+        interp_vals[i] = 0;
+        for (int j = 0; j < DIP_DIMS+1; j++) {
+            interp_vals[i] += bary[j] * vals[simplex[j]][i];
+        }
+    }
+    
+    return interp_vals;
+}

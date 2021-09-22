@@ -22,12 +22,6 @@ void psi_init();
 int psi_read_points(std::string cool_file, int apply_log_to_vals);
 int psi_construct_btree(double ** points);
 PSIBallTree * psi_construct_btree_recursive(double ** base, int * indices, int n);
-PSIBallTree * psi_find_nearest_neighbour_recursive(PSIBallTree * root, const double * target,
-                                                   PSIBallTree * best, double * min_dist2);
-void psi_find_nearest_neighbour_recursive(PSIBallTree * root, const double * target,
-                                          std::priority_queue<distpoint> * Q, int k);
-int psi_find_nearest_neighbour(double * target);
-int psi_find_nearest_neighbour_bruteforce(double * target);
 int * psi_find_k_nearest_neighbor(double * target, int k);
 int * psi_find_k_nearest_neighbor(double * target, double ** points, PSIBallTree * btree, int k);
 int * psi_find_k_nearest_neighbour_bruteforce(double * target, int k);
@@ -38,5 +32,5 @@ double get_coord(int i, int j);
 double get_val(int i, int j);
 int * psi_adaptive_projective_simplex_algorithm(double * target, int k, double factor, int max_steps);
 int get_nlim();
-double get_average_executions();
+double * psi_interpolate(double * target);
 #endif //DIP_PSI_H

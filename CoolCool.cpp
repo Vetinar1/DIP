@@ -327,6 +327,7 @@ Simplex * Cool::find_nearest_neighbour_sbtree(Simplex * root, const double * tar
 }
 
 
+// TODO Add support for multiple vars (merge from Gadget Branch)
 double Cool::interpolate(double * coords) {
     /**
      * Interpolate the given point.
