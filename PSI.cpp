@@ -22,6 +22,9 @@
 static double ** coords;
 static double ** vals;
 
+static double CLAMP_MIN[DIP_DIMS];
+static double CLAMP_MAX[DIP_DIMS];
+
 static int N_LIM;
 
 static PSIBallTree * btree; // root node
@@ -66,6 +69,20 @@ double get_dist(double * target, int index) {
 }
 
 
+void psi_set_clamp_values(double * cmins, double * cmaxs) {
+    /**
+     * Set values of the clamps to use in interpolate().
+     *
+     * double * cmins        Pointer to array of doubles. Min values for clamping.
+     * double * cmaxs        Pointer to array of doubles. Max values for clamping.
+     */
+    for (int i = 0; i < DIP_DIMS; i++) {
+        CLAMP_MAX[i] = cmaxs[i];
+        CLAMP_MIN[i] = cmins[i];
+    }
+}
+
+
 void psi_init() {
     /**
      * Set up global arrays for interpolation
@@ -75,7 +92,7 @@ void psi_init() {
     
     for (int i = 0; i < DIP_NMAX; i++) {
         coords[i] = new double[DIP_DIMS];
-        vals[i] = new double[DIP_VARNR];
+        vals[i]   = new double[DIP_VARNR];
     }
 }
 
@@ -672,6 +689,24 @@ int * psi_adaptive_projective_simplex_algorithm(double * target, int k, double f
 
 
 double * psi_interpolate(double * target) {
+    /**
+     * Interpolate target point.
+     * Clamp coordinates to ensure padding, construct simplex containing target point, interpolate using
+     * barycentric coordinates.
+     *
+     * Returns pointer to interpolated values (DIP_VARNR of them, depending on input files), or nullptr
+     * if simplex construction fails.
+     */
+    
+    // Warning! Input coordinates are modified
+    for (int i = 0; i < DIP_DIMS; i++) {
+        if (target[i] > CLAMP_MAX[i]) {
+            target[i] = CLAMP_MAX[i];
+        } else if (target[i] < CLAMP_MIN[i]) {
+            target[i] = CLAMP_MIN[i];
+        }
+    }
+    
     int k = PSI_K;
     int * simplex = nullptr;
     int reps = 0;
