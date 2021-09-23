@@ -71,7 +71,7 @@ double get_dist(double * target, int index) {
 
 void psi_set_clamp_values(double * cmins, double * cmaxs) {
     /**
-     * Set values of the clamps to use in interpolate().
+     * Set values of the clamps to use in psi_interpolate().
      *
      * double * cmins        Pointer to array of doubles. Min values for clamping.
      * double * cmaxs        Pointer to array of doubles. Max values for clamping.

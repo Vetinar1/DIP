@@ -19,6 +19,7 @@ struct distpoint {
 };
 
 void psi_init();
+void psi_set_clamp_values(double * cmins, double * cmaxs);
 int psi_read_points(std::string cool_file, int apply_log_to_vals);
 int psi_construct_btree(double ** points);
 PSIBallTree * psi_construct_btree_recursive(double ** base, int * indices, int n);
