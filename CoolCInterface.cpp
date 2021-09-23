@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <string>
 #include "CoolCInterface.h"
+#include "PSI.h"
 
 #define COOL_OBJ_COUNT 10
 #define COOLMANAGER_OBJ_COUNT 161
@@ -79,6 +80,23 @@ extern "C" {
 
     void CoolManager_set_clamps(int cm_idx, double * mins, double * maxs) {
         CM[cm_idx]->set_clamp_values(mins, maxs);
+    }
+    
+    
+    void PSI_init() {
+        psi_init();
+    }
+    
+    void PSI_set_clamps(double * cmins, double * cmaxs) {
+        psi_set_clamp_values(cmins, cmaxs);
+    }
+    
+    void PSI_read_files(char * cool_file) {
+        psi_read_points(std::string(cool_file));
+    }
+    
+    double * PSI_interpolate(double * coords) {
+        psi_interpolate(coords);
     }
 
 #ifdef __cplusplus
