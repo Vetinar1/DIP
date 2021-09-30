@@ -19,33 +19,22 @@
 #include <vector>
 
 
-static double ** coords;
-static double ** vals;
-
-static double CLAMP_MIN[DIP_DIMS];
-static double CLAMP_MAX[DIP_DIMS];
-
-static int N_LIM;
-
-static PSIBallTree * btree; // root node
-
-
-int get_nlim() {
+int PSI::get_nlim() {
     return N_LIM;
 }
 
 
-double get_coord(int i, int j) {
+double PSI::get_coord(int i, int j) {
     return coords[i][j];
 }
 
 
-double get_val(int i, int j) {
+double PSI::get_val(int i, int j) {
     return vals[i][j];
 }
 
 
-double dot(double * v, double * w) {
+double PSI::dot(double * v, double * w) {
     /**
      * Simple dot product between two vectors.
      */
@@ -57,7 +46,7 @@ double dot(double * v, double * w) {
 }
 
 
-double get_dist(double * target, int index) {
+double PSI::get_dist(double * target, int index) {
     /**
      * Helper function. Get distance from target to point with given index.
      */
@@ -69,9 +58,9 @@ double get_dist(double * target, int index) {
 }
 
 
-void psi_set_clamp_values(double * cmins, double * cmaxs) {
+void PSI::set_clamp_values(double * cmins, double * cmaxs) {
     /**
-     * Set values of the clamps to use in psi_interpolate().
+     * Set values of the clamps to use in interpolat().
      *
      * double * cmins        Pointer to array of doubles. Min values for clamping.
      * double * cmaxs        Pointer to array of doubles. Max values for clamping.
@@ -83,21 +72,7 @@ void psi_set_clamp_values(double * cmins, double * cmaxs) {
 }
 
 
-void psi_init() {
-    /**
-     * Set up global arrays for interpolation
-     */
-    coords = new double * [DIP_NMAX];
-    vals = new double * [DIP_NMAX];
-    
-    for (int i = 0; i < DIP_NMAX; i++) {
-        coords[i] = new double[DIP_DIMS];
-        vals[i]   = new double[DIP_VARNR];
-    }
-}
-
-
-int psi_read_points(std::string cool_file) {
+int PSI::read_files(std::string cool_file) {
     /**
      * Read data from file, see also equivalent in CoolCool.cpp
      *
@@ -143,13 +118,13 @@ int psi_read_points(std::string cool_file) {
     
     file.close();
     
-    psi_construct_btree(coords);
+    construct_btree(coords);
     
     return 0;
 }
 
 
-PSIBallTree * psi_construct_btree_recursive(double ** base, int * indices, int n) {
+PSIBallTree * PSI::construct_btree_recursive(double ** base, int * indices, int n) {
     /**
      * Recursively construct btree
      *
@@ -273,12 +248,12 @@ PSIBallTree * psi_construct_btree_recursive(double ** base, int * indices, int n
     
     // 4. Recurse on L and R
     if (lcount > 0) {
-        node->lchild = psi_construct_btree_recursive(base, L, lcount);
+        node->lchild = construct_btree_recursive(base, L, lcount);
     } else {
         node->lchild = nullptr;
     }
     if (rcount > 0) {
-        node->rchild = psi_construct_btree_recursive(base, R, rcount);
+        node->rchild = construct_btree_recursive(base, R, rcount);
     } else {
         node->rchild = nullptr;
     }
@@ -335,7 +310,7 @@ PSIBallTree * psi_construct_btree_recursive(double ** base, int * indices, int n
 }
 
 
-int psi_construct_btree(double ** points) {
+int PSI::construct_btree(double ** points) {
     /**
      * Builds a ball tree for quick nearest neighbour finding. Public adapter for
      * construct_btree_recursive.
@@ -348,15 +323,15 @@ int psi_construct_btree(double ** points) {
         indices[i] = i;
     }
     
-    btree = psi_construct_btree_recursive(points, indices, N_LIM);
+    btree = construct_btree_recursive(points, indices, N_LIM);
     delete[] indices;
     
     return 0;
 }
 
 
-void psi_find_k_nearest_neighbour_recursive(PSIBallTree * root, const double * target, double ** base,
-                                            std::priority_queue <distpoint> * Q, int k) {
+void PSI::find_k_nearest_neighbour_recursive(PSIBallTree * root, const double * target, double ** base,
+                                             std::priority_queue <distpoint> * Q, int k) {
     /**
      * Efficiently find the k nearest neighbours of target in coords.
      * This function may look a bit odd because it was originally only supposed to find *one* nearest neighbour.
@@ -401,17 +376,17 @@ void psi_find_k_nearest_neighbour_recursive(PSIBallTree * root, const double * t
     }
     
     if (root->closechild != nullptr) {
-        psi_find_k_nearest_neighbour_recursive(root->closechild, target, base, Q, k);
+        find_k_nearest_neighbour_recursive(root->closechild, target, base, Q, k);
     }
     if (root->farchild != nullptr) {
-        psi_find_k_nearest_neighbour_recursive(root->farchild, target, base, Q, k);
+        find_k_nearest_neighbour_recursive(root->farchild, target, base, Q, k);
     }
 }
 
 
-int * psi_find_k_nearest_neighbor(double * target, double ** points, PSIBallTree * btree, int k) {
+int * PSI::find_k_nearest_neighbor(double * target, double ** points, PSIBallTree * btree, int k) {
     /**
-     * Public adapter for psi_find_k_nearest_neighbour_recursive(). Efficently finds the k nearest neighbours of
+     * Public adapter for find_k_nearest_neighbour_recursive(). Efficently finds the k nearest neighbours of
      * target in points.
      *
      * @param target  Pointer to the target coordinates
@@ -421,7 +396,7 @@ int * psi_find_k_nearest_neighbor(double * target, double ** points, PSIBallTree
      * @return        Pointer to array of indices of k nearest neighbours in coords
      */
     std::priority_queue <distpoint> * Q = new std::priority_queue<distpoint>;
-    psi_find_k_nearest_neighbour_recursive(btree, target, points, Q, k);
+    find_k_nearest_neighbour_recursive(btree, target, points, Q, k);
     
     assert(Q->size() == k);
     
@@ -439,15 +414,15 @@ int * psi_find_k_nearest_neighbor(double * target, double ** points, PSIBallTree
 }
 
 
-int * psi_find_k_nearest_neighbor(double * target, int k) {
+int * PSI::find_k_nearest_neighbour(double * target, int k) {
     /**
      * Find k nearest neighbours in coords
      */
-    return psi_find_k_nearest_neighbor(target, coords, btree, k);
+    return find_k_nearest_neighbour(target, coords, btree, k);
 }
 
 
-int * psi_projective_simplex_algorithm(int * neighbours, double * target, int k) {
+int * PSI::projective_simplex_algorithm(int * neighbours, double * target, int k) {
     // Copy relevant neighbours into separate array of dimensions k x DIP_DIMS
     // The DIP_DIMS columns are going to hold the actual coordinates; these are going to be
     // modified as we do the projection in each iteration
@@ -496,7 +471,7 @@ int * psi_projective_simplex_algorithm(int * neighbours, double * target, int k)
             }
             double min_dist2 = DBL_MAX;
             PSIBallTree * best = nullptr;
-            PSIBallTree * temptree = psi_construct_btree_recursive(neigh_coords, indices, n);
+            PSIBallTree * temptree = construct_btree_recursive(neigh_coords, indices, n);
             PSIBallTree * result = psi_find_nearest_neighbour_recursive(temptree, ptarget, neigh_coords, best, &min_dist2);
             nn = result->pivot;
 #else
@@ -663,17 +638,17 @@ int * psi_projective_simplex_algorithm(int * neighbours, double * target, int k)
 }
 
 
-int * psi_adaptive_projective_simplex_algorithm(double * target, int k, double factor, int max_steps) {
+int * PSI::adaptive_projective_simplex_algorithm(double * target, int k, double factor, int max_steps) {
     adaptive_calls++;
     adaptive_executions++;
-    int * neighbours = psi_find_k_nearest_neighbor(target, k);
-    int * simplex = psi_projective_simplex_algorithm(neighbours, target, k);
+    int * neighbours = find_k_nearest_neighbour(target, k);
+    int * simplex = projective_simplex_algorithm(neighbours, target, k);
     
     int iterations = 0;
     while (simplex == nullptr && iterations < max_steps) {
         k = (int) k * factor;
-        neighbours = psi_find_k_nearest_neighbor(target, k);
-        simplex = psi_projective_simplex_algorithm(neighbours, target, k);
+        neighbours = find_k_nearest_neighbour(target, k);
+        simplex = projective_simplex_algorithm(neighbours, target, k);
         iterations++;
         adaptive_executions++;
     }
@@ -688,7 +663,7 @@ int * psi_adaptive_projective_simplex_algorithm(double * target, int k, double f
 }
 
 
-double * psi_interpolate(double * target) {
+double * PSI::interpolate(double * target) {
     /**
      * Interpolate target point.
      * Clamp coordinates to ensure padding, construct simplex containing target point, interpolate using
@@ -712,7 +687,7 @@ double * psi_interpolate(double * target) {
     int reps = 0;
     
     while (simplex == nullptr && reps < PSI_MAXREP) {
-        simplex = psi_adaptive_projective_simplex_algorithm(target, k, PSI_KFACTOR, PSI_MAXREP);
+        simplex = adaptive_projective_simplex_algorithm(target, k, PSI_KFACTOR, PSI_MAXREP);
         reps++;
     }
     

@@ -88,15 +88,15 @@ extern "C" {
     }
     
     void PSI_set_clamps(double * cmins, double * cmaxs) {
-        psi_set_clamp_values(cmins, cmaxs);
+        set_clamp_values(cmins, cmaxs);
     }
     
     void PSI_read_files(char * cool_file) {
-        psi_read_points(std::string(cool_file));
+        read_files(std::string(cool_file));
     }
     
     double * PSI_interpolate(double * coords) {
-        psi_interpolate(coords);
+        interpolat(coords);
     }
 
 #ifdef __cplusplus
