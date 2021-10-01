@@ -81,7 +81,7 @@ public:
     int read_files(std::string, std::string, std::string);
     void save_btree(std::string filename);
     int construct_btree();
-    double interpolate(double * coords);
+    double * interpolate(double * coords);
 };
 
 

@@ -327,8 +327,7 @@ Simplex * Cool::find_nearest_neighbor_sbtree(Simplex * root, const double * targ
 }
 
 
-// TODO Add support for multiple vars (merge from Gadget Branch)
-double Cool::interpolate(double * coords) {
+double * Cool::interpolate(double * coords) {
     /**
      * Interpolate the given point.
      * First, find the closest simplex using the ball tree. Then, find the simplex containing the given point using
@@ -337,6 +336,7 @@ double Cool::interpolate(double * coords) {
      * double * coords      Pointer to array containing the target coordinates. Length needs to match dimensionality D.
      *                      Contents need to match the files that have been read. Do not attempt to interpolate outside
      *                      of sampled area of parameter space.
+     * returns              Pointer to array of interpolated values, length DIP_VARNR
      */
 
     // Warning! Input coordinates are modified
@@ -417,11 +417,14 @@ double Cool::interpolate(double * coords) {
     }
 
     // The actual interpolation step
-    double val = 0;
-    for (int i = 0; i < D+1; i++) {
-        val += bary[i] * nn->points[i]->value;
+    double * interp_vals = new double[DIP_VARNR];
+    for (int i = 0; i < DIP_VARNR; i++) {
+        interp_vals[i] = 0;
+        for (int j = 0; j < DIP_DIMS+1; j++) {
+            interp_vals[i] += bary[i] * nn->points[j]->value[i];
+        }
     }
-
+    
     delete[] bary;
 
 #ifdef DIP_DIAGNOSTICS
@@ -482,9 +485,10 @@ int Cool::read_files(std::string cool_file, std::string tri_file, std::string ne
             std::getline(linestream, value, ',');
             points[i].coords[j] = std::stod(value);
         }
-        // value
-        std::getline(linestream, value, ',');
-        points[i].value = std::stod(value);
+        for (int j = 0; j < DIP_VARNR; j++) {   // DIP_VARNR values
+            std::getline(linestream, value, ',');
+            vals[i][j] = std::stod(value);
+        }
 
         // Update smallest/largest known values
         // TODO Possibly replace with flags?
@@ -636,7 +640,7 @@ void Cool::set_clamp_values(double * cmins, double * cmaxs) {
      * double * cmins        Pointer to array of doubles. Min values for clamping.
      * double * cmaxs        Pointer to array of doubles. Max values for clamping.
      */
-    for (int i = 0; i < D; i++) {
+    for (int i = 0; i < DIP_DIMS; i++) {
         CLAMP_MAX[i] = cmaxs[i];
         CLAMP_MIN[i] = cmins[i];
     }

@@ -16,7 +16,7 @@ class Point {
 
 public:
     double coords[DIP_DIMS];
-    double value;
+    double value[DIP_VARNR];
 };
 
 #endif //DIP_COOLPOINT_H
