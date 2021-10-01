@@ -10,7 +10,7 @@
 #include "CoolManager.h"
 
 
-double CoolManager::interpolate(double * args, double z) {
+double * CoolManager::interpolate(double * args, double z) {
     if (z < z_low || z > z_high) {
         if (z > z_high && z_high == z_highest) {
             if (highest_z_warn_flag != 1) {
@@ -31,8 +31,16 @@ double CoolManager::interpolate(double * args, double z) {
     // Interpolate inside slices
     double * low_vals = low->interpolate(args);
     double * high_vals = high->interpolate(args);
-    double * interp_vals = new double[DIP_VARNR];
     
+    if (low_vals == nullptr && high_vals == nullptr) {
+        return nullptr;
+    } else if (low_vals == nullptr) {
+        return high_vals;
+    } else if (high_vals == nullptr) {
+        return low_vals;
+    }
+    
+    double * interp_vals = new double[DIP_VARNR];
     // Simple linear interpolation in between slices
     for (int i = 0; i < DIP_VARNR; i++) {
         interp_vals[i] = (low_vals[i] * (z_high - z) + high_vals[i] * (z - z_low)) / z_diff;
@@ -109,17 +117,18 @@ void CoolManager::push_slice(std::string filename) {
     low = temp;
     low->reset();
     int status = low->read_files(
-            filename + ".points",
-            filename + ".tris",
-            filename + ".neighbors"
+        filename + ".points",
+        filename + ".tris",
+        filename + ".neighbors"
     );
+    if (status == 0) {
+        low->construct_btree();
+    }
 #endif
     if (status > 0) {
         std::cerr << "Error reading cooling data in CoolManager::push_slice, files " << filename << std::endl;
         abort();
     }
-    low->construct_btree();
-#endif
 }
 
 

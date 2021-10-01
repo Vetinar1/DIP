@@ -10,6 +10,7 @@
 #include <iostream>
 #include <assert.h>
 #include "CoolConst.h"
+#include "PSI.h"
 
 class CoolManager {
     /**
@@ -105,7 +106,7 @@ public:
         delete low;
         delete high;
     }
-    double interpolate(double*, double);
+    double * interpolate(double*, double);
     void push_slice(std::string);
     void set_clamp_values(double * mins, double * maxs);
 };

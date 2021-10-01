@@ -352,9 +352,9 @@ double * Cool::interpolate(double * coords) {
     Simplex * best = nullptr;
     Simplex * nn = find_nearest_neighbor_sbtree(btree, coords, best, DBL_MAX);
     if (nn == nullptr) {
-        std::cerr << "DIP Important WARNING: Nullpointer returned from ball tree! Returning default value!" << std::endl;
+        std::cerr << "DIP Important WARNING: Nullpointer returned from ball tree!" << std::endl;
 //        std::cerr << "This should NEVER happen, are you SURE everything is working fine?" << std::endl;
-        return DIP_INTERP_DEFAULT;
+        return nullptr;
     }
     assert(nn != nullptr);
 
@@ -487,7 +487,7 @@ int Cool::read_files(std::string cool_file, std::string tri_file, std::string ne
         }
         for (int j = 0; j < DIP_VARNR; j++) {   // DIP_VARNR values
             std::getline(linestream, value, ',');
-            vals[i][j] = std::stod(value);
+            points[i].value[j] = std::stod(value);
         }
 
         // Update smallest/largest known values

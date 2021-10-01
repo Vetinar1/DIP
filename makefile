@@ -6,8 +6,8 @@ c : libraries example1.c
 	@echo "Done. Don't forget to set your LD_LIBRARY_PATH when running the example!"
 	
 cpp : example2.cpp
-	g++ -c example2.cpp CoolCool.cpp CoolManager.cpp CoolSimplex.cpp
-	g++ -o example2 example2.o CoolCool.o CoolManager.o CoolSimplex.o
+	g++ -c example2.cpp CoolCool.cpp CoolManager.cpp CoolSimplex.cpp PSI.cpp
+	g++ -o example2 example2.o CoolCool.o CoolManager.o CoolSimplex.o PSI.o
 	
 so : libraries
 

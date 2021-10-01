@@ -15,9 +15,6 @@
 #define AUTOMATIC_LOADING 1         // Whether to automatically load in new z slices in CoolManager. Warning: Assumes each call to interpolate has less or equal z than before
 #define MAX_FLIPS 10                 // Max number of flips in simplex flipping algorithm before extrapolating
 
-// The default value returned by interpolate if the ball tree fails
-#define DIP_INTERP_DEFAULT (-40)
-
 // Flag for asserts in ball tree generation code. Recommended to be kept on the first time a tree is built on a
 // data set, can be switched off otherwise if desired
 #define DIP_BALLTREE_CHECKS
@@ -36,7 +33,7 @@
 // Whether simplex errors in the file reading process are output to stderr or not
 //#define DIP_SUPPRESS_SIMPLEX_ERRORS
 
-#define DIP_DIMS 3
+#define DIP_DIMS 2
 #define D DIP_DIMS
 // The number of variables to be read/interpolated by DIP
 // In order: Ctot, Htot, ne, H2, HI, HII, HeI, HeII, HeIII

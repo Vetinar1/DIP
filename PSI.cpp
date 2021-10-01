@@ -63,7 +63,7 @@ void PSI::reset() {
      * Resets attributes of PSI object so it can be reused
      */
     if (btree != nullptr) {
-        btree.cleanup();
+        btree->cleanup();
         delete btree;
     }
     
