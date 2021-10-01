@@ -17,8 +17,13 @@ class CoolManager {
      * interpolated linearly between those.
      */
 private:
+#ifdef DIP_CM_USE_PSI
+    PSI * low;
+    PSI * high;
+#else
     Cool * low;
     Cool * high;
+#endif
 
     double z_low, z_high, z_diff, z_highest;
     double CLAMP_MIN[D], CLAMP_MAX[D];
@@ -55,30 +60,46 @@ public:
         z_diff = init_z_high - init_z_low;
         z_highest = z_high;
 
+#ifdef DIP_CM_USE_PSI
+        low  = new PSI;
+        high = new PSI;
+    
+        int status = low->read_files(filenames[z_low] + ".points");
+        if (status > 0) {
+            std::cerr << "Error reading cooling data in CoolManager init, files " << filenames[z_low] << std::endl;
+            abort();
+        }
+        status = high->read_files(filenames[z_high] + ".points");
+        if (status > 0) {
+            std::cerr << "Error reading cooling data in CoolManager init, files " << filenames[z_high] << std::endl;
+            abort();
+        }
+#else
         low  = new Cool;
         high = new Cool;
 
         int status = low->read_files(
-                filenames[z_low] + ".points",
-                filenames[z_low] + ".tris",
-                filenames[z_low] + ".neighbors"
+            filenames[z_low] + ".points",
+            filenames[z_low] + ".tris",
+            filenames[z_low] + ".neighbors"
         );
         if (status > 0) {
-            std::cerr << "Error reading cooling data in CoolManager::push_slice, files " << filenames[z_low] << std::endl;
+            std::cerr << "Error reading cooling data in CoolManager init, files " << filenames[z_low] << std::endl;
             abort();
         }
         status = high->read_files(
-                filenames[z_high] + ".points",
-                filenames[z_high] + ".tris",
-                filenames[z_high] + ".neighbors"
+            filenames[z_high] + ".points",
+            filenames[z_high] + ".tris",
+            filenames[z_high] + ".neighbors"
         );
         if (status > 0) {
-            std::cerr << "Error reading cooling data in CoolManager::push_slice, files " << filenames[z_high] << std::endl;
+            std::cerr << "Error reading cooling data in CoolManager init, files " << filenames[z_high] << std::endl;
             abort();
         }
 
         low->construct_btree();
         high->construct_btree();
+#endif
     }
     ~CoolManager() {
         delete low;
