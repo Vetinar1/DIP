@@ -14,12 +14,15 @@
 
 #define COOL_OBJ_COUNT 10
 #define COOLMANAGER_OBJ_COUNT 161
+#define PSI_OBJ_COUNT 10
 
 Cool * C[COOL_OBJ_COUNT];
 CoolManager * CM[COOLMANAGER_OBJ_COUNT];
+PSI * P[PSI_OBJ_COUNT];
 
 int cool_counter = 0;
 int coolmanager_counter = 0;
+int psi_counter = 0;
 
 #ifdef __cplusplus
 extern "C" {
@@ -81,22 +84,32 @@ extern "C" {
     void CoolManager_set_clamps(int cm_idx, double * mins, double * maxs) {
         CM[cm_idx]->set_clamp_values(mins, maxs);
     }
+
     
-    
-    void PSI_init() {
-        psi_init();
+    int PSI_new(int p_indx) {
+        if (psi_counter >= PSI_OBJ_COUNT) {
+            std::cerr << "Tried to create too many PSI objects" << std::endl;
+            return -1;
+        }
+        P[p_indx] = new PSI;
+        psi_counter++;
+        return psi_counter - 1;
     }
     
-    void PSI_set_clamps(double * cmins, double * cmaxs) {
-        set_clamp_values(cmins, cmaxs);
+    int PSI_read_files(int p_indx, char * cool_file) {
+        return P[p_indx]->read_files(std::string(cool_file));
     }
     
-    void PSI_read_files(char * cool_file) {
-        read_files(std::string(cool_file));
+    void PSI_reset(int p_indx) {
+        P[p_indx]->reset();
     }
     
-    double * PSI_interpolate(double * coords) {
-        interpolat(coords);
+    double PSI_interpolate(int p_indx, double * coords) {
+        return P[p_indx]->interpolate(coords);
+    }
+    
+    void PSI_set_clamps(int p_indx, double * mins, double * maxs) {
+        P[p_indx]->set_clamp_values(mins, maxs);
     }
 
 #ifdef __cplusplus
