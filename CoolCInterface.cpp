@@ -35,8 +35,8 @@ extern "C" {
         return cool_counter - 1;
     }
 
-    int Cool_read_files(int c_indx, char * cool_file, char * tri_file, char * neighbour_file) {
-        return C[c_indx]->read_files(std::string(cool_file), std::string(tri_file), std::string(neighbour_file));
+    int Cool_read_files(int c_indx, char * cool_file, char * tri_file, char * neighbor_file) {
+        return C[c_indx]->read_files(std::string(cool_file), std::string(tri_file), std::string(neighbor_file));
     }
 
     void Cool_reset(int c_indx) {

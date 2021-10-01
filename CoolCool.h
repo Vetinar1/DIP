@@ -43,7 +43,7 @@ private:
     Simplex * btree;         // Points to the root of the simplex ball tree
 
     Simplex * construct_simplex_btree_recursive(Simplex **, int);
-    Simplex * find_nearest_neighbour_sbtree(Simplex *, const double *, Simplex *, double);
+    Simplex * find_nearest_neighbor_sbtree(Simplex *, const double *, Simplex *, double);
 
     int N_LIM, S_LIM;
 public:
@@ -78,7 +78,7 @@ public:
 
     void set_clamp_values(double * mins, double * maxs);
 
-    int read_files(std::string, std::string, std::string, int);
+    int read_files(std::string, std::string, std::string);
     void save_btree(std::string filename);
     int construct_btree();
     double interpolate(double * coords);

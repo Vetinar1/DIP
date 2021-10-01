@@ -21,8 +21,8 @@ private:
     double normals[DIP_DIMS+1][DIP_DIMS];             // Outward pointing normals of the faces; D+1 faces, D vector components
     double T_inv[DIP_DIMS][DIP_DIMS];                 // T: https://en.wikipedia.org/wiki/Barycentric_coordinate_system#Barycentric_coordinates_on_tetrahedra
 //    double T[DIP_DIMS][DIP_DIMS];                 // T: https://en.wikipedia.org/wiki/Barycentric_coordinate_system#Barycentric_coordinates_on_tetrahedra
-    int neighbour_indices[DIP_DIMS+1];         // One neighbour opposite every point
-    Simplex * neighbour_pointers[DIP_DIMS+1];
+    int neighbor_indices[DIP_DIMS+1];         // One neighbor opposite every point
+    Simplex * neighbor_pointers[DIP_DIMS+1];
     double sbtree_radius_sq;            // Squared radius of ball in ball tree
     int index;
     

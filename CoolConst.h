@@ -34,7 +34,7 @@
 // Whether simplex errors in the file reading process are output to stderr or not
 //#define DIP_SUPPRESS_SIMPLEX_ERRORS
 
-#define DIP_DIMS 6
+#define DIP_DIMS 3
 #define D DIP_DIMS
 // The number of variables to be read/interpolated by DIP
 // In order: Ctot, Htot, ne, H2, HI, HII, HeI, HeII, HeIII
@@ -46,7 +46,7 @@
 
 
 // Constants specifically for PSI
-// Number of nearest neighbours to use in PSI algorithm
+// Number of nearest neighbors to use in PSI algorithm
 #define PSI_K 50
 // If simplex construction fails, multiply PSI_K by this and try again
 #define PSI_KFACTOR 2

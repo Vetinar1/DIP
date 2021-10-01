@@ -312,7 +312,7 @@ PSIBallTree * PSI::construct_btree_recursive(double ** base, int * indices, int 
 
 int PSI::construct_btree(double ** points) {
     /**
-     * Builds a ball tree for quick nearest neighbour finding. Public adapter for
+     * Builds a ball tree for quick nearest neighbor finding. Public adapter for
      * construct_btree_recursive.
      *
      * @param points      Array of points to build balltree on
@@ -330,18 +330,18 @@ int PSI::construct_btree(double ** points) {
 }
 
 
-void PSI::find_k_nearest_neighbour_recursive(PSIBallTree * root, const double * target, double ** base,
+void PSI::find_k_nearest_neighbor_recursive(PSIBallTree * root, const double * target, double ** base,
                                              std::priority_queue <distpoint> * Q, int k) {
     /**
-     * Efficiently find the k nearest neighbours of target in coords.
-     * This function may look a bit odd because it was originally only supposed to find *one* nearest neighbour.
-     * Do not use this function directly, use psi_find_k_nearest_neighbour() instead.
+     * Efficiently find the k nearest neighbors of target in coords.
+     * This function may look a bit odd because it was originally only supposed to find *one* nearest neighbor.
+     * Do not use this function directly, use psi_find_k_nearest_neighbor() instead.
      *
      * @param root        Ball tree to search in
      * @param target      Pointer to coordinates of target
      * @param base        Array of coordinates that the ball tree was built on
-     * @param Q           Priority queue containing the currently known k nearest neighbours
-     * @param k           How many nearest neighbours to find
+     * @param Q           Priority queue containing the currently known k nearest neighbors
+     * @param k           How many nearest neighbors to find
      *
      * Returns nothing, the output is the priority queue, which is modified in-place.
      */
@@ -376,27 +376,27 @@ void PSI::find_k_nearest_neighbour_recursive(PSIBallTree * root, const double * 
     }
     
     if (root->closechild != nullptr) {
-        find_k_nearest_neighbour_recursive(root->closechild, target, base, Q, k);
+        find_k_nearest_neighbor_recursive(root->closechild, target, base, Q, k);
     }
     if (root->farchild != nullptr) {
-        find_k_nearest_neighbour_recursive(root->farchild, target, base, Q, k);
+        find_k_nearest_neighbor_recursive(root->farchild, target, base, Q, k);
     }
 }
 
 
 int * PSI::find_k_nearest_neighbor(double * target, double ** points, PSIBallTree * btree, int k) {
     /**
-     * Public adapter for find_k_nearest_neighbour_recursive(). Efficently finds the k nearest neighbours of
+     * Public adapter for find_k_nearest_neighbor_recursive(). Efficently finds the k nearest neighbors of
      * target in points.
      *
      * @param target  Pointer to the target coordinates
-     * @param points  Array of points to find nearest neighbour in
+     * @param points  Array of points to find nearest neighbor in
      * @param btree   Balltree built on points
-     * @param k       How many nearest neighbours to find
-     * @return        Pointer to array of indices of k nearest neighbours in coords
+     * @param k       How many nearest neighbors to find
+     * @return        Pointer to array of indices of k nearest neighbors in coords
      */
     std::priority_queue <distpoint> * Q = new std::priority_queue<distpoint>;
-    find_k_nearest_neighbour_recursive(btree, target, points, Q, k);
+    find_k_nearest_neighbor_recursive(btree, target, points, Q, k);
     
     assert(Q->size() == k);
     
@@ -414,28 +414,28 @@ int * PSI::find_k_nearest_neighbor(double * target, double ** points, PSIBallTre
 }
 
 
-int * PSI::find_k_nearest_neighbour(double * target, int k) {
+int * PSI::find_k_nearest_neighbor(double * target, int k) {
     /**
-     * Find k nearest neighbours in coords
+     * Find k nearest neighbors in coords
      */
-    return find_k_nearest_neighbour(target, coords, btree, k);
+    return find_k_nearest_neighbor(target, coords, btree, k);
 }
 
 
-int * PSI::projective_simplex_algorithm(int * neighbours, double * target, int k) {
-    // Copy relevant neighbours into separate array of dimensions k x DIP_DIMS
+int * PSI::projective_simplex_algorithm(int * neighbors, double * target, int k) {
+    // Copy relevant neighbors into separate array of dimensions k x DIP_DIMS
     // The DIP_DIMS columns are going to hold the actual coordinates; these are going to be
     // modified as we do the projection in each iteration
     double ** neigh_coords = new double * [k];
     for (int i = 0; i < k; i++) {
         neigh_coords[i] = new double[DIP_DIMS];
         for (int j = 0; j < DIP_DIMS; j++) {
-            neigh_coords[i][j] = coords[neighbours[i]][j];
+            neigh_coords[i][j] = coords[neighbors[i]][j];
         }
     }
     
-    // As we filter out neighbours during the projection process we will not want to iterate over the entire array
-    // Use this array as a mask to keep track of which neighbours are still in play
+    // As we filter out neighbors during the projection process we will not want to iterate over the entire array
+    // Use this array as a mask to keep track of which neighbors are still in play
     int * neigh_mask = new int[k];
     for (int i = 0; i < k; i++) {
         neigh_mask[i] = 1;
@@ -453,7 +453,7 @@ int * PSI::projective_simplex_algorithm(int * neighbours, double * target, int k
     int d = DIP_DIMS;
     int failflag = 0;
     while (d > 1) {
-        // Find nearest neighbor. In the first iteration this is always the first neighbour in the list, otherwise
+        // Find nearest neighbor. In the first iteration this is always the first neighbor in the list, otherwise
         // do a brute force search
         // TODO try using kd tree after all...
         int nn;
@@ -472,7 +472,7 @@ int * PSI::projective_simplex_algorithm(int * neighbours, double * target, int k
             double min_dist2 = DBL_MAX;
             PSIBallTree * best = nullptr;
             PSIBallTree * temptree = construct_btree_recursive(neigh_coords, indices, n);
-            PSIBallTree * result = psi_find_nearest_neighbour_recursive(temptree, ptarget, neigh_coords, best, &min_dist2);
+            PSIBallTree * result = psi_find_nearest_neighbor_recursive(temptree, ptarget, neigh_coords, best, &min_dist2);
             nn = result->pivot;
 #else
             double min_dist2 = DBL_MAX;
@@ -495,7 +495,7 @@ int * PSI::projective_simplex_algorithm(int * neighbours, double * target, int k
         }
         
         // Add the nearest neighbor to the solution
-        simplex[d] = neighbours[nn];
+        simplex[d] = neighbors[nn];
         // Remove it from further considerations
         neigh_mask[nn] = 0;
         
@@ -523,7 +523,7 @@ int * PSI::projective_simplex_algorithm(int * neighbours, double * target, int k
 //        std::cout << pn[j] << "\t" << pn_shift[j] << "\t" << diff[j] << std::endl;
             }
             
-            // 2. Filter (only keep neighbours on "negative" side of the plane)
+            // 2. Filter (only keep neighbors on "negative" side of the plane)
             if (dot(pn_shift, diff) > 0) {
 //        std::cout << "d = " << d << ": setting " << i << " to 0" << std::endl;
 //        std::cout << (dot(pn_shift, diff) > 0) << std::endl;
@@ -537,7 +537,7 @@ int * PSI::projective_simplex_algorithm(int * neighbours, double * target, int k
             }
         }
         
-        // Verify we still have enough neighbours to continue next iteration. We need at least 2 at the end (on the line)
+        // Verify we still have enough neighbors to continue next iteration. We need at least 2 at the end (on the line)
         int n_count = 0;
         for (int i = 0; i < k; i++) {
             n_count += neigh_mask[i];
@@ -618,8 +618,8 @@ int * PSI::projective_simplex_algorithm(int * neighbours, double * target, int k
             delete[] simplex;
             simplex = nullptr;
         } else {
-            simplex[1] = neighbours[negind];
-            simplex[0] = neighbours[posind];
+            simplex[1] = neighbors[negind];
+            simplex[0] = neighbors[posind];
         }
         
         delete[] proj1d;
@@ -639,18 +639,15 @@ int * PSI::projective_simplex_algorithm(int * neighbours, double * target, int k
 
 
 int * PSI::adaptive_projective_simplex_algorithm(double * target, int k, double factor, int max_steps) {
-    adaptive_calls++;
-    adaptive_executions++;
-    int * neighbours = find_k_nearest_neighbour(target, k);
-    int * simplex = projective_simplex_algorithm(neighbours, target, k);
+    int * neighbors = find_k_nearest_neighbor(target, k);
+    int * simplex = projective_simplex_algorithm(neighbors, target, k);
     
     int iterations = 0;
     while (simplex == nullptr && iterations < max_steps) {
         k = (int) k * factor;
-        neighbours = find_k_nearest_neighbour(target, k);
-        simplex = projective_simplex_algorithm(neighbours, target, k);
+        neighbors = find_k_nearest_neighbor(target, k);
+        simplex = projective_simplex_algorithm(neighbors, target, k);
         iterations++;
-        adaptive_executions++;
     }
 
 #ifdef PSI_SHOW_DIAGNOSTICS

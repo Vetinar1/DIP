@@ -720,7 +720,7 @@ void Simplex::print_error_info() {
 
     std::cerr << "Indices of neighbor simplices:" << std::endl;
     for (int i = 0; i < D+1; i++) {
-        std::cerr << neighbour_indices[i] << " ";
+        std::cerr << neighbor_indices[i] << " ";
     }
     std::cerr << std::endl;
 
