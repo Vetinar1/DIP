@@ -421,7 +421,7 @@ double * Cool::interpolate(double * coords) {
     for (int i = 0; i < DIP_VARNR; i++) {
         interp_vals[i] = 0;
         for (int j = 0; j < DIP_DIMS+1; j++) {
-            interp_vals[i] += bary[i] * nn->points[j]->value[i];
+            interp_vals[i] += bary[j] * nn->points[j]->value[i];
         }
     }
     
@@ -481,7 +481,7 @@ int Cool::read_files(std::string cool_file, std::string tri_file, std::string ne
     for (int i = 0; i < DIP_NMAX; i++) {
         std::getline(file, line);
         std::stringstream linestream(line);
-        for (int j = 0; j < D; j++) {     // D coordinates
+        for (int j = 0; j < DIP_DIMS; j++) {     // DIP_DIMS coordinates
             std::getline(linestream, value, ',');
             points[i].coords[j] = std::stod(value);
         }
