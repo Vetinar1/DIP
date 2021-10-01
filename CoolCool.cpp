@@ -445,7 +445,7 @@ double * Cool::interpolate(double * coords) {
 #endif
     
 
-    return val;
+    return interp_vals;
 }
 
 

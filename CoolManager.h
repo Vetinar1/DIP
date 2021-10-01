@@ -106,7 +106,6 @@ public:
         delete high;
     }
     double interpolate(double*, double);
-    void save_trees(std::string fname_low, std::string fname_high);
     void push_slice(std::string);
     void set_clamp_values(double * mins, double * maxs);
 };

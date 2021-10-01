@@ -29,11 +29,20 @@ double CoolManager::interpolate(double * args, double z) {
     }
 
     // Interpolate inside slices
-    double lambda_low = low->interpolate(args);
-    double lambda_high = high->interpolate(args);
-
+    double * low_vals = low->interpolate(args);
+    double * high_vals = high->interpolate(args);
+    double * interp_vals = new double[DIP_VARNR];
+    
     // Simple linear interpolation in between slices
-    return (lambda_low * (z_high - z) + lambda_high * (z - z_low)) / z_diff;
+    for (int i = 0; i < DIP_VARNR; i++) {
+        interp_vals[i] = (low_vals[i] * (z_high - z) + high_vals[i] * (z - z_low)) / z_diff;
+    }
+    
+    delete[] low_vals;
+    delete[] high_vals;
+    
+//    return (lambda_low * (z_high - z) + lambda_high * (z - z_low)) / z_diff;
+    return interp_vals;
 }
 
 
@@ -88,6 +97,13 @@ void CoolManager::push_slice(std::string filename) {
      *
      * Manual usage of this function needs to update z_low, z_high and z_diff
      */
+#ifdef DIP_CM_USE_PSI
+    PSI * temp = high;
+    high = low;
+    low = temp;
+    low->reset();
+    int status = low->read_files(filename + ".points");
+#else
     Cool * temp = high;
     high = low;
     low = temp;
@@ -97,17 +113,13 @@ void CoolManager::push_slice(std::string filename) {
             filename + ".tris",
             filename + ".neighbors"
     );
+#endif
     if (status > 0) {
         std::cerr << "Error reading cooling data in CoolManager::push_slice, files " << filename << std::endl;
         abort();
     }
     low->construct_btree();
-}
-
-
-void CoolManager::save_trees(std::string fname_low, std::string fname_high) {
-    low->save_btree(fname_low);
-    high->save_btree(fname_high);
+#endif
 }
 
 

@@ -58,6 +58,19 @@ double PSI::get_dist(double * target, int index) {
 }
 
 
+void PSI::reset() {
+    /**
+     * Resets attributes of PSI object so it can be reused
+     */
+    if (btree != nullptr) {
+        btree.cleanup();
+        delete btree;
+    }
+    
+    N_LIM = DIP_NMAX;
+}
+
+
 void PSI::set_clamp_values(double * cmins, double * cmaxs) {
     /**
      * Set values of the clamps to use in interpolat().

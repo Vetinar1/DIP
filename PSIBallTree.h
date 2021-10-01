@@ -15,7 +15,17 @@ public:
     PSIBallTree * farchild;
     double radius;
     
-//    void free();
+    void cleanup() {
+        if (lchild != nullptr) {
+            lchild->cleanup();
+        }
+        if (rchild != nullptr) {
+            rchild->cleanup();
+        }
+        
+        delete lchild;
+        delete rchild;
+    };
 };
 
 

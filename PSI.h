@@ -47,6 +47,7 @@ public:
     
     int read_files(std::string cool_file);
     int get_nlim();
+    void reset();
     double get_coord(int i, int j);
     double get_val(int i, int j);
     double get_dist(double * target, int index);
