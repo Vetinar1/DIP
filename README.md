@@ -2,6 +2,8 @@ Update: DIP now also contains files `PSI.cpp`, `PSI.h` and `PSIBallTree.h` that 
 
 I'm working on making it fully compatible with DIP (i.e. make it object oriented, allow for PSI as an option in CoolManager)
 
+If you found a bug or need help running DIP, feel free to message me: dip [at] vetinari [dot] eu
+
 # DIP
 
 The Delaunay Interpolation Program (DIP) is a C/C++ module that reads in data from the CHIPS python package and
