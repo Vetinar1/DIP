@@ -56,8 +56,6 @@ int main() {
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     std::cout << "Time to complete = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
 
-    return 0;
-    
     std::cout << "Creating Cool object... " << std::endl;
     Cool * cool = new Cool;
 
@@ -99,8 +97,6 @@ int main() {
     std::cout << "Time to complete = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
     std::cout << "Avg = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() / pow(100, D) << "[ms]" << std::endl;
     std::cout << "Avg flips: " << cool->avg_flips << std::endl;
-
-    return 0;
 
     std::cout << "Creating PSI object... " << std::endl;
     PSI * psi = new PSI;

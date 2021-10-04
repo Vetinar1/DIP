@@ -28,7 +28,7 @@
 // Whether CoolManager objects should quit the program upon encountering an error
 //#define DIP_CM_ABORT_ON_ERROR
 // Whether CoolManager objects should use PSI objects instead of Cool objects
-//#define DIP_CM_USE_PSI
+#define DIP_CM_USE_PSI
 
 // Whether simplex errors in the file reading process are output to stderr or not
 //#define DIP_SUPPRESS_SIMPLEX_ERRORS
