@@ -7,7 +7,7 @@
 
 #define DIP_NMAX 50000     // maximum number of points
 //#define D 3             // dimensions
-#define S_MAX 41000000    // maximum number of simplices
+#define DIP_SMAX 41000000    // maximum number of simplices
 
 
 // The epsilon to use in DIP calculations

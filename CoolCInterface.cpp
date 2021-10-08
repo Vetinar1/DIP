@@ -77,10 +77,6 @@ extern "C" {
         return CM[cm_indx]->interpolate(args, z);
     }
 
-    void CoolManager_save_trees(int cm_indx, char * fname_low, char * fname_high) {
-        CM[cm_indx]->save_trees(std::string(fname_low), std::string(fname_high));
-    }
-
     void CoolManager_set_clamps(int cm_idx, double * mins, double * maxs) {
         CM[cm_idx]->set_clamp_values(mins, maxs);
     }
