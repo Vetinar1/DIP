@@ -54,7 +54,7 @@ extern "C" {
         C[c_indx]->save_btree(std::string(fname));
     }
 
-    double Cool_interpolate(int c_indx, double * coords) {
+    double * Cool_interpolate(int c_indx, double * coords) {
         return C[c_indx]->interpolate(coords);
     }
 
@@ -73,7 +73,7 @@ extern "C" {
         return index;
     }
 
-    double CoolManager_interpolate(int cm_indx, double * args, double z) {
+    double * CoolManager_interpolate(int cm_indx, double * args, double z) {
         return CM[cm_indx]->interpolate(args, z);
     }
 
@@ -104,7 +104,7 @@ extern "C" {
         P[p_indx]->reset();
     }
     
-    double PSI_interpolate(int p_indx, double * coords) {
+    double * PSI_interpolate(int p_indx, double * coords) {
         return P[p_indx]->interpolate(coords);
     }
     
