@@ -23,7 +23,7 @@ void CoolManager_set_clamps(int, double *, double *);
 
 void PSI_init();
 void PSI_set_clamps(int p_indx, double * cmins, double * cmaxs);
-void PSI_read_files(int p_indx, char * cool_file);
+int PSI_read_files(int p_indx, char * cool_file);
 double * interpolate(double * coords);
 
 #ifdef __cplusplus

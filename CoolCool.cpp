@@ -364,7 +364,7 @@ double * Cool::interpolate(double * coords) {
     int inside = nn->check_bary(bary);
     int n_flips = 0;
 
-    while (!inside and n_flips < MAX_FLIPS) {
+    while (!inside and n_flips < DIP_MAX_FLIPS) {
         // Calculate difference vectors from coords to midpoints; normalize; figure out the one with largest scalar
         // product (= smallest angle)
         double best_dir_dot = - DBL_MAX;
