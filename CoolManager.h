@@ -27,7 +27,7 @@ private:
 #endif
 
     double z_low, z_high, z_diff, z_highest;
-    double CLAMP_MIN[D], CLAMP_MAX[D];
+    double CLAMP_MIN[DIP_DIMS], CLAMP_MAX[DIP_DIMS];
 
     int highest_z_warn_flag = 0;
     int z_high_warning_val = 9999999;

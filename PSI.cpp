@@ -282,7 +282,7 @@ PSIBallTree * PSI::construct_btree_recursive(double ** base, int * indices, int 
     for (int i = 0; i < n; i++) {   // n elements of input array
         double dist = 0;
         // distance calculation
-        for (int j = 0; j < DIP_DIMS; j++) {   // D coordinates
+        for (int j = 0; j < DIP_DIMS; j++) {   // DIP_DIMS coordinates
             dist += pow(base[indices[i]][j] - base[node->pivot][j], 2);
         }
         dist = sqrt(dist);

@@ -6,7 +6,7 @@
 #define DIP_Const_H
 
 #define DIP_NMAX 50000     // maximum number of points
-//#define D 3             // dimensions
+//#define DIP_DIMS 3             // dimensions
 #define DIP_SMAX 41000000    // maximum number of simplices
 
 
@@ -34,7 +34,6 @@
 //#define DIP_SUPPRESS_SIMPLEX_ERRORS
 
 #define DIP_DIMS 3
-#define D DIP_DIMS
 // The number of variables to be read/interpolated by DIP
 // In order: Htot, Ctot, ne, H2, HI, HII, HeI, HeII, HeIII
 #define DIP_VARNR 9

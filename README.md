@@ -52,8 +52,8 @@ The Cool class, defined in Cool.h and Cool.cpp is the main class of DIP.
 This class provides functions for reading DIP data, building a ball tree on that data, and running interpolation
 (for more information, see thesis in the CHIPS repository).
 
-Before using this class, make sure to include the Const.h header file, and set the `DIP_NMAX`, `D` and `DIP_SMAX` constants.
-`D` should be equal to the number of dimensions in your parameter space.
+Before using this class, make sure to include the Const.h header file, and set the `DIP_NMAX`, `DIP_DIM` and `DIP_SMAX` constants.
+`DIP_DIM` should be equal to the number of dimensions in your parameter space.
 `DIP_NMAX` should be equal to or slightly greater than the number of samples in your CHIPS output files.
 `DIP_SMAX` should be equal to or slightly greater than the number of simplices in your CHIPS output files.
 

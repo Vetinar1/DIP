@@ -139,7 +139,7 @@ void CoolManager::set_clamp_values(double * cmins, double * cmaxs) {
      * double * cmins        Pointer to array of doubles. Min values for clamping.
      * double * cmaxs        Pointer to array of doubles. Max values for clamping.
      */
-    for (int i = 0; i < D; i++) {
+    for (int i = 0; i < DIP_DIMS; i++) {
         CLAMP_MAX[i] = cmaxs[i];
         CLAMP_MIN[i] = cmins[i];
     }

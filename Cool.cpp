@@ -29,7 +29,7 @@ void Cool::reset() {
     interpolate_calls = 0;
     avg_flips = 0;
     nullpointers_encountered = 0;
-    for (int i = 0; i < D; i++) {
+    for (int i = 0; i < DIP_DIMS; i++) {
         mins[i] = DBL_MAX;
         maxs[i] = -1 * DBL_MAX;
     }
@@ -100,7 +100,7 @@ Simplex * Cool::construct_simplex_btree_recursive(Simplex ** simps, int n) {
     int lspread_dim = -1;
     double avg = 0;             // Traditionally Ball trees work with the median, but that requires sorting TODO
 
-    for (int i = 0; i < D; i++) {   // every dimension
+    for (int i = 0; i < DIP_DIMS; i++) {   // every dimension
         double dim_min =    DBL_MAX;
         double dim_max = -1*DBL_MAX;
         double dim_spread = 0;
@@ -206,7 +206,7 @@ Simplex * Cool::construct_simplex_btree_recursive(Simplex ** simps, int n) {
     for (int i = 0; i < n; i++) {   // n elements of input array
         double dist = 0;
         // distance calculation
-        for (int j = 0; j < D; j++) {   // D coordinates
+        for (int j = 0; j < DIP_DIMS; j++) {   // DIP_DIMS coordinates
             dist += pow(simps[i]->centroid[j] - pivot_addr->centroid[j], 2);
         }
 
@@ -257,7 +257,7 @@ Simplex * Cool::find_nearest_neighbor_sbtree(Simplex * root, const double * targ
      */
     // Distance to current node
     double dist2 = 0;
-    for (int i = 0; i < D; i++) {
+    for (int i = 0; i < DIP_DIMS; i++) {
         dist2 += pow(target[i] - root->centroid[i], 2);
     }
 
@@ -278,12 +278,12 @@ Simplex * Cool::find_nearest_neighbor_sbtree(Simplex * root, const double * targ
     double rdist2 = 0;
 
     if (root->lchild != nullptr) {
-        for (int i = 0; i < D; i++) {
+        for (int i = 0; i < DIP_DIMS; i++) {
             ldist2 += pow(target[i] - root->lchild->centroid[i], 2);
         }
     }
     if (root->rchild != nullptr) {
-        for (int i = 0; i < D; i++) {
+        for (int i = 0; i < DIP_DIMS; i++) {
             rdist2 += pow(target[i] - root->rchild->centroid[i], 2);
         }
     }
@@ -299,7 +299,7 @@ Simplex * Cool::find_nearest_neighbor_sbtree(Simplex * root, const double * targ
             // Recalculate min_dist2
             // TODO: Inefficient.
             min_dist2 = 0;
-            for (int i = 0; i < D; i++) {
+            for (int i = 0; i < DIP_DIMS; i++) {
                 min_dist2 += pow(target[i] - best->centroid[i], 2);
             }
         }
@@ -314,7 +314,7 @@ Simplex * Cool::find_nearest_neighbor_sbtree(Simplex * root, const double * targ
             // Recalculate min_dist2
             // TODO: Inefficient.
             min_dist2 = 0;
-            for (int i = 0; i < D; i++) {
+            for (int i = 0; i < DIP_DIMS; i++) {
                 min_dist2 += pow(target[i] - best->centroid[i], 2);
             }
         }
@@ -333,14 +333,14 @@ double * Cool::interpolate(double * coords) {
      * First, find the closest simplex using the ball tree. Then, find the simplex containing the given point using
      * repeated "flips". Finally, interpolate using a weighted average (Delaunay).
      *
-     * double * coords      Pointer to array containing the target coordinates. Length needs to match dimensionality D.
+     * double * coords      Pointer to array containing the target coordinates. Length needs to match dimensionality DIP_DIMS.
      *                      Contents need to match the files that have been read. Do not attempt to interpolate outside
      *                      of sampled area of parameter space.
      * returns              Pointer to array of interpolated values, length DIP_VARNR
      */
 
     // Warning! Input coordinates are modified
-    for (int i = 0; i < D; i++) {
+    for (int i = 0; i < DIP_DIMS; i++) {
         if (coords[i] > CLAMP_MAX[i]) {
             coords[i] = CLAMP_MAX[i];
         } else if (coords[i] < CLAMP_MIN[i]) {
@@ -369,17 +369,17 @@ double * Cool::interpolate(double * coords) {
         // product (= smallest angle)
         double best_dir_dot = - DBL_MAX;
         int best_dir;
-        for (int i = 0; i < D+1; i++) {
-            double diff_vec[D];
+        for (int i = 0; i < DIP_DIMS+1; i++) {
+            double diff_vec[DIP_DIMS];
             double diff_len = 0;
-            for (int j = 0; j < D; j++) {
+            for (int j = 0; j < DIP_DIMS; j++) {
                 diff_vec[j] = coords[j] - nn->midpoints[i][j];
                 diff_len += pow(diff_vec[j], 2);
             }
             diff_len = sqrt(diff_len);
 
             double dot = 0;
-            for (int j = 0; j < D; j++) {
+            for (int j = 0; j < DIP_DIMS; j++) {
                 dot += diff_vec[j] * nn->normals[i][j] / diff_len;
             }
 
@@ -394,12 +394,12 @@ double * Cool::interpolate(double * coords) {
             std::cerr << "Warning: Encountered nullpointer in simplex traversal (flip " << n_flips << ")" << std::endl;
             std::cerr << "So far this happened " << nullpointers_encountered << " times" << std::endl;
             std::cerr << "Coordinates: ";
-            for (int i = 0; i < D; i++) {
+            for (int i = 0; i < DIP_DIMS; i++) {
                 std::cerr << coords[i] << " ";
             }
             std::cerr << std::endl;
             std::cerr << "Bary Coordinates: ";
-            for (int i = 0; i < D; i++) {
+            for (int i = 0; i < DIP_DIMS; i++) {
                 std::cerr << bary[i] << " ";
             }
             std::cerr << std::endl;
@@ -492,7 +492,7 @@ int Cool::read_files(std::string cool_file, std::string tri_file, std::string ne
 
         // Update smallest/largest known values
         // TODO Possibly replace with flags?
-        for (int j = 0; j < D; j++) {
+        for (int j = 0; j < DIP_DIMS; j++) {
             if (points[i].coords[j] < mins[j]) {
                 mins[j] = points[i].coords[j];
             }
@@ -528,15 +528,15 @@ int Cool::read_files(std::string cool_file, std::string tri_file, std::string ne
         std::getline(file, line);
         std::stringstream linestream(line);
 
-        int buffer[D+1];
-        for (int j = 0; j < D+1; j++) {     // D+1 points per simplex
+        int buffer[DIP_DIMS+1];
+        for (int j = 0; j < DIP_DIMS+1; j++) {     // DIP_DIMS+1 points per simplex
             std::getline(linestream, value, ',');
             buffer[j] = std::stoi(value);
 
             simplices[i].points[j] = &points[std::stoi(value)];
         }
 
-        for (int j = 0; j < D+1; j++) {
+        for (int j = 0; j < DIP_DIMS+1; j++) {
             for (int k = 0; k < D+1; k++) {
                 if (j != k && buffer[j] == buffer[k]) {
                     std::cerr << "Warning: Degenerate triangle (index " << i << ", points " << buffer[j] << " and " << buffer[k] << ")" << std::endl;

@@ -95,7 +95,7 @@ int main() {
     std::cout << "Done" << std::endl;
     end = std::chrono::steady_clock::now();
     std::cout << "Time to complete = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
-    std::cout << "Avg = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() / pow(100, D) << "[ms]" << std::endl;
+    std::cout << "Avg = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() / pow(100, DIP_DIM) << "[ms]" << std::endl;
     std::cout << "Avg flips: " << cool->avg_flips << std::endl;
 
     std::cout << "Creating PSI object... " << std::endl;
@@ -131,6 +131,6 @@ int main() {
     std::cout << "Done" << std::endl;
     end = std::chrono::steady_clock::now();
     std::cout << "Time to complete = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
-    std::cout << "Avg = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() / pow(100, D) << "[ms]" << std::endl;
+    std::cout << "Avg = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() / pow(100, DIP_DIM) << "[ms]" << std::endl;
     return 0;
 }

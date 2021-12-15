@@ -14,13 +14,13 @@ void Simplex::calculate_midpoints() {
      * of the ith vertex. It is the average of the set of vertices excluding the ith.
      */
 
-    for (int i = 0; i < D+1; i++) { // D+1 midpoints/faces/vertices
+    for (int i = 0; i < DIP_DIMS+1; i++) { // DIP_DIMS+1 midpoints/faces/vertices
         // Initialize current midpoint to 0
-        for (int j = 0; j < D; j++) {
+        for (int j = 0; j < DIP_DIMS; j++) {
             midpoints[i][j] = 0;
         }
 
-        for (int j = 0; j < D; j++) { // D *other* midpoints/faces/vertices
+        for (int j = 0; j < DIP_DIMS; j++) { // DIP_DIMS *other* midpoints/faces/vertices
             int k;
             if (j < i) {
                 k = j;
@@ -28,13 +28,13 @@ void Simplex::calculate_midpoints() {
                 k = j+1;
             }
 
-            for (int l = 0; l < D; l++) {   // D coordinates
+            for (int l = 0; l < DIP_DIMS; l++) {   // DIP_DIMS coordinates
                 midpoints[i][l] += points[k]->coords[l];
             }
         }
 
-        for (int j = 0; j < D; j++) {
-            midpoints[i][j] /= D;
+        for (int j = 0; j < DIP_DIMS; j++) {
+            midpoints[i][j] /= DIP_DIMS;
         }
     }
 }
@@ -49,10 +49,10 @@ int Simplex::calculate_normals() {
      */
 
     int errors = 0;
-    for (int i = 0; i < D+1; i++) { // Each face/point opposite
+    for (int i = 0; i < DIP_DIMS+1; i++) { // Each face/point opposite
         // Build face out of all points except the one opposite
-        Point * face[D];
-        for (int j = 0; j < D; j++) {
+        Point * face[DIP_DIMS];
+        for (int j = 0; j < DIP_DIMS; j++) {
             if (j < i) {
                 face[j] = points[j];
             } else if (j >= i) {
@@ -63,22 +63,22 @@ int Simplex::calculate_normals() {
         // Find normal on that face
         double * norm = find_normal(&face[0]);
 
-        double diff[D];
+        double diff[DIP_DIMS];
         double difflen2 = 0;
-        for (int j = 0; j < D; j++) {
+        for (int j = 0; j < DIP_DIMS; j++) {
             diff[j] = centroid[j] - midpoints[i][j];
             difflen2 += diff[j] * diff[j];
         }
 
         double dot = 0;
         // Note: norm is normalized, diff is not
-        for (int j = 0; j < D; j++) {
+        for (int j = 0; j < DIP_DIMS; j++) {
             dot += diff[j] * norm[j] / difflen2;
         }
 
         // Ensure vector points away from centroid
         if (dot > DIP_EPSILON) {
-            for (int j = 0; j < D; j++) {
+            for (int j = 0; j < DIP_DIMS; j++) {
                 norm[j] *= -1;
             }
         } else if (dot < -DIP_EPSILON) {
@@ -93,25 +93,25 @@ int Simplex::calculate_normals() {
             std::cerr << "This simplex is likely degenerate, or very close to it" << std::endl;
 
             std::cerr << "Centroid:\t\t";
-            for (int k = 0; k < D; k++) {
+            for (int k = 0; k < DIP_DIMS; k++) {
                 std::cerr << centroid[k] << " ";
             }
             std::cerr << std::endl;
 
             std::cerr << "Face Midpoint:\t";
-            for (int k = 0; k < D; k++) {
+            for (int k = 0; k < DIP_DIMS; k++) {
                 std::cerr << midpoints[i][k] << " ";
             }
             std::cerr << std::endl;
 
             std::cerr << "Difference vector:\t" << std::endl;
-            for (int j = 0; j < D; j++) {
+            for (int j = 0; j < DIP_DIMS; j++) {
                 std::cerr << diff[j] / difflen2 << " ";
             }
             std::cerr << std::endl;
 
             std::cerr << "Normal vector:" << std::endl;
-            for (int k = 0; k < D; k++) {
+            for (int k = 0; k < DIP_DIMS; k++) {
                 std::cerr << norm[k] << " ";
             }
             std::cerr << std::endl;
@@ -123,7 +123,7 @@ int Simplex::calculate_normals() {
         }
 
         // Finally, write correct normal into normals array
-        for (int j = 0; j < D; j++) {
+        for (int j = 0; j < DIP_DIMS; j++) {
             normals[i][j] = norm[j];
         }
 
@@ -146,20 +146,20 @@ double * Simplex::find_normal(Point ** vertices) {
      *
      */
 
-    double * norm = new double[D];
+    double * norm = new double[DIP_DIMS];
 
     // Construct matrix
-    double matrix[D][D-1];      // D-1 points, D coordinates; transposed
-    for (int i = 0; i < D-1; i++) {
-        for (int j = 0; j < D; j++) {
-            matrix[j][i] = vertices[i]->coords[j] - vertices[D-1]->coords[j];
+    double matrix[DIP_DIMS][DIP_DIMS-1];      // DIP_DIMS-1 points, DIP_DIMS coordinates; transposed
+    for (int i = 0; i < DIP_DIMS-1; i++) {
+        for (int j = 0; j < DIP_DIMS; j++) {
+            matrix[j][i] = vertices[i]->coords[j] - vertices[DIP_DIMS-1]->coords[j];
         }
     }
 
     // unit matrix
-    double unit[D][D];  // unit matrix
-    for (int i = 0; i < D; i++) {
-        for (int j = 0; j < D; j++) {
+    double unit[DIP_DIMS][DIP_DIMS];  // unit matrix
+    for (int i = 0; i < DIP_DIMS; i++) {
+        for (int j = 0; j < DIP_DIMS; j++) {
             if (i == j) {
                 unit[i][j] = 1;
             } else {
@@ -168,13 +168,13 @@ double * Simplex::find_normal(Point ** vertices) {
         }
     }
 
-    gauss_elimination<D, D-1, D>(matrix, unit, 0);
+    gauss_elimination<DIP_DIMS, DIP_DIMS-1, DIP_DIMS>(matrix, unit, 0);
 
     int found;
-    for (int i = 0; i < D; i++) {
+    for (int i = 0; i < DIP_DIMS; i++) {
         // If current row is full of zeros -> found norm
         int allzero = 1;
-        for (int j = 0; j < D-1; j++) {
+        for (int j = 0; j < DIP_DIMS-1; j++) {
             if (matrix[i][j] != 0) {
                 allzero = 0;
                 break;
@@ -183,7 +183,7 @@ double * Simplex::find_normal(Point ** vertices) {
 
         if (allzero == 1) {
             found = 1;
-            for (int j = 0; j < D; j++) {
+            for (int j = 0; j < DIP_DIMS; j++) {
                 norm[j] = unit[i][j];
             }
             break;
@@ -193,15 +193,15 @@ double * Simplex::find_normal(Point ** vertices) {
         std::cerr << "Error while trying to find normal vector: Did not find zero row" << std::endl;
         std::cerr << "https://en.wikipedia.org/wiki/Kernel_(linear_algebra)#Computation_by_Gaussian_elimination" << std::endl;
         std::cerr << "Input points:" << std::endl;
-        for (int i = 0; i < D; i++) {
-            for (int j = 0; j < D; j++) {
+        for (int i = 0; i < DIP_DIMS; i++) {
+            for (int j = 0; j < DIP_DIMS; j++) {
                 std::cerr << vertices[i]->coords[j] << " ";
             }
             std::cerr << std::endl;
         }
         std::cerr << "Initial Matrix:" << std::endl;
-        for (int i = 0; i < D; i++) {
-            for (int j = 0; j < D-1; j++) {
+        for (int i = 0; i < DIP_DIMS; i++) {
+            for (int j = 0; j < DIP_DIMS-1; j++) {
                 std::cerr << vertices[j]->coords[i] - vertices[D-1]->coords[i] << "\t";
             }
             std::cerr << "|\t";

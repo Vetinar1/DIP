@@ -31,7 +31,7 @@ class Cool {
      * construct the ball tree using construct_btree(). The object is then ready for interpolation using the
      * interpolate() method.
      * In general, coordinates (e.g. to interpolate) are passed as pointers to arrays. These arrays need to have correct
-     * length (matching dimension D) and contain the coordinates in the same order as the CHIPS data files.
+     * length (matching dimension DIP_DIMS) and contain the coordinates in the same order as the CHIPS data files.
      * If you want to read in new data, but don't want to allocate a new Cool object, you can use reset().
      *
      * Make sure to allocate Cool objets on the heap, otherwise the size of the points and simplices attributes will
@@ -54,7 +54,7 @@ public:
         avg_flips = 0;
         S_LIM = DIP_SMAX;
         N_LIM = DIP_NMAX;
-        for (int i = 0; i < D; i++) {
+        for (int i = 0; i < DIP_DIMS; i++) {
             mins[i] = DBL_MAX;
             maxs[i] = -1 * DBL_MAX;
         }
@@ -68,11 +68,11 @@ public:
     int nullpointers_encountered;
 
     // Minimum and maximum values in each dimension TODO private?
-    double mins[D];
-    double maxs[D];
+    double mins[DIP_DIMS];
+    double maxs[DIP_DIMS];
 
     int clamp_flag;
-    double CLAMP_MIN[D], CLAMP_MAX[D];
+    double CLAMP_MIN[DIP_DIMS], CLAMP_MAX[DIP_DIMS];
 
     void reset();
 

@@ -10,15 +10,15 @@
 
 class Simplex {
     /**
-     * Class representing an D-dimensional simplex in the triangulation. Has D+1 vertices.
+     * Class representing an DIP_DIM-dimensional simplex in the triangulation. Has DIP_DIM+1 vertices.
      *
-     * int D        Number of dimensions
+     * int DIP_DIM        Number of dimensions
      */
     friend class Cool;
 private:
     double centroid[DIP_DIMS];
-    double midpoints[DIP_DIMS+1][DIP_DIMS];           // Midpoints of the faces; D+1 faces, D coordinates
-    double normals[DIP_DIMS+1][DIP_DIMS];             // Outward pointing normals of the faces; D+1 faces, D vector components
+    double midpoints[DIP_DIMS+1][DIP_DIMS];           // Midpoints of the faces; DIP_DIM+1 faces, DIP_DIM coordinates
+    double normals[DIP_DIMS+1][DIP_DIMS];             // Outward pointing normals of the faces; DIP_DIM+1 faces, DIP_DIM vector components
     double T_inv[DIP_DIMS][DIP_DIMS];                 // T: https://en.wikipedia.org/wiki/Barycentric_coordinate_system#Barycentric_coordinates_on_tetrahedra
 //    double T[DIP_DIMS][DIP_DIMS];                 // T: https://en.wikipedia.org/wiki/Barycentric_coordinate_system#Barycentric_coordinates_on_tetrahedra
     int neighbor_indices[DIP_DIMS+1];         // One neighbor opposite every point
@@ -33,7 +33,7 @@ private:
 
     template<int M, int N1, int N2> void gauss_elimination(double (&)[M][N1], double (&)[M][N2], int);
 public:
-    Point * points[DIP_DIMS+1];             // D+1 points; Array of pointers to Point<D>
+    Point * points[DIP_DIMS+1];             // DIP_DIM+1 points; Array of pointers to Point<DIP_DIM>
     void construct_T_inv();
     double * convert_to_bary(const double *);
     int check_bary(const double *);
