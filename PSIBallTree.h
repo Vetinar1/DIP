@@ -14,17 +14,24 @@ public:
     PSIBallTree * closechild;
     PSIBallTree * farchild;
     double radius;
+
+    PSIBallTree() {
+	lchild = nullptr;
+	rchild = nullptr;
+
+	closechild = nullptr;
+	farchild = nullptr;
+    }
     
     void cleanup() {
         if (lchild != nullptr) {
             lchild->cleanup();
+	    delete lchild;
         }
         if (rchild != nullptr) {
             rchild->cleanup();
+	    delete rchild;
         }
-        
-        delete lchild;
-        delete rchild;
     };
 };
 

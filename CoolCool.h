@@ -39,7 +39,7 @@ class Cool {
      */
 private:
     Point points[DIP_NMAX];
-    Simplex simplices[S_MAX];
+    Simplex simplices[DIP_SMAX];
     Simplex * btree;         // Points to the root of the simplex ball tree
 
     Simplex * construct_simplex_btree_recursive(Simplex **, int);
@@ -52,7 +52,7 @@ public:
         interpolate_calls = 0;
         nullpointers_encountered = 0;
         avg_flips = 0;
-        S_LIM = S_MAX;
+        S_LIM = DIP_SMAX;
         N_LIM = DIP_NMAX;
         for (int i = 0; i < D; i++) {
             mins[i] = DBL_MAX;

@@ -16,9 +16,9 @@
 #define COOLMANAGER_OBJ_COUNT 161
 #define PSI_OBJ_COUNT 10
 
-Cool * C[COOL_OBJ_COUNT];
-CoolManager * CM[COOLMANAGER_OBJ_COUNT];
-PSI * P[PSI_OBJ_COUNT];
+Cool * Cs[COOL_OBJ_COUNT];
+CoolManager * CMs[COOLMANAGER_OBJ_COUNT];
+PSI * Ps[PSI_OBJ_COUNT];
 
 int cool_counter = 0;
 int coolmanager_counter = 0;
@@ -33,33 +33,33 @@ extern "C" {
             std::cerr << "Tried to create too many Cool objects" << std::endl;
             return -1;
         }
-        C[c_indx] = new Cool;
+        Cs[c_indx] = new Cool;
         cool_counter++;
         return cool_counter - 1;
     }
 
     int Cool_read_files(int c_indx, char * cool_file, char * tri_file, char * neighbor_file) {
-        return C[c_indx]->read_files(std::string(cool_file), std::string(tri_file), std::string(neighbor_file));
+        return Cs[c_indx]->read_files(std::string(cool_file), std::string(tri_file), std::string(neighbor_file));
     }
 
     void Cool_reset(int c_indx) {
-        C[c_indx]->reset();
+        Cs[c_indx]->reset();
     }
 
     void Cool_construct_tree(int c_indx) {
-        C[c_indx]->construct_btree();
+        Cs[c_indx]->construct_btree();
     }
 
     void Cool_save_tree(int c_indx, char* fname) {
-        C[c_indx]->save_btree(std::string(fname));
+        Cs[c_indx]->save_btree(std::string(fname));
     }
 
-    double Cool_interpolate(int c_indx, double * coords) {
-        return C[c_indx]->interpolate(coords);
+    double * Cool_interpolate(int c_indx, double * coords) {
+        return Cs[c_indx]->interpolate(coords);
     }
 
     void Cool_set_clamps(int c_indx, double * mins, double * maxs) {
-        C[c_indx]->set_clamp_values(mins, maxs);
+        Cs[c_indx]->set_clamp_values(mins, maxs);
     }
 
 
@@ -68,21 +68,17 @@ extern "C" {
             std::cerr << "Tried to create too many CoolManager objects" << std::endl;
             return -1;
         }
-        CM[index] = new CoolManager(init_z_low, init_z_high, std::string(mapfile));
+        CMs[index] = new CoolManager(init_z_low, init_z_high, std::string(mapfile));
         coolmanager_counter++;
         return index;
     }
 
-    double CoolManager_interpolate(int cm_indx, double * args, double z) {
-        return CM[cm_indx]->interpolate(args, z);
-    }
-
-    void CoolManager_save_trees(int cm_indx, char * fname_low, char * fname_high) {
-        CM[cm_indx]->save_trees(std::string(fname_low), std::string(fname_high));
+    double * CoolManager_interpolate(int cm_indx, double * args, double z) {
+        return CMs[cm_indx]->interpolate(args, z);
     }
 
     void CoolManager_set_clamps(int cm_idx, double * mins, double * maxs) {
-        CM[cm_idx]->set_clamp_values(mins, maxs);
+        CMs[cm_idx]->set_clamp_values(mins, maxs);
     }
 
     
@@ -91,25 +87,25 @@ extern "C" {
             std::cerr << "Tried to create too many PSI objects" << std::endl;
             return -1;
         }
-        P[p_indx] = new PSI;
+        Ps[p_indx] = new PSI;
         psi_counter++;
         return psi_counter - 1;
     }
     
     int PSI_read_files(int p_indx, char * cool_file) {
-        return P[p_indx]->read_files(std::string(cool_file));
+        return Ps[p_indx]->read_files(std::string(cool_file));
     }
     
     void PSI_reset(int p_indx) {
-        P[p_indx]->reset();
+        Ps[p_indx]->reset();
     }
     
-    double PSI_interpolate(int p_indx, double * coords) {
-        return P[p_indx]->interpolate(coords);
+    double * PSI_interpolate(int p_indx, double * coords) {
+        return Ps[p_indx]->interpolate(coords);
     }
     
     void PSI_set_clamps(int p_indx, double * mins, double * maxs) {
-        P[p_indx]->set_clamp_values(mins, maxs);
+        Ps[p_indx]->set_clamp_values(mins, maxs);
     }
 
 #ifdef __cplusplus

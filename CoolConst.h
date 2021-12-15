@@ -7,13 +7,13 @@
 
 #define DIP_NMAX 50000     // maximum number of points
 //#define D 3             // dimensions
-#define S_MAX 41000000    // maximum number of simplices
+#define DIP_SMAX 41000000    // maximum number of simplices
 
 
 // The epsilon to use in DIP calculations
 #define DIP_EPSILON 1e-6
 #define AUTOMATIC_LOADING 1         // Whether to automatically load in new z slices in CoolManager. Warning: Assumes each call to interpolate has less or equal z than before
-#define MAX_FLIPS 10                 // Max number of flips in simplex flipping algorithm before extrapolating
+#define DIP_MAX_FLIPS 10                 // Max number of flips in simplex flipping algorithm before extrapolating
 
 // Flag for asserts in ball tree generation code. Recommended to be kept on the first time a tree is built on a
 // data set, can be switched off otherwise if desired

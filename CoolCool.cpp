@@ -36,14 +36,14 @@ void Cool::reset() {
 
     // Delete ball tree
     // Note: All other simplex properties will be overwritten on next call to read_files()
-    for (int s = 0; s < S_MAX; s++) {
+    for (int s = 0; s < DIP_SMAX; s++) {
         simplices[s].sbtree_radius_sq = 0;
         simplices[s].lchild = nullptr;
         simplices[s].rchild = nullptr;
     }
     btree = nullptr;
 
-    S_LIM = S_MAX;
+    S_LIM = DIP_SMAX;
     N_LIM = DIP_NMAX;
 
     // Points[N] will be overwritten on next call to read_files()
@@ -364,7 +364,7 @@ double * Cool::interpolate(double * coords) {
     int inside = nn->check_bary(bary);
     int n_flips = 0;
 
-    while (!inside and n_flips < MAX_FLIPS) {
+    while (!inside and n_flips < DIP_MAX_FLIPS) {
         // Calculate difference vectors from coords to midpoints; normalize; figure out the one with largest scalar
         // product (= smallest angle)
         double best_dir_dot = - DBL_MAX;
@@ -524,7 +524,7 @@ int Cool::read_files(std::string cool_file, std::string tri_file, std::string ne
     int s = 0;     // Counter to determine number of simplices
     int s_err = 0; // Number of errors in simplex loading process
 
-    for (int i = 0; i < S_MAX; i++) {
+    for (int i = 0; i < DIP_SMAX; i++) {
         std::getline(file, line);
         std::stringstream linestream(line);
 
