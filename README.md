@@ -1,6 +1,6 @@
 Update: DIP now also contains files `PSI.cpp`, `PSI.h` and `PSIBallTree.h` that offer interpolation functions as described in https://arxiv.org/abs/2109.13926
 
-I'm working on making it fully compatible with DIP (i.e. make it object oriented, allow for PSI as an option in CoolManager)
+Everything described below still applies, but there is an additional class PSI that replaces Cool. Using it works pretty much the same. There is an additional switch `DIP_CM_USE_PSI` that can be set in order to make CoolManager objects use PSI instead of Cool for interpolation
 
 If you found a bug or need help running DIP, feel free to message me: dip [at] vetinari [dot] eu
 
@@ -24,7 +24,7 @@ As a library (recommended if you are integrating it into a C project) or directl
 
 Download the source and compile it using the provided makefile. You can do this by imply running `make so`.
 This will create two shared objects libraries (*.so).
-Copy the files CoolCInterface.h and CoolConst.h into your project.
+Copy the files CInterface.h and Const.h into your project.
 Include the *.h files in your source code and use the provided functions as necessary.
 
 At runtime, make sure that the folder containing the two *.so files is part of your `LD_LIBRARY_PATH` environment
@@ -43,16 +43,16 @@ No special compiler settings are required to compile DIP as part of your project
 
 DIP is written in C++ and makes use of C++'s object oriented programming capabilities.
 It provides two classes that provide similar, but slightly different interpolation facilities.
-The files CoolCInterface.* provide an adapter in case you wish to use DIP in pure C code.
+The files CInterface.* provide an adapter in case you wish to use DIP in pure C code.
 
 
 ### The Cool class
 
-The Cool class, defined in CoolCool.h and CoolCool.cpp are the main class of DIP.
+The Cool class, defined in Cool.h and Cool.cpp is the main class of DIP.
 This class provides functions for reading DIP data, building a ball tree on that data, and running interpolation
-(for more information, see thesis in the DIP repository).
+(for more information, see thesis in the CHIPS repository).
 
-Before using this class, make sure to include the CoolConst.h header file, and set the `DIP_NMAX`, `D` and `DIP_SMAX` constants.
+Before using this class, make sure to include the Const.h header file, and set the `DIP_NMAX`, `D` and `DIP_SMAX` constants.
 `D` should be equal to the number of dimensions in your parameter space.
 `DIP_NMAX` should be equal to or slightly greater than the number of samples in your CHIPS output files.
 `DIP_SMAX` should be equal to or slightly greater than the number of simplices in your CHIPS output files.
@@ -133,12 +133,12 @@ reasonable values.
 
 ## The C Interface
 
-To use DIP with pure C code, compile it into *.so files as described above and add the CoolCInterface.h to your project.
+To use DIP with pure C code, compile it into *.so files as described above and add the CInterface.h to your project.
 It contains functions that enable you to use the objects described above.
 Several objects can be created (how many is limited by a constant), and they can be accessed via an index that is
 returned on their creation.
 
-I recommend you take a look at CoolCInterface.cpp and example1.c to see it in practice, it is very simple.
+I recommend you take a look at CInterface.cpp and example1.c to see it in practice, it is very simple.
 
 
 ## The example files
