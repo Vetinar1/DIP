@@ -1,6 +1,6 @@
 Update: DIP now also contains files `PSI.cpp`, `PSI.h` and `PSIBallTree.h` that offer interpolation functions as described in https://arxiv.org/abs/2109.13926
 
-I'm working on making it fully compatible with DIP (i.e. make it object oriented, allow for PSI as an option in CoolManager)
+Everything described below still applies, but there is an additional class PSI that replaces Cool. Using it works pretty much the same. There is an additional switch `DIP_CM_USE_PSI` that can be set in order to make CoolManager objects use PSI instead of Cool for interpolation
 
 If you found a bug or need help running DIP, feel free to message me: dip [at] vetinari [dot] eu
 
@@ -48,9 +48,9 @@ The files CInterface.* provide an adapter in case you wish to use DIP in pure C 
 
 ### The Cool class
 
-The Cool class, defined in Cool.h and Cool.cpp are the main class of DIP.
+The Cool class, defined in Cool.h and Cool.cpp is the main class of DIP.
 This class provides functions for reading DIP data, building a ball tree on that data, and running interpolation
-(for more information, see thesis in the DIP repository).
+(for more information, see thesis in the CHIPS repository).
 
 Before using this class, make sure to include the Const.h header file, and set the `DIP_NMAX`, `D` and `DIP_SMAX` constants.
 `D` should be equal to the number of dimensions in your parameter space.
