@@ -15,10 +15,10 @@
 #include <unordered_map>
 #include <algorithm>
 #include <bitset>
-#include "CoolPoint.h"
-#include "CoolSimplex.h"
-#include "CoolConst.h"
-#include "CoolCool.h"
+#include "Point.h"
+#include "Simplex.h"
+#include "Const.h"
+#include "Cool.h"
 
 void Cool::reset() {
     /**

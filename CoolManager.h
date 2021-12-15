@@ -5,11 +5,11 @@
 #ifndef DIP_COOLMANAGER_H
 #define DIP_COOLMANAGER_H
 
-#include "CoolCool.h"
+#include "Cool.h"
 #include <map>
 #include <iostream>
 #include <assert.h>
-#include "CoolConst.h"
+#include "Const.h"
 #include "PSI.h"
 
 class CoolManager {

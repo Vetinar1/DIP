@@ -24,7 +24,7 @@ As a library (recommended if you are integrating it into a C project) or directl
 
 Download the source and compile it using the provided makefile. You can do this by imply running `make so`.
 This will create two shared objects libraries (*.so).
-Copy the files CoolCInterface.h and CoolConst.h into your project.
+Copy the files CInterface.h and Const.h into your project.
 Include the *.h files in your source code and use the provided functions as necessary.
 
 At runtime, make sure that the folder containing the two *.so files is part of your `LD_LIBRARY_PATH` environment
@@ -43,16 +43,16 @@ No special compiler settings are required to compile DIP as part of your project
 
 DIP is written in C++ and makes use of C++'s object oriented programming capabilities.
 It provides two classes that provide similar, but slightly different interpolation facilities.
-The files CoolCInterface.* provide an adapter in case you wish to use DIP in pure C code.
+The files CInterface.* provide an adapter in case you wish to use DIP in pure C code.
 
 
 ### The Cool class
 
-The Cool class, defined in CoolCool.h and CoolCool.cpp are the main class of DIP.
+The Cool class, defined in Cool.h and Cool.cpp are the main class of DIP.
 This class provides functions for reading DIP data, building a ball tree on that data, and running interpolation
 (for more information, see thesis in the DIP repository).
 
-Before using this class, make sure to include the CoolConst.h header file, and set the `DIP_NMAX`, `D` and `DIP_SMAX` constants.
+Before using this class, make sure to include the Const.h header file, and set the `DIP_NMAX`, `D` and `DIP_SMAX` constants.
 `D` should be equal to the number of dimensions in your parameter space.
 `DIP_NMAX` should be equal to or slightly greater than the number of samples in your CHIPS output files.
 `DIP_SMAX` should be equal to or slightly greater than the number of simplices in your CHIPS output files.
@@ -126,19 +126,19 @@ parameter: `double interpolate(double * args, double z)`.
 If z is lower than in the current interval, a new set of data is automatically loaded, as determined by the map file.
 However, new "slices" can also be loaded manually using the `void push_slice(std::string)` method.
 This should usually not be necessary.
-If z is significantly *higher* than the current interval, an error will be thrown if CoolConst.h is configured that way.
+If z is significantly *higher* than the current interval, an error will be thrown if Const.h is configured that way.
 Do not worry about rollover periods - if z is only slightly higher than z_high, CoolManager will still return
 reasonable values.
 
 
 ## The C Interface
 
-To use DIP with pure C code, compile it into *.so files as described above and add the CoolCInterface.h to your project.
+To use DIP with pure C code, compile it into *.so files as described above and add the CInterface.h to your project.
 It contains functions that enable you to use the objects described above.
 Several objects can be created (how many is limited by a constant), and they can be accessed via an index that is
 returned on their creation.
 
-I recommend you take a look at CoolCInterface.cpp and example1.c to see it in practice, it is very simple.
+I recommend you take a look at CInterface.cpp and example1.c to see it in practice, it is very simple.
 
 
 ## The example files

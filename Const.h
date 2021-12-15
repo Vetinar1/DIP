@@ -2,8 +2,8 @@
 // Created by vetinari on 01.12.20.
 //
 
-#ifndef DIP_COOLCONST_H
-#define DIP_COOLCONST_H
+#ifndef DIP_Const_H
+#define DIP_Const_H
 
 #define DIP_NMAX 50000     // maximum number of points
 //#define D 3             // dimensions
@@ -52,4 +52,4 @@
 // Maximum number of failed simplex constructions before using default value (DIP_INTERP_DEFAULT)
 #define PSI_MAXREP 4
 
-#endif //DIP_COOLCONST_H
+#endif //DIP_Const_H

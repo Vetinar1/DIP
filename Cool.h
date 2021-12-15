@@ -3,8 +3,8 @@
 //
 
 
-#ifndef DIP_COOLCOOL_H
-#define DIP_COOLCOOL_H
+#ifndef DIP_Cool_H
+#define DIP_Cool_H
 
 #include <iostream>
 #include <fstream>
@@ -19,9 +19,9 @@
 #include <unordered_map>
 #include <algorithm>
 #include <bitset>
-#include "CoolPoint.h"
-#include "CoolSimplex.h"
-#include "CoolConst.h"
+#include "Point.h"
+#include "Simplex.h"
+#include "Const.h"
 
 
 class Cool {
@@ -86,4 +86,4 @@ public:
 
 
 
-#endif //DIP_COOLCOOL_H
+#endif //DIP_Cool_H

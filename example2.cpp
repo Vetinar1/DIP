@@ -4,7 +4,7 @@
 
 #include <iostream>
 #include <chrono>
-#include "CoolCool.h"
+#include "Cool.h"
 #include "CoolManager.h"
 #include <climits>
 #include <bitset>

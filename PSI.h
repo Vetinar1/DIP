@@ -9,7 +9,7 @@
 #include "PSIBallTree.h"
 #include <queue>
 #include <iostream>
-#include "CoolConst.h"
+#include "Const.h"
 
 struct distpoint {
     int index;

@@ -2,10 +2,10 @@
 // Created by vetinari on 01.12.20.
 //
 
-#ifndef DIP_COOLPOINT_H
-#define DIP_COOLPOINT_H
+#ifndef DIP_Point_H
+#define DIP_Point_H
 
-#include "CoolConst.h"
+#include "Const.h"
 
 class Point {
     /**
@@ -19,4 +19,4 @@ public:
     double value[DIP_VARNR];
 };
 
-#endif //DIP_COOLPOINT_H
+#endif //DIP_Point_H

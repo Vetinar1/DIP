@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "CoolCInterface.h"
+#include "CInterface.h"
 
 int main() {
     printf("Interpolating using CoolManager object:\n");

@@ -2,14 +2,14 @@
 // Created by vetinari on 09.12.20.
 //
 
-#ifndef DIP_COOLCINTERFACE_CPP
-#define DIP_COOLCINTERFACE_CPP
+#ifndef DIP_CInterface_CPP
+#define DIP_CInterface_CPP
 
-#include "CoolCool.h"
+#include "Cool.h"
 #include "CoolManager.h"
 #include <stdio.h>
 #include <string>
-#include "CoolCInterface.h"
+#include "CInterface.h"
 #include "PSI.h"
 
 #define COOL_OBJ_COUNT 10
@@ -113,4 +113,4 @@ extern "C" {
 #endif
 
 
-#endif //DIP_COOLCINTERFACE_CPP
+#endif //DIP_CInterface_CPP

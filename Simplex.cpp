@@ -2,9 +2,9 @@
 // Created by vetinari on 14.12.20.
 //
 
-#include "CoolPoint.h"
-#include "CoolConst.h"
-#include "CoolSimplex.h"
+#include "Point.h"
+#include "Const.h"
+#include "Simplex.h"
 #include <iostream>
 #include <cmath>
 

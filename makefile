@@ -6,17 +6,17 @@ c : libraries example1.c
 	@echo "Done. Don't forget to set your LD_LIBRARY_PATH when running the example!"
 	
 cpp : example2.cpp
-	g++ -c example2.cpp CoolCool.cpp CoolManager.cpp CoolSimplex.cpp PSI.cpp
-	g++ -o example2 example2.o CoolCool.o CoolManager.o CoolSimplex.o PSI.o
+	g++ -c example2.cpp Cool.cpp CoolManager.cpp Simplex.cpp PSI.cpp
+	g++ -o example2 example2.o Cool.o CoolManager.o Simplex.o PSI.o
 	
 so : libraries
 
 libraries : libcoolc.so libcoolcpp.so
-	g++ -fpic -shared CoolCInterface.cpp -L. -I. -lcoolcpp -o libcoolc.so
-	g++ -fpic -shared CoolSimplex.cpp CoolCool.cpp CoolManager.cpp -o libcoolcpp.so -I.
+	g++ -fpic -shared CInterface.cpp -L. -I. -lcoolcpp -o libcoolc.so
+	g++ -fpic -shared Simplex.cpp Cool.cpp CoolManager.cpp -o libcoolcpp.so -I.
 
 PSI :
-	g++ -o psi PSImain.cpp PSI.cpp CoolSimplex.cpp CoolCool.cpp CoolManager.cpp
+	g++ -o psi PSImain.cpp PSI.cpp Simplex.cpp Cool.cpp CoolManager.cpp
 
 clean :
 	rm *.so *.o

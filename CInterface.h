@@ -2,8 +2,8 @@
 // Created by vetinari on 14.12.20.
 //
 
-#ifndef DIP_COOLCINTERFACE_H
-#define DIP_COOLCINTERFACE_H
+#ifndef DIP_CInterface_H
+#define DIP_CInterface_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -30,4 +30,4 @@ double * interpolate(double * coords);
 };
 #endif
 
-#endif //DIP_COOLCINTERFACE_H
+#endif //DIP_CInterface_H

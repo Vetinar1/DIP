@@ -2,11 +2,11 @@
 // Created by vetinari on 14.12.20.
 //
 
-#include "CoolCool.h"
+#include "Cool.h"
 #include <map>
 #include <iostream>
 #include <assert.h>
-#include "CoolConst.h"
+#include "Const.h"
 #include "CoolManager.h"
 
 

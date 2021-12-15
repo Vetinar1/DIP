@@ -2,9 +2,9 @@
 // Created by Stefan Lüders on 26/07/2021.
 //
 
-#include "CoolSimplex.h"
-#include "CoolPoint.h"
-#include "CoolConst.h"
+#include "Simplex.h"
+#include "Point.h"
+#include "Const.h"
 #include "PSIBallTree.h"
 #include "PSI.h"
 #include <algorithm>
@@ -87,7 +87,7 @@ void PSI::set_clamp_values(double * cmins, double * cmaxs) {
 
 int PSI::read_files(std::string cool_file) {
     /**
-     * Read data from file, see also equivalent in CoolCool.cpp
+     * Read data from file, see also equivalent in Cool.cpp
      *
      * @param cool_file   .points file returned from CHIPS
      */

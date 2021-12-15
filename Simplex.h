@@ -2,11 +2,11 @@
 // Created by vetinari on 01.12.20.
 //
 
-#ifndef DIP_COOLSIMPLEX_H
-#define DIP_COOLSIMPLEX_H
+#ifndef DIP_Simplex_H
+#define DIP_Simplex_H
 
-#include "CoolPoint.h"
-#include "CoolConst.h"
+#include "Point.h"
+#include "Const.h"
 
 class Simplex {
     /**
@@ -67,4 +67,4 @@ public:
     }
 };
 
-#endif //DIP_COOLSIMPLEX_H
+#endif //DIP_Simplex_H
