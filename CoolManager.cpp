@@ -11,6 +11,19 @@
 
 
 double * CoolManager::interpolate(double * args, double z) {
+  /**
+   * Interpolate the given point using the two underlying Cool objects. First interpolates in each redshift
+   * "slice" separately using args, then interpolates linearly between the two using z.
+   *
+   * The reason redshift is interpolated separately is that we can not get values for negative redshifts.
+   * Thus, at redshift 0 we are always at an edge of the parameter space. Neither DIP nor PSI work well
+   * at edges.
+   *
+   * double * args      Pointer to array containing the target coordinates. Length needs to match dimensionality
+   *                    DIP_DIMS. Contents need to match the files that have been read.
+   * double z           Exact redshift at which to interpolate.
+   * returns            Pointer to array of interpolated values, length DIP_VARNR
+   */
     if (z < z_low || z > z_high) {
         if (z > z_high && z_high == z_highest) {
             if (highest_z_warn_flag != 1) {

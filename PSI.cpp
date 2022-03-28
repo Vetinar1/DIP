@@ -20,16 +20,25 @@
 
 
 int PSI::get_nlim() {
+    /**
+     * Get N_LIM, the number of currently loaded points.
+     */
     return N_LIM;
 }
 
 
 double PSI::get_coord(int i, int j) {
+    /**
+     * Get coordinate j of point i. j < DIP_DIMS, i < N_LIM
+     */
     return coords[i][j];
 }
 
 
 double PSI::get_val(int i, int j) {
+    /**
+     * Get value j of point i. j < DIP_VARNR, i < N_LIM
+     */
     return vals[i][j];
 }
 
@@ -60,7 +69,7 @@ double PSI::get_dist(double * target, int index) {
 
 void PSI::reset() {
     /**
-     * Resets attributes of PSI object so it can be reused
+     * Resets attributes of PSI object so it can be reused, compare Cool::reset()
      */
     if (btree != nullptr) {
         btree->cleanup();
@@ -436,6 +445,20 @@ int * PSI::find_k_nearest_neighbor(double * target, int k) {
 
 
 int * PSI::projective_simplex_algorithm(int * neighbors, double * target, int k, int smart_nn) {
+    /**
+     * The heart of the PSI object. This function constructs a simplex around point target, from the points in
+     * neighbors.
+     *
+     * For details on how the algorithm works, see this paper: https://arxiv.org/abs/2109.13926
+     *
+     * Returns a pointer to an array containing the indices of the points making up the simplex.
+     *
+     * int * neighbors      Indices of the points to build the simplex from, usually found with the ball tree
+     * double * target      Coordinates of the point to construct the simplex around
+     * int k                Number of neighbors
+     * int smart_nn         Whether to use the alternative method of finding the first "nearest" neighbor
+     *                      (More stable, less accurate. See paper)
+     */
     // Copy relevant neighbors into separate array of dimensions k x DIP_DIMS
     // The DIP_DIMS columns are going to hold the actual coordinates; these are going to be
     // modified as we do the projection in each iteration
@@ -663,6 +686,21 @@ int * PSI::projective_simplex_algorithm(int * neighbors, double * target, int k,
 
 
 int * PSI::adaptive_projective_simplex_algorithm(double * target, int k, double factor, int max_steps, int smart_nn) {
+    /**
+     * Adapter for projective_simplex_algorithm(). Will automatically repeat the algorithm with higher k until a
+     * valid simplex is found or max_steps is reached.
+     * Will automatically determine the k nearest neighbors from points.
+     *
+     * This function is for building simplices only, if you want to interpolate, use interpolate()!
+     *
+     * Returns the simplex as returned by projective_simplex_algorithm().
+     *
+     * double * target      Coordinates of the point to build a simplex around
+     * int k                Number of nearest neighbors to use
+     * double factor        Multiplier; if the simplex construction fails multiply k with factor and try again
+     * int max_steps        Maximum number of times to apply factor
+     * int smart_nn         Whether to use the alternative way of finding the first nearest neighbor
+     */
     int * neighbors = find_k_nearest_neighbor(target, k);
     int * simplex = projective_simplex_algorithm(neighbors, target, k, smart_nn);
     
@@ -692,6 +730,10 @@ double * PSI::interpolate(double * target, int smart_fallback) {
      *
      * Returns pointer to interpolated values (DIP_VARNR of them, depending on input files), or nullptr
      * if simplex construction fails.
+     *
+     * double * target          Coordinates of points to interpolate
+     * int smart_fallback       Whether to repeat attempt at building simplex with smart_nn (see other
+     *                          functions) on failure.
      */
     
     // Warning! Input coordinates are modified

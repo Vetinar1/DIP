@@ -455,7 +455,7 @@ int Cool::read_files(std::string cool_file, std::string tri_file, std::string ne
      *
      * cool_file        Path to file containing points of the grid (called *.points by default)
      * tri_file         Path to file containing triangulation (called *.tris by default)
-     * neighbor_file   Path to file containing triangulation neighborhood relations (called *.neighbors by default)
+     * neighbor_file    Path to file containing triangulation neighborhood relations (called *.neighbors by default)
      *
      * Returns 0 on success, otherwise 1, 2 or 3 if any of the files could not be read.
      */

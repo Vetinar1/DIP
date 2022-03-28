@@ -1,6 +1,7 @@
-//
-// Created by vetinari on 09.12.20.
-//
+/**
+ * This file makes methods of Cool, CoolManager and PSI objects available in C.
+ * Please check the respective method implementation for documentation.
+ */
 
 #ifndef DIP_CInterface_CPP
 #define DIP_CInterface_CPP
