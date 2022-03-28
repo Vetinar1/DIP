@@ -19,7 +19,14 @@ double * CoolManager::interpolate(double * args, double z) {
                 std::cerr << "This warning will only be output once" << std::endl;
                 highest_z_warn_flag = 1;
             }
+
+#if defined(DIP_CM_USE_PSI) && defined(DIP_CM_USE_PSI_FALLBACK)
+            return high->interpolate(args, 1);
+#elif defined(DIP_CM_USE_PSI)
+            return high->interpolate(args, 0);
+#else
             return high->interpolate(args);
+#endif
         }
 #ifdef DIP_CM_AUTOLOAD
         else {

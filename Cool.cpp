@@ -537,7 +537,7 @@ int Cool::read_files(std::string cool_file, std::string tri_file, std::string ne
         }
 
         for (int j = 0; j < DIP_DIMS+1; j++) {
-            for (int k = 0; k < D+1; k++) {
+            for (int k = 0; k < DIP_DIMS+1; k++) {
                 if (j != k && buffer[j] == buffer[k]) {
                     std::cerr << "Warning: Degenerate triangle (index " << i << ", points " << buffer[j] << " and " << buffer[k] << ")" << std::endl;
                 }
@@ -550,16 +550,16 @@ int Cool::read_files(std::string cool_file, std::string tri_file, std::string ne
         // This leads to problems when validating the normal vectors (and makes the normal vectors meaningless)
         // So those are skipped
         int skip = 0;
-        for (int j = 0; j < D; j++) {
+        for (int j = 0; j < DIP_DIMS; j++) {
             int samemin = 1;
             int samemax = 1;
-            for (int k = 0; k < D+1; k++) {
+            for (int k = 0; k < DIP_DIMS+1; k++) {
                 if (simplices[i].points[k]->coords[j] != mins[j]) {
                     samemin = 0;
                     break;
                 }
             }
-            for (int k = 0; k < D+1; k++) {
+            for (int k = 0; k < DIP_DIMS+1; k++) {
                 if (simplices[i].points[k]->coords[j] != maxs[j]) {
                     samemax = 0;
                     break;
@@ -617,7 +617,7 @@ int Cool::read_files(std::string cool_file, std::string tri_file, std::string ne
     for (int i = 0; i < S_LIM; i++) {
         std::getline(file, line);
         std::stringstream linestream(line);
-        for (int j = 0; j < D+1; j++) {     // D+1 points per simplex
+        for (int j = 0; j < DIP_DIMS+1; j++) {     // D+1 points per simplex
             std::getline(linestream, value, ',');
             simplices[i].neighbor_indices[j] = std::stoi(value);
 

@@ -202,10 +202,10 @@ double * Simplex::find_normal(Point ** vertices) {
         std::cerr << "Initial Matrix:" << std::endl;
         for (int i = 0; i < DIP_DIMS; i++) {
             for (int j = 0; j < DIP_DIMS-1; j++) {
-                std::cerr << vertices[j]->coords[i] - vertices[D-1]->coords[i] << "\t";
+                std::cerr << vertices[j]->coords[i] - vertices[DIP_DIMS-1]->coords[i] << "\t";
             }
             std::cerr << "|\t";
-            for (int j = 0; j < D; j++) {
+            for (int j = 0; j < DIP_DIMS; j++) {
                 if (i == j) {
                     std::cerr << 1 << "\t";
                 } else {
@@ -215,12 +215,12 @@ double * Simplex::find_normal(Point ** vertices) {
             std::cerr << std::endl;
         }
         std::cerr << "Final Matrix:" << std::endl;
-        for (int i = 0; i < D; i++) {
-            for (int j = 0; j < D-1; j++) {
+        for (int i = 0; i < DIP_DIMS; i++) {
+            for (int j = 0; j < DIP_DIMS-1; j++) {
                 std::cerr << matrix[i][j] << "\t";
             }
             std::cerr << "|\t";
-            for (int j = 0; j < D; j++) {
+            for (int j = 0; j < DIP_DIMS; j++) {
                 std::cerr << unit[i][j] << "\t";
             }
             std::cerr << std::endl;
@@ -230,11 +230,11 @@ double * Simplex::find_normal(Point ** vertices) {
 
     // Normalize norm
     double len = 0;
-    for (int i = 0; i < D; i++) {
+    for (int i = 0; i < DIP_DIMS; i++) {
         len += pow(norm[i], 2);
     }
     len = sqrt(len);
-    for (int i = 0; i < D; i++) {
+    for (int i = 0; i < DIP_DIMS; i++) {
         norm[i] /= len;
     }
 
@@ -291,28 +291,28 @@ void Simplex::validate_simplex() {
      */
 
     // Get matrix of difference vectors
-    double matrix[D][D];
-    for (int i = 0; i < D; i++) {
-        for (int j = 0; j < D; j++) {
-            matrix[j][i] = points[i]->coords[j] - points[D]->coords[j];
+    double matrix[DIP_DIMS][DIP_DIMS];
+    for (int i = 0; i < DIP_DIMS; i++) {
+        for (int j = 0; j < DIP_DIMS; j++) {
+            matrix[j][i] = points[i]->coords[j] - points[DIP_DIMS]->coords[j];
         }
     }
 
-    double det = ::laplace_expansion<D>(matrix); // hacks
+    double det = ::laplace_expansion<DIP_DIMS>(matrix); // hacks
 
     if (fabs(det) < DIP_EPSILON) {
         std::cerr << "Warning in Simplex validation: Points might not be linearly independent" << std::endl;
         std::cerr << "Points:" << std::endl;
-        for (int j = 0; j < D+1; j++) {
+        for (int j = 0; j < DIP_DIMS+1; j++) {
             std::cerr << "[";
-            for (int k = 0; k < D; k++) {
+            for (int k = 0; k < DIP_DIMS; k++) {
                 std::cerr << points[j]->coords[k] << ",\t";
             }
             std::cerr << "], " << std::endl;
         }
         std::cerr << "Matrix of difference vectors: " << std::endl;
-        for (int j = 0; j < D; j++) {
-            for (int k = 0; k < D; k++) {
+        for (int j = 0; j < DIP_DIMS; j++) {
+            for (int k = 0; k < DIP_DIMS; k++) {
                 std::cerr << matrix[j][k] << "\t";
             }
             std::cerr << std::endl;
@@ -336,11 +336,11 @@ int Simplex::validate_normals() {
     int error = 0;
 
     // a) Validate normalisation
-    double normfailed[D+1] = { 0 }; // Array of zeros
+    double normfailed[DIP_DIMS+1] = { 0 }; // Array of zeros
     int nf_flag = 0;
-    for (int i = 0; i < D+1; i++) {
+    for (int i = 0; i < DIP_DIMS+1; i++) {
         double len2 = 0;
-        for (int j = 0; j < D; j++) {
+        for (int j = 0; j < DIP_DIMS; j++) {
             len2 += pow(normals[i][j], 2);
         }
 
@@ -358,9 +358,9 @@ int Simplex::validate_normals() {
     }
 
     // b) Normal on hyperplanes
-    for (int i = 0; i < D+1; i++) { // all faces/normals
-        Point * facepoints[D];
-        for (int j = 0; j < D; j++) {   // All points in face/All points in simplex except point i
+    for (int i = 0; i < DIP_DIMS+1; i++) { // all faces/normals
+        Point * facepoints[DIP_DIMS];
+        for (int j = 0; j < DIP_DIMS; j++) {   // All points in face/All points in simplex except point i
             int k;
             if (j < i) {
                 k = j;
@@ -371,17 +371,17 @@ int Simplex::validate_normals() {
             facepoints[j] = points[k];
         }
 
-        for (int j = 1; j < D; j++) {
-            double diff[D]; // In the hyperplane
+        for (int j = 1; j < DIP_DIMS; j++) {
+            double diff[DIP_DIMS]; // In the hyperplane
             double len = 0;
 
-            for (int k = 0; k < D; k++) {
+            for (int k = 0; k < DIP_DIMS; k++) {
                 diff[k] = facepoints[0]->coords[k] - facepoints[j]->coords[k];
                 len += pow(diff[k], 2);
             }
             len = sqrt(len);
             double dot = 0;
-            for (int k = 0; k < D; k++) {
+            for (int k = 0; k < DIP_DIMS; k++) {
                 dot += (diff[k] / len) * normals[i][k];
             }
 
@@ -390,12 +390,12 @@ int Simplex::validate_normals() {
                 std::cerr << "DIP ERROR in Simplex object " << this << " in function validate_normals()" << std::endl;
                 std::cerr << "Normal vector not normal: " << i << std::endl;
                 std::cerr << "Normal vector: " << std::endl;
-                for (int k = 0; k < D; k++) {
+                for (int k = 0; k < DIP_DIMS; k++) {
                     std::cerr << normals[i][k] << " ";
                 }
                 std::cerr << std::endl;
                 std::cerr << "In plane vector: " << std::endl;
-                for (int k = 0; k < D; k++) {
+                for (int k = 0; k < DIP_DIMS; k++) {
                     std::cerr << diff[k] / len << " ";
                 }
                 std::cerr << std::endl;
@@ -403,9 +403,9 @@ int Simplex::validate_normals() {
                 std::cerr << "Points used for in plane vector: " << 0 << " " << j << std::endl;
                 std::cerr << "Plane points:" << std::endl;
 
-                for (int k = 0; k < D; k++) {
+                for (int k = 0; k < DIP_DIMS; k++) {
                     std::cerr << k << ":\t";
-                    for (int l = 0; l < D; l++) {
+                    for (int l = 0; l < DIP_DIMS; l++) {
                         std::cerr << facepoints[k]->coords[l] << " ";
                     }
                     std::cerr << std::endl;
@@ -420,39 +420,39 @@ int Simplex::validate_normals() {
     // c)
     // Pointing away from centroid - use scalar product between normal and difference vector pointing from midpoint
     // to centroid
-    for (int i = 0; i < D+1; i++) {
-        double diff[D];
+    for (int i = 0; i < DIP_DIMS+1; i++) {
+        double diff[DIP_DIMS];
         double len = 0;
-        for (int j = 0; j < D; j++) {
+        for (int j = 0; j < DIP_DIMS; j++) {
             diff[j] = centroid[j] - midpoints[i][j];
             len += pow(diff[j], 2);
         }
         len = sqrt(len);
 
         double dot = 0;
-        for (int j = 0; j < D; j++) {
+        for (int j = 0; j < DIP_DIMS; j++) {
             dot += normals[i][j] * (diff[j] / len);
         }
         if (dot > DIP_EPSILON) {
 #ifndef DIP_SUPPRESS_SIMPLEX_ERRORS
             std::cerr << "DIP ERROR in Simplex object " << this << " in function validate_normals()" << std::endl;
             std::cerr << "Normal vector not pointing away from centroid: " << i << std::endl;
-            for (int j = 0; j < D; j++) {
+            for (int j = 0; j < DIP_DIMS; j++) {
                 std::cerr << normals[i][j] << " ";
             }
             std::cerr << std::endl;
             std::cerr << "Midpoint vector:" << std::endl;
-            for (int j = 0; j < D; j++) {
+            for (int j = 0; j < DIP_DIMS; j++) {
                 std::cerr << midpoints[i][j] << " ";
             }
             std::cerr << std::endl;
             std::cerr << "Difference vector: " << std::endl;
-            for (int j = 0; j < D; j++) {
+            for (int j = 0; j < DIP_DIMS; j++) {
                 std::cerr << diff[j] << " ";
             }
             std::cerr << std::endl;
             std::cerr << "Difference vector normalized: " << std::endl;
-            for (int j = 0; j < D; j++) {
+            for (int j = 0; j < DIP_DIMS; j++) {
                 std::cerr << diff[j] / len << " ";
             }
             std::cerr << std::endl;
@@ -471,10 +471,10 @@ int Simplex::validate_normals() {
     // Use this criterium for a sanity check.
     double smallest_dot = 1;
     int smallest_dot_idx1, smallest_dot_idx2;
-    for (int i = 0; i < D+1; i++) {
-        for (int j = 0; j < D+1; j++) {
+    for (int i = 0; i < DIP_DIMS+1; i++) {
+        for (int j = 0; j < DIP_DIMS+1; j++) {
             double dot = 0;
-            for (int k = 0; k < D; k++) {
+            for (int k = 0; k < DIP_DIMS; k++) {
                 dot += normals[i][k] * normals[j][k];
             }
 //            std::cout << i << " " << j << " " << dot << std::endl;
@@ -488,12 +488,12 @@ int Simplex::validate_normals() {
     }
 //    std::cout << std::endl;
 
-    if (smallest_dot > -1./D) {
+    if (smallest_dot > -1./DIP_DIMS) {
 #ifndef DIP_SUPPRESS_SIMPLEX_ERRORS
         std::cerr << "DIP ERROR in Simplex object " << this << " in function validate_normals()" << std::endl;
         std::cerr << "Error in normal validation: Scalar product of Normals "
                   << smallest_dot_idx1 << " and " << smallest_dot_idx2 << ": "
-                  << smallest_dot << " > -1/" << D << " = " << -1./D << std::endl;
+                  << smallest_dot << " > -1/" << DIP_DIMS << " = " << -1./DIP_DIMS << std::endl;
 #endif
         error = 1;
     }
@@ -519,19 +519,19 @@ void Simplex::construct_T_inv() {
 
 
 void Simplex::calculate_T() {
-    for (int i = 0; i < D; i++) {   // for each point (except the last)
-        for (int j = 0; j < D; j++) {   // for each coordinate
+    for (int i = 0; i < DIP_DIMS; i++) {   // for each point (except the last)
+        for (int j = 0; j < DIP_DIMS; j++) {   // for each coordinate
             // matrix[j][i], not matrix[i][j] - coordinates go down, points go right
-            T_inv[j][i] = points[i]->coords[j] - points[D]->coords[j];
+            T_inv[j][i] = points[i]->coords[j] - points[DIP_DIMS]->coords[j];
         }
     }
 }
 
 
 void Simplex::invert_T() {
-    double unit[D][D];  // unit matrix
-    for (int i = 0; i < D; i++) {
-        for (int j = 0; j < D; j++) {
+    double unit[DIP_DIMS][DIP_DIMS];  // unit matrix
+    for (int i = 0; i < DIP_DIMS; i++) {
+        for (int j = 0; j < DIP_DIMS; j++) {
             if (i == j) {
                 unit[i][j] = 1;
             } else {
@@ -540,10 +540,10 @@ void Simplex::invert_T() {
         }
     }
 
-    gauss_elimination<D, D, D>(T_inv, unit, 1);
+    gauss_elimination<DIP_DIMS, DIP_DIMS, DIP_DIMS>(T_inv, unit, 1);
 
-    for (int i = 0; i < D; i++) {
-        for (int j = 0; j < D; j++) {
+    for (int i = 0; i < DIP_DIMS; i++) {
+        for (int j = 0; j < DIP_DIMS; j++) {
             T_inv[i][j] = unit[i][j];
         }
     }
@@ -570,7 +570,7 @@ void Simplex::gauss_elimination(double (&A)[M][N1], double (&B)[M][N2], int appl
      */
 
     // Permutation of ROW InDeXes
-    int row_idx[D];
+    int row_idx[DIP_DIMS];
     for (int i = 0; i < M; i++) {
         row_idx[i] = i;
     }
@@ -652,24 +652,24 @@ double * Simplex::convert_to_bary(const double * coords) {
      * https://math.stackexchange.com/a/1226825
      */
     // 1. Obtain p - v_n+1
-    double vec[D];
-    for (int i = 0; i < D; i++) {
-        vec[i] = coords[i] - points[D]->coords[i];
+    double vec[DIP_DIMS];
+    for (int i = 0; i < DIP_DIMS; i++) {
+        vec[i] = coords[i] - points[DIP_DIMS]->coords[i];
     }
 
     // 2. Multiply T_inv * (p - v_n+1) to get lambda
-    double * bary = new double[D+1];
-    for (int i = 0; i < D; i++) {
+    double * bary = new double[DIP_DIMS+1];
+    for (int i = 0; i < DIP_DIMS; i++) {
         bary[i] = 0;
-        for (int j = 0; j < D; j++) {
+        for (int j = 0; j < DIP_DIMS; j++) {
             bary[i] += T_inv[i][j] * vec[j];
         }
     }
 
     // dependent coordinate lambda_n+1
-    bary[D] = 1;
-    for (int i = 0; i < D; i++) {
-        bary[D] -= bary[i];
+    bary[DIP_DIMS] = 1;
+    for (int i = 0; i < DIP_DIMS; i++) {
+        bary[DIP_DIMS] -= bary[i];
     }
 
     return bary;
@@ -683,7 +683,7 @@ int Simplex::check_bary(const double* bary) {
      * Edge cases are considered to be outside.
      */
     double bsum = 0;
-    for (int i = 0; i < D+1; i++) {
+    for (int i = 0; i < DIP_DIMS+1; i++) {
         if (bary[i] < 0) {
             // Consider points on edges to not be contained, in order to avoid degeneracies!
             return 0;
@@ -713,44 +713,44 @@ void Simplex::print_error_info() {
     std::cerr << "======================" << std::endl;
     std::cerr << "Error Info of Simplex " << index << " at address " << this << ":" << std::endl;
     std::cerr << "Centroid:" << std::endl;
-    for (int i = 0; i < D; i++) {
+    for (int i = 0; i < DIP_DIMS; i++) {
         std::cerr << centroid[i] << " ";
     }
     std::cerr << std::endl;
 
     std::cerr << "Indices of neighbor simplices:" << std::endl;
-    for (int i = 0; i < D+1; i++) {
+    for (int i = 0; i < DIP_DIMS+1; i++) {
         std::cerr << neighbor_indices[i] << " ";
     }
     std::cerr << std::endl;
 
     std::cerr << "Points: " << std::endl;
-    for (int i = 0; i < D+1; i++) {
-        for (int j = 0; j < D; j++) {
+    for (int i = 0; i < DIP_DIMS+1; i++) {
+        for (int j = 0; j < DIP_DIMS; j++) {
             std::cerr << points[i]->coords[j] << " ";
         }
         std::cerr << points[i]->value << "\t(" << points[i] << ")" << std::endl;
     }
 
     std::cerr << "Midpoints of faces: " << std::endl;
-    for (int i = 0; i < D+1; i++) {
-        for (int j = 0; j < D; j++) {
+    for (int i = 0; i < DIP_DIMS+1; i++) {
+        for (int j = 0; j < DIP_DIMS; j++) {
             std::cerr << midpoints[i][j] << " ";
         }
         std::cerr << std::endl;
     }
 
     std::cerr << "Normal vectors on faces:" << std::endl;
-    for (int i = 0; i < D+1; i++) {
-        for (int j = 0; j < D; j++) {
+    for (int i = 0; i < DIP_DIMS+1; i++) {
+        for (int j = 0; j < DIP_DIMS; j++) {
             std::cerr << normals[i][j] << " ";
         }
         std::cerr << std::endl;
     }
 
     std::cerr << "T_inv:" << std::endl;
-    for (int i = 0; i < D; i++) {
-        for (int j = 0; j < D; j++) {
+    for (int i = 0; i < DIP_DIMS; i++) {
+        for (int j = 0; j < DIP_DIMS; j++) {
             std::cerr << T_inv[i][j] << " ";
         }
         std::cerr << std::endl;

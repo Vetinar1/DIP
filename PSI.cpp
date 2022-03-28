@@ -712,7 +712,7 @@ double * PSI::interpolate(double * target, int smart_fallback) {
         reps++;
     }
     
-    reps 0;
+    reps = 0;
     while (simplex == nullptr && reps < PSI_MAXREP && smart_fallback) {
       simplex = adaptive_projective_simplex_algorithm(target, k, PSI_KFACTOR, PSI_MAXREP, 1);
       reps++;
