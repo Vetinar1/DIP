@@ -435,7 +435,7 @@ int * PSI::find_k_nearest_neighbor(double * target, int k) {
 }
 
 
-int * PSI::projective_simplex_algorithm(int * neighbors, double * target, int k) {
+int * PSI::projective_simplex_algorithm(int * neighbors, double * target, int k, int smart_nn) {
     // Copy relevant neighbors into separate array of dimensions k x DIP_DIMS
     // The DIP_DIMS columns are going to hold the actual coordinates; these are going to be
     // modified as we do the projection in each iteration
@@ -468,26 +468,38 @@ int * PSI::projective_simplex_algorithm(int * neighbors, double * target, int k)
     while (d > 1) {
         // Find nearest neighbor. In the first iteration this is always the first neighbor in the list, otherwise
         // do a brute force search
-        // TODO try using kd tree after all...
         int nn;
-        if (d == DIP_DIMS) {
+        if (smart_nn && d == DIP_DIMS) {
+            double * mean_vec = new double [k];     // mean difference vector from target to neighbors
+            double ** diff_vecs = new double * [k]; // all difference vectors from target to neighbors
+            
+            for (int i = 0; i < k; i++) {
+              mean_vec[i] = 0;
+            }
+            
+            for (int i = 0; i < k; i++) {
+                diff_vecs[i] = new double[DIP_DIMS];
+                for (int j = 0; j < DIP_DIMS; j++) {
+                    diff_vecs[i][j] = neigh_coords[i][j] - target[j];
+                    mean_vec[j] += neigh_coords[i][j] / k;
+                }
+            }
+            
+            double smallest_dot = DBL_MAX;
+            for (int i = 0; i < k; i++) {
+                double dot_product = 0;
+                for (int j = 0; j < DIP_DIMS; j++) {
+                   dot_product += mean_vec[j] * diff_vecs[i][j];
+                }
+                
+                if (dot_product < smallest_dot) {
+                    smallest_dot = dot_product;
+                    nn = i;
+                }
+            }
+        } else if (d == DIP_DIMS) {
             nn = 0;
         } else {
-#if 0
-            int * indices = new int[k];
-            int n = 0;
-            for (int i = 0; i < k; i++) {
-              if (neigh_mask[i]) {
-                indices[n] = i;
-                n++;
-              }
-            }
-            double min_dist2 = DBL_MAX;
-            PSIBallTree * best = nullptr;
-            PSIBallTree * temptree = construct_btree_recursive(neigh_coords, indices, n);
-            PSIBallTree * result = psi_find_nearest_neighbor_recursive(temptree, ptarget, neigh_coords, best, &min_dist2);
-            nn = result->pivot;
-#else
             double min_dist2 = DBL_MAX;
             for (int i = 0; i < k; i++) {
                 if (neigh_mask[i] == 0) {
@@ -504,7 +516,6 @@ int * PSI::projective_simplex_algorithm(int * neighbors, double * target, int k)
                     nn = i;
                 }
             }
-#endif
         }
         
         // Add the nearest neighbor to the solution
@@ -651,15 +662,15 @@ int * PSI::projective_simplex_algorithm(int * neighbors, double * target, int k)
 }
 
 
-int * PSI::adaptive_projective_simplex_algorithm(double * target, int k, double factor, int max_steps) {
+int * PSI::adaptive_projective_simplex_algorithm(double * target, int k, double factor, int max_steps, int smart_nn) {
     int * neighbors = find_k_nearest_neighbor(target, k);
-    int * simplex = projective_simplex_algorithm(neighbors, target, k);
+    int * simplex = projective_simplex_algorithm(neighbors, target, k, smart_nn);
     
     int iterations = 0;
     while (simplex == nullptr && iterations < max_steps) {
         k = (int) k * factor;
         neighbors = find_k_nearest_neighbor(target, k);
-        simplex = projective_simplex_algorithm(neighbors, target, k);
+        simplex = projective_simplex_algorithm(neighbors, target, k, smart_nn);
         iterations++;
     }
 
@@ -673,7 +684,7 @@ int * PSI::adaptive_projective_simplex_algorithm(double * target, int k, double 
 }
 
 
-double * PSI::interpolate(double * target) {
+double * PSI::interpolate(double * target, int smart_fallback) {
     /**
      * Interpolate target point.
      * Clamp coordinates to ensure padding, construct simplex containing target point, interpolate using
@@ -697,8 +708,14 @@ double * PSI::interpolate(double * target) {
     int reps = 0;
     
     while (simplex == nullptr && reps < PSI_MAXREP) {
-        simplex = adaptive_projective_simplex_algorithm(target, k, PSI_KFACTOR, PSI_MAXREP);
+        simplex = adaptive_projective_simplex_algorithm(target, k, PSI_KFACTOR, PSI_MAXREP, 0);
         reps++;
+    }
+    
+    reps 0;
+    while (simplex == nullptr && reps < PSI_MAXREP && smart_fallback) {
+      simplex = adaptive_projective_simplex_algorithm(target, k, PSI_KFACTOR, PSI_MAXREP, 1);
+      reps++;
     }
     
     if (simplex == nullptr) {

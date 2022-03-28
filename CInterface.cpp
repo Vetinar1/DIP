@@ -100,8 +100,8 @@ extern "C" {
         Ps[p_indx]->reset();
     }
     
-    double * PSI_interpolate(int p_indx, double * coords) {
-        return Ps[p_indx]->interpolate(coords);
+    double * PSI_interpolate(int p_indx, double * coords, int smart_fallback) {
+        return Ps[p_indx]->interpolate(coords, smart_fallback);
     }
     
     void PSI_set_clamps(int p_indx, double * mins, double * maxs) {

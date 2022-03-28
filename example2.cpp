@@ -114,7 +114,7 @@ int main() {
                 coord[0] = clamp_mins[0] + i * (clamp_maxs[0]-clamp_mins[0])/10.;
                 coord[1] = clamp_mins[1] + j * (clamp_maxs[1]-clamp_mins[1])/10.;
                 coord[2] = clamp_mins[2] + k * (clamp_maxs[2]-clamp_mins[2])/10.;
-                double * interp = psi->interpolate(coord);
+                double * interp = psi->interpolate(coord, 0);
 
                 // Uncomment to see output
                 for (int l = 0; l < DIP_VARNR; l++) {

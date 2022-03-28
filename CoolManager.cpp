@@ -29,8 +29,16 @@ double * CoolManager::interpolate(double * args, double z) {
     }
 
     // Interpolate inside slices
+#if defined(DIP_CM_USE_PSI) && defined(DIP_CM_USE_PSI_FALLBACK)
+    double * low_vals = low->interpolate(args, 1);
+    double * high_vals = high->interpolate(args, 1);
+#elif defined(DIP_CM_USE_PSI)
+    double * low_vals = low->interpolate(args, 0);
+    double * high_vals = high->interpolate(args, 0);
+#else
     double * low_vals = low->interpolate(args);
     double * high_vals = high->interpolate(args);
+#endif
     
     if (low_vals == nullptr && high_vals == nullptr) {
         return nullptr;

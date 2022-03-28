@@ -55,9 +55,9 @@ public:
     int construct_btree(double ** points);
     int * find_k_nearest_neighbor(double * target, double ** points, PSIBallTree * btree, int k);
     int * find_k_nearest_neighbor(double * target, int k);
-    int * projective_simplex_algorithm(int * neighbors, double * target, int k);
-    int * adaptive_projective_simplex_algorithm(double * target, int k, double factor, int max_steps);
-    double * interpolate(double * target);
+    int * projective_simplex_algorithm(int * neighbors, double * target, int k, int smart_nn);
+    int * adaptive_projective_simplex_algorithm(double * target, int k, double factor, int max_steps, int smart_nn);
+    double * interpolate(double * target, int smart_fallback);
 };
 
 #endif //DIP_PSI_H
